@@ -10,6 +10,7 @@ import {
 import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -116,6 +117,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      {/* Desenha os avisos de toast() de TODAS as páginas. Sem ele, toast() não mostra nada. */}
+      <Toaster theme="dark" position="top-right" closeButton />
     </QueryClientProvider>
   );
 }
