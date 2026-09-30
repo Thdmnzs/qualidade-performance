@@ -19,6 +19,7 @@ import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAvaliacoesRouteImport } from './routes/_authenticated/admin/avaliacoes'
 import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_authenticated/admin/colaboradores'
+import { Route as AuthenticatedAdminContestacoesRouteImport } from './routes/_authenticated/admin/contestacoes'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -72,6 +73,12 @@ const AuthenticatedAdminColaboradoresRoute =
     path: '/admin/colaboradores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminContestacoesRoute =
+  AuthenticatedAdminContestacoesRouteImport.update({
+    id: '/admin/contestacoes',
+    path: '/admin/contestacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
+  '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
+  '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/ranking': typeof AuthenticatedRankingRoute
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/_authenticated/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
+  '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
+    | '/admin/contestacoes'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
+    | '/admin/contestacoes'
     | '/admin'
   id:
     | '__root__'
@@ -142,6 +154,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ranking'
     | '/_authenticated/admin/avaliacoes'
     | '/_authenticated/admin/colaboradores'
+    | '/_authenticated/admin/contestacoes'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminColaboradoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/contestacoes': {
+      id: '/_authenticated/admin/contestacoes'
+      path: '/admin/contestacoes'
+      fullPath: '/admin/contestacoes'
+      preLoaderRoute: typeof AuthenticatedAdminContestacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -233,6 +253,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRankingRoute: typeof AuthenticatedRankingRoute
   AuthenticatedAdminAvaliacoesRoute: typeof AuthenticatedAdminAvaliacoesRoute
   AuthenticatedAdminColaboradoresRoute: typeof AuthenticatedAdminColaboradoresRoute
+  AuthenticatedAdminContestacoesRoute: typeof AuthenticatedAdminContestacoesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -242,6 +263,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRankingRoute: AuthenticatedRankingRoute,
   AuthenticatedAdminAvaliacoesRoute: AuthenticatedAdminAvaliacoesRoute,
   AuthenticatedAdminColaboradoresRoute: AuthenticatedAdminColaboradoresRoute,
+  AuthenticatedAdminContestacoesRoute: AuthenticatedAdminContestacoesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

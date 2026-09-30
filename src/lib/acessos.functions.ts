@@ -17,7 +17,7 @@ import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 
 const autenticado = [enviarTokenDaSessao, requireSupabaseAuth] as const;
 
-const perfilSchema = z.enum(["colaborador", "gestor", "adm"]);
+const perfilSchema = z.enum(["colaborador", "avaliador", "adm"]);
 
 /**
  * Mensagens de ErroDeAcesso são seguras e vão para a tela; qualquer outro erro

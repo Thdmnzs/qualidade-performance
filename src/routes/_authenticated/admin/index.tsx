@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { useIsManager } from "@/hooks/useAuth";
+import { usePermissoes } from "@/hooks/useAuth";
 import {
   fetchColaboradores,
   fetchContestacoes,
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 function AdminHome() {
-  const { isManager, isLoading } = useIsManager();
+  const { isAdmin, isLoading } = usePermissoes();
   const { data: quinzenas = [] } = useQuery({ queryKey: ["quinzenas"], queryFn: fetchQuinzenas });
   const { data: colaboradores = [] } = useQuery({
     queryKey: ["colaboradores"],
@@ -40,10 +40,8 @@ function AdminHome() {
   });
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
-  if (!isManager)
-    return (
-      <EmptyState titulo="Acesso restrito" texto="Esta área é exclusiva de gestores e administradores." />
-    );
+  if (!isAdmin)
+    return <EmptyState titulo="Acesso restrito" texto="Esta área é exclusiva de administradores." />;
 
   const abertas = contestacoes.filter((c) => c.status === "aberta" || c.status === "em_analise");
 

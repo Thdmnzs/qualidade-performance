@@ -9,24 +9,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsManager } from "@/hooks/useAuth";
-import { fetchAvaliacoes, fetchColaboradores, fetchQuinzenas } from "@/lib/queries";
+import { usePermissoes } from "@/hooks/useAuth";
+import { fetchAvaliacoes, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { dataHoraBR, nomeQuinzena, numeroBR } from "@/lib/format";
+import {
+  AVALIACOES_PREVISTAS,
+  avisoDeQuantidade,
+  calcularNota,
+  ROTULO_TIPO,
+  type Resposta,
+} from "@/lib/avaliacao";
 
 export const Route = createFileRoute("/_authenticated/admin/avaliacoes")({
   head: () => ({
     meta: [
       { title: "Avaliações de qualidade · Qualidade & Performance" },
-      { name: "description", content: "Formulário de qualidade com 14 critérios e registro de quiz por quinzena." },
+      {
+        name: "description",
+        content: "Formulário de qualidade com 14 critérios e registro de quiz por quinzena.",
+      },
     ],
   }),
   component: Avaliacoes,
 });
 
-type Resposta = "sim" | "medio" | "nao";
-
 function Avaliacoes() {
-  const { isManager } = useIsManager();
+  const { podeAvaliar } = usePermissoes();
   const qc = useQueryClient();
 
   const [employeeId, setEmployeeId] = useState("");
@@ -38,13 +46,27 @@ function Avaliacoes() {
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
 
-  const { data: colaboradores = [] } = useQuery({ queryKey: ["colaboradores"], queryFn: fetchColaboradores, enabled: isManager });
-  const { data: quinzenas = [] } = useQuery({ queryKey: ["quinzenas"], queryFn: fetchQuinzenas, enabled: isManager });
+  // O banco devolve só quem este usuário pode avaliar: nunca ele mesmo; o
+  // avaliador recebe só colaboradores; o ADM, colaboradores e avaliadores.
+  const { data: avaliaveis = [] } = useQuery({
+    queryKey: ["avaliaveis"],
+    queryFn: fetchAvaliaveis,
+    enabled: podeAvaliar,
+  });
+  const { data: quinzenas = [] } = useQuery({
+    queryKey: ["quinzenas"],
+    queryFn: fetchQuinzenas,
+    enabled: podeAvaliar,
+  });
   const { data: criterios = [] } = useQuery({
     queryKey: ["criterios"],
-    enabled: isManager,
+    enabled: podeAvaliar,
     queryFn: async () => {
-      const { data, error } = await supabase.from("evaluation_criteria").select("*").eq("ativo", true).order("ordem");
+      const { data, error } = await supabase
+        .from("evaluation_criteria")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem");
       if (error) throw error;
       return data ?? [];
     },
@@ -52,65 +74,79 @@ function Avaliacoes() {
   const { data: avaliacoes = [] } = useQuery({
     queryKey: ["avaliacoes", fortnightId],
     queryFn: () => fetchAvaliacoes(fortnightId || undefined),
-    enabled: isManager,
+    enabled: podeAvaliar,
   });
   const { data: quiz = [] } = useQuery({
     queryKey: ["quiz", fortnightId],
-    enabled: isManager && !!fortnightId,
+    enabled: podeAvaliar && !!fortnightId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("quiz_results").select("*").eq("fortnight_id", fortnightId);
+      const { data, error } = await supabase
+        .from("quiz_results")
+        .select("*")
+        .eq("fortnight_id", fortnightId);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const versao = criterios[0]?.versao ?? 1;
-  const descontoDe = (c: (typeof criterios)[number], r?: Resposta) =>
-    r === "nao" ? Number(c.peso) : r === "medio" ? Number(c.peso_medio ?? 0) : 0;
-  const nota = useMemo(
-    () => Math.max(0, 100 - criterios.reduce((s, c) => s + descontoDe(c, respostas[c.id]), 0)),
-    [criterios, respostas],
-  );
-  const completa = criterios.length > 0 && criterios.every((c) => respostas[c.id]);
-  const ativos = colaboradores.filter((c) => c.status === "ativo" && c.perfil === "colaborador");
+  // Mesma regra do banco: vale a maior versão com critérios ativos.
+  const versao = criterios.reduce((max, c) => Math.max(max, c.versao), 0) || 1;
+  const ficha = useMemo(() => criterios.filter((c) => c.versao === versao), [criterios, versao]);
+  // Só prévia: a nota oficial é calculada pelo banco ao registrar.
+  const nota = useMemo(() => calcularNota(ficha, respostas), [ficha, respostas]);
+  const completa = ficha.length > 0 && ficha.every((c) => respostas[c.id]);
+
+  const { data: totais } = useQuery({
+    queryKey: ["avaliacoes-totais", employeeId, fortnightId],
+    enabled: podeAvaliar && !!employeeId && !!fortnightId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("evaluations")
+        .select("tipo")
+        .eq("employee_id", employeeId)
+        .eq("fortnight_id", fortnightId)
+        .eq("anulada", false);
+      if (error) throw error;
+      return {
+        interacao: data.filter((a) => a.tipo === "interacao").length,
+        ticket_n2: data.filter((a) => a.tipo === "ticket_n2").length,
+      };
+    },
+  });
 
   const salvar = useMutation({
+    // O banco valida, calcula a nota e grava avaliação + itens numa transação.
     mutationFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
-      const { data: ev, error } = await supabase
-        .from("evaluations")
-        .insert({
-          employee_id: employeeId,
-          fortnight_id: fortnightId,
-          tipo,
-          ticket: ticket || null,
-          link_conversa: link || null,
-          comentarios: comentarios || null,
-          versao_ficha: versao,
-          nota,
-          avaliador_id: user.user?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      const itens = criterios.map((c) => ({
-        evaluation_id: ev.id,
-        criterion_id: c.id,
-        resposta: respostas[c.id] ?? "sim",
-        desconto: descontoDe(c, respostas[c.id]),
-        observacao: respostas[c.id] === "nao" ? (observacoes[c.id]?.trim() || null) : null,
-      }));
-      const { error: e2 } = await supabase.from("evaluation_items").insert(itens);
-      if (e2) throw e2;
+      const { data, error } = await supabase.rpc("registrar_avaliacao", {
+        _employee_id: employeeId,
+        _fortnight_id: fortnightId,
+        _tipo: tipo,
+        _ticket: ticket,
+        _link_conversa: link,
+        _comentarios: comentarios,
+        _respostas: ficha.map((c) => ({
+          criterio_id: c.id,
+          resposta: respostas[c.id],
+          observacao: respostas[c.id] === "nao" ? (observacoes[c.id] ?? "") : null,
+        })),
+      });
+      if (error) throw new Error(error.message);
+      const registrada = data?.[0];
+      if (!registrada)
+        throw new Error(
+          "O banco não confirmou o registro. Confira a lista antes de tentar de novo.",
+        );
+      return registrada;
     },
-    onSuccess: () => {
-      toast.success("Avaliação registrada.");
+    onSuccess: (registrada) => {
+      toast.success(`Avaliação registrada. Nota: ${numeroBR(Number(registrada.nota))}.`);
       setRespostas({});
       setObservacoes({});
       setTicket("");
       setLink("");
       setComentarios("");
       qc.invalidateQueries({ queryKey: ["avaliacoes"] });
+      qc.invalidateQueries({ queryKey: ["avaliacoes-totais"] });
     },
     onError: (e: Error) => toast.error(`Não foi possível salvar: ${e.message}`),
   });
@@ -120,30 +156,59 @@ function Avaliacoes() {
       const { data: user } = await supabase.auth.getUser();
       const existente = quiz.find((q) => q.employee_id === emp);
       const { error } = existente
-        ? await supabase.from("quiz_results").update({ entregue, registrado_por: user.user?.id ?? null }).eq("id", existente.id)
-        : await supabase
+        ? await supabase
             .from("quiz_results")
-            .insert({ employee_id: emp, fortnight_id: fortnightId, entregue, registrado_por: user.user?.id ?? null });
+            .update({ entregue, registrado_por: user.user?.id ?? null })
+            .eq("id", existente.id)
+        : await supabase.from("quiz_results").insert({
+            employee_id: emp,
+            fortnight_id: fortnightId,
+            entregue,
+            registrado_por: user.user?.id ?? null,
+          });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quiz", fortnightId] }),
     onError: (e: Error) => toast.error(`Não foi possível registrar o quiz: ${e.message}`),
   });
 
-  if (!isManager) return <EmptyState titulo="Acesso restrito" texto="Área exclusiva da gestão." />;
+  if (!podeAvaliar)
+    return (
+      <EmptyState
+        titulo="Acesso restrito"
+        texto="Área exclusiva de avaliadores e administradores."
+      />
+    );
 
   const select = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
   return (
     <div>
-      <PageHeader titulo="Avaliações" descricao={`Ficha de qualidade versão ${versao} · nota = 100 − descontos`} />
+      <PageHeader
+        titulo="Avaliações"
+        descricao={`Ficha de qualidade versão ${versao} · nota = 100 − descontos`}
+      />
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!completa) { toast.error("Responda todos os critérios. Fichas em branco não são válidas."); return; }
-          const semFeedback = criterios.find((c) => respostas[c.id] === "nao" && !observacoes[c.id]?.trim());
-          if (semFeedback) { toast.error(`Justifique o critério "${semFeedback.ordem}. ${semFeedback.descricao}" marcado como Não.`); return; }
+          // Estas checagens só antecipam o que o banco valida de qualquer forma.
+          if (!completa) {
+            toast.error("Responda todos os critérios. Fichas em branco não são válidas.");
+            return;
+          }
+          const semFeedback = ficha.find(
+            (c) => respostas[c.id] === "nao" && !observacoes[c.id]?.trim(),
+          );
+          if (semFeedback) {
+            toast.error(
+              `Justifique o critério "${semFeedback.ordem}. ${semFeedback.descricao}" marcado como Não.`,
+            );
+            return;
+          }
+          // Avisar, mas permitir (regra de negócio): acima do previsto, pede confirmação.
+          const aviso = totais ? avisoDeQuantidade(tipo, totais[tipo]) : null;
+          if (aviso && !confirm(`${aviso}\n\nRegistrar mesmo assim?`)) return;
           salvar.mutate();
         }}
         className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5"
@@ -151,7 +216,13 @@ function Avaliacoes() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="q">Quinzena</Label>
-            <select id="q" required className={select} value={fortnightId} onChange={(e) => setFortnightId(e.target.value)}>
+            <select
+              id="q"
+              required
+              className={select}
+              value={fortnightId}
+              onChange={(e) => setFortnightId(e.target.value)}
+            >
               <option value="">Selecione</option>
               {quinzenas.map((q) => (
                 <option key={q.id} value={q.id} disabled={q.status === "fechada"}>
@@ -162,16 +233,30 @@ function Avaliacoes() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="c">Colaborador</Label>
-            <select id="c" required className={select} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+            <select
+              id="c"
+              required
+              className={select}
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
               <option value="">Selecione</option>
-              {ativos.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+              {avaliaveis.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                  {c.perfil === "avaliador" ? " (avaliador)" : ""}
+                </option>
               ))}
             </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="t">Tipo</Label>
-            <select id="t" className={select} value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
+            <select
+              id="t"
+              className={select}
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as typeof tipo)}
+            >
               <option value="interacao">Interação</option>
               <option value="ticket_n2">Ticket N2</option>
             </select>
@@ -186,15 +271,36 @@ function Avaliacoes() {
           </div>
         </div>
 
+        {totais && (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Nesta quinzena:{" "}
+            {(Object.keys(AVALIACOES_PREVISTAS) as Array<keyof typeof AVALIACOES_PREVISTAS>).map(
+              (t, i) => {
+                const acima = totais[t] >= AVALIACOES_PREVISTAS[t];
+                return (
+                  <span key={t}>
+                    {i > 0 && " · "}
+                    <span className={acima ? "font-medium text-warning" : "text-foreground"}>
+                      {ROTULO_TIPO[t]} {totais[t]}/{AVALIACOES_PREVISTAS[t]}
+                    </span>
+                  </span>
+                );
+              },
+            )}
+          </p>
+        )}
+
         <div className="divide-y divide-border rounded-xl border border-border">
-          {criterios.map((c) => (
+          {ficha.map((c) => (
             <div key={c.id} className="p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
                     {c.ordem}. {c.descricao}
                     {c.gravidade === "gravissimo" && (
-                      <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">gravíssimo</span>
+                      <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">
+                        gravíssimo
+                      </span>
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -203,31 +309,37 @@ function Avaliacoes() {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  {(["sim", ...(c.permite_medio ? ["medio"] : []), "nao"] as Resposta[]).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => {
-                        setRespostas({ ...respostas, [c.id]: r });
-                        if (r !== "nao") {
-                          const { [c.id]: _removida, ...resto } = observacoes;
-                          setObservacoes(resto);
-                        }
-                      }}
-                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                        respostas[c.id] === r
-                          ? r === "nao" ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {r === "sim" ? "Sim" : r === "medio" ? "Médio" : "Não"}
-                    </button>
-                  ))}
+                  {(["sim", ...(c.permite_medio ? ["medio"] : []), "nao"] as Resposta[]).map(
+                    (r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setRespostas({ ...respostas, [c.id]: r });
+                          if (r !== "nao") {
+                            const { [c.id]: _removida, ...resto } = observacoes;
+                            setObservacoes(resto);
+                          }
+                        }}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          respostas[c.id] === r
+                            ? r === "nao"
+                              ? "bg-destructive text-destructive-foreground"
+                              : "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {r === "sim" ? "Sim" : r === "medio" ? "Médio" : "Não"}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
               {respostas[c.id] === "nao" && (
                 <div className="mt-3 space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <Label htmlFor={`obs-${c.id}`} className="text-xs">Feedback do avaliador (obrigatório)</Label>
+                  <Label htmlFor={`obs-${c.id}`} className="text-xs">
+                    Feedback do avaliador (obrigatório)
+                  </Label>
                   <Textarea
                     id={`obs-${c.id}`}
                     rows={2}
@@ -243,12 +355,22 @@ function Avaliacoes() {
 
         <div className="space-y-2">
           <Label htmlFor="cm">Comentários / feedback</Label>
-          <Textarea id="cm" rows={3} value={comentarios} onChange={(e) => setComentarios(e.target.value)} />
+          <Textarea
+            id="cm"
+            rows={3}
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+          />
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="font-display text-2xl font-bold text-primary">Nota: {numeroBR(nota)}</p>
-          <Button type="submit" disabled={salvar.isPending}>Registrar avaliação</Button>
+          <p className="font-display text-2xl font-bold text-primary">
+            <span className="mr-2 text-sm font-normal text-muted-foreground">Prévia da nota</span>
+            {numeroBR(nota)}
+          </p>
+          <Button type="submit" disabled={salvar.isPending}>
+            {salvar.isPending ? "Registrando..." : "Registrar avaliação"}
+          </Button>
         </div>
       </form>
 
@@ -256,10 +378,13 @@ function Avaliacoes() {
         <>
           <h2 className="mb-3 font-display text-lg font-semibold">Quiz da quinzena</h2>
           <div className="mb-8 grid gap-2 md:grid-cols-2">
-            {ativos.map((c) => {
+            {avaliaveis.map((c) => {
               const entregue = quiz.find((q) => q.employee_id === c.id)?.entregue;
               return (
-                <div key={c.id} className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2">
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2"
+                >
                   <span className="text-sm">{c.nome}</span>
                   <div className="flex gap-1">
                     {[true, false].map((v) => (
@@ -267,7 +392,11 @@ function Avaliacoes() {
                         key={String(v)}
                         onClick={() => marcarQuiz.mutate({ emp: c.id, entregue: v })}
                         className={`rounded-md px-3 py-1 text-xs ${
-                          entregue === v ? (v ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground") : "bg-secondary text-muted-foreground"
+                          entregue === v
+                            ? v
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-destructive text-destructive-foreground"
+                            : "bg-secondary text-muted-foreground"
                         }`}
                       >
                         {v ? "Entregue" : "Não entregue"}
@@ -300,7 +429,9 @@ function Avaliacoes() {
               {avaliacoes.map((a) => (
                 <tr key={a.id} className="border-t border-border">
                   <td className="px-4 py-3">{a.employees?.nome}</td>
-                  <td className="px-4 py-3">{a.tipo === "interacao" ? "Interação" : "Ticket N2"}</td>
+                  <td className="px-4 py-3">
+                    {a.tipo === "interacao" ? "Interação" : "Ticket N2"}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{a.ticket ?? "—"}</td>
                   <td className="px-4 py-3 font-medium">{numeroBR(a.nota)}</td>
                   <td className="px-4 py-3 text-muted-foreground">{dataHoraBR(a.created_at)}</td>

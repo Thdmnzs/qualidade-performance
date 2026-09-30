@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { destinoAposLogin, type AbaDeLogin } from "@/lib/areas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
@@ -28,14 +29,17 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [tipo, setTipo] = useState<"colaborador" | "gestor">("colaborador");
+  const [aba, setAba] = useState<AbaDeLogin>("colaborador");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  // Já logado: vai para a área padrão do perfil.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/painel", replace: true });
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: perfil } = await supabase.rpc("meu_perfil");
+      if (perfil) navigate({ to: destinoAposLogin(perfil, "colaborador").para, replace: true });
     });
   }, [navigate]);
 
@@ -46,19 +50,30 @@ function AuthPage() {
       email: email.trim().toLowerCase(),
       password: senha,
     });
-    setCarregando(false);
     if (error) {
+      setCarregando(false);
       toast.error(mensagemDeLogin(error.code));
       return;
     }
-    navigate({ to: tipo === "gestor" ? "/admin" : "/painel", replace: true });
+    // A aba escolhe a área de entrada; o perfil decide se ela está disponível.
+    const { data: perfil, error: erroPerfil } = await supabase.rpc("meu_perfil");
+    setCarregando(false);
+    if (erroPerfil || !perfil) {
+      toast.error("Não foi possível carregar o seu perfil. Tente novamente.");
+      return;
+    }
+    const destino = destinoAposLogin(perfil, aba);
+    if (destino.aviso) toast.info(destino.aviso);
+    navigate({ to: destino.para, replace: true });
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold text-primary">Qualidade &amp; Performance</h1>
+          <h1 className="font-display text-3xl font-bold text-primary">
+            Qualidade &amp; Performance
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Plataforma interna do time de CX. Acesse com suas credenciais.
           </p>
@@ -66,14 +81,14 @@ function AuthPage() {
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-glow">
           <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
-            {(["colaborador", "gestor"] as const).map((t) => (
+            {(["colaborador", "avaliador"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setTipo(t)}
+                onClick={() => setAba(t)}
                 className={cn(
                   "rounded-lg py-2 text-sm font-medium capitalize transition-colors",
-                  tipo === t ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                  aba === t ? "bg-primary text-primary-foreground" : "text-muted-foreground",
                 )}
               >
                 {t}
@@ -110,7 +125,8 @@ function AuthPage() {
           </form>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Os acessos são criados pela administração. Em caso de problema, procure seu gestor.
+            Os acessos são criados pela administração. Em caso de problema, procure um
+            administrador.
           </p>
         </div>
       </div>
@@ -125,9 +141,9 @@ function AuthPage() {
 function mensagemDeLogin(codigo: string | undefined): string {
   switch (codigo) {
     case "user_banned":
-      return "Seu acesso está desativado. Procure seu gestor.";
+      return "Seu acesso está desativado. Procure um administrador.";
     case "email_not_confirmed":
-      return "Seu acesso ainda não foi ativado. Use o link de convite enviado pelo seu gestor.";
+      return "Seu acesso ainda não foi ativado. Use o link de convite enviado pela administração.";
     case "over_request_rate_limit":
       return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
     default:

@@ -80,7 +80,7 @@ export const rotuloStatusQuinzena: Record<string, string> = {
 
 export const rotuloPerfil: Record<string, string> = {
   colaborador: "Colaborador",
-  gestor: "Gestor",
+  avaliador: "Avaliador",
   adm: "ADM",
 };
 
@@ -98,3 +98,11 @@ export const normalizarLogin = (valor: string) =>
     .replace(/[^a-z0-9._-]/g, "");
 
 export const normalizarEmail = (valor: string) => valor.trim().toLowerCase();
+
+export const rotuloStatusContestacao: Record<string, string> = {
+  aberta: "Aberta",
+  em_analise: "Em análise",
+  respondida: "Respondida",
+  deferida: "Deferida",
+  indeferida: "Indeferida",
+};

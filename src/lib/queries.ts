@@ -100,3 +100,10 @@ export async function fetchAvaliacoes(fortnightId?: string, employeeId?: string)
   if (error) throw error;
   return data ?? [];
 }
+
+/** Quem o usuário logado pode avaliar: ADM vê colaboradores e avaliadores; avaliador, só colaboradores. */
+export async function fetchAvaliaveis() {
+  const { data, error } = await supabase.rpc("listar_avaliaveis");
+  if (error) throw error;
+  return data ?? [];
+}

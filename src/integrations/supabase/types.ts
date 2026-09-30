@@ -945,6 +945,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_avaliador: { Args: { _user_id: string }; Returns: boolean }
+      listar_avaliaveis: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+          perfil: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       listar_colaboradores: {
         Args: never
         Returns: {
@@ -965,6 +974,10 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      pode_atuar_sobre: {
+        Args: { _employee_id: string; _uid: string }
+        Returns: boolean
+      }
       perfil_do_usuario: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -981,6 +994,23 @@ export type Database = {
         Args: { _chamador: string; _employee_id: string }
         Returns: string
       }
+      registrar_avaliacao: {
+        Args: {
+          _comentarios: string
+          _employee_id: string
+          _fortnight_id: string
+          _link_conversa: string
+          _respostas: Json
+          _ticket: string
+          _tipo: Database["public"]["Enums"]["evaluation_type"]
+        }
+        Returns: {
+          evaluation_id: string
+          nota: number
+          total_interacao: number
+          total_ticket_n2: number
+        }[]
+      }
       validar_gestao_de_acesso: {
         Args: { _chamador: string; _employee_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -996,7 +1026,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "colaborador" | "gestor" | "adm"
+      app_role: "colaborador" | "avaliador" | "adm"
       contestation_status:
         | "aberta"
         | "em_analise"
@@ -1148,7 +1178,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["colaborador", "gestor", "adm"],
+      app_role: ["colaborador", "avaliador", "adm"],
       contestation_status: [
         "aberta",
         "em_analise",

@@ -50,14 +50,23 @@ export function useMeuPerfil() {
   });
 }
 
-export function useIsManager() {
+/**
+ * Permissões do usuário logado, para decidir o que MOSTRAR.
+ * Quem garante o acesso aos dados é o banco (RLS e funções).
+ */
+export function usePermissoes() {
   const { data: employee, isLoading: carregandoEmp } = useCurrentEmployee();
   const { data: perfil, isLoading: carregandoPerfil } = useMeuPerfil();
   return {
     isLoading: carregandoEmp || carregandoPerfil,
-    isManager: perfil === "gestor" || perfil === "adm",
-    isAdmin: perfil === "adm",
     perfil,
     employee,
+    /** Visão geral, ranking, cadastro, acessos e fechamento. */
+    isAdmin: perfil === "adm",
+    isAvaliador: perfil === "avaliador",
+    /** Registrar avaliações, marcar quiz e ver contestações dos colaboradores. */
+    podeAvaliar: perfil === "adm" || perfil === "avaliador",
+    /** Colaboradores e avaliadores têm os próprios resultados; o ADM não. */
+    temAreaDeColaborador: perfil === "colaborador" || perfil === "avaliador",
   };
 }

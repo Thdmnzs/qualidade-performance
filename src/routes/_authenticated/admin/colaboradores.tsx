@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsManager, type Perfil } from "@/hooks/useAuth";
+import { usePermissoes, type Perfil } from "@/hooks/useAuth";
 import { fetchColaboradores } from "@/lib/queries";
 import { alterarStatusFn, criarAcessoFn, gerarLinkDeSenhaFn } from "@/lib/acessos.functions";
 import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/lib/format";
@@ -40,7 +40,7 @@ const vazio = {
 };
 
 function Colaboradores() {
-  const { isManager, isAdmin, employee: eu } = useIsManager();
+  const { isAdmin, employee: eu } = usePermissoes();
   const qc = useQueryClient();
   const [form, setForm] = useState(vazio);
   const [linkAberto, setLinkAberto] = useState<LinkDeAcesso | null>(null);
@@ -51,7 +51,7 @@ function Colaboradores() {
   const { data: lista = [], isLoading } = useQuery({
     queryKey: ["colaboradores"],
     queryFn: fetchColaboradores,
-    enabled: isManager,
+    enabled: isAdmin,
   });
 
   const salvar = useMutation({
@@ -149,22 +149,20 @@ function Colaboradores() {
 
   const ocupado = criarAcessoDaLinha.isPending || gerarLink.isPending || alternarStatus.isPending;
 
-  if (!isManager) return <EmptyState titulo="Acesso restrito" texto="Área exclusiva da gestão." />;
+  if (!isAdmin)
+    return <EmptyState titulo="Acesso restrito" texto="Área exclusiva dos administradores." />;
 
   // Espelha as regras de definir_perfil() só para orientar a tela; o banco é quem garante.
   const editandoASiMesmo = !!form.id && form.id === eu?.id;
-  const perfilEditavel = !form.id
-    ? true
-    : form.temAcesso && !editandoASiMesmo && (isAdmin || form.perfilOriginal !== "adm");
+  // (Só o ADM chega aqui, então não há mais regra de hierarquia entre perfis na tela.)
+  const perfilEditavel = !form.id ? true : form.temAcesso && !editandoASiMesmo;
   const ajudaPerfil = !form.id
-    ? "O acesso é criado junto com o cadastro, com este perfil."
+    ? "O acesso é criado junto com o cadastro, com este perfil. Avaliadores também são colaboradores."
     : !form.temAcesso
       ? "Este colaborador ainda não tem acesso à plataforma."
       : editandoASiMesmo
         ? "Você não pode alterar o seu próprio perfil."
-        : !perfilEditavel
-          ? "Apenas administradores podem alterar o perfil ADM."
-          : null;
+        : null;
 
   return (
     <div>
@@ -228,8 +226,8 @@ function Colaboradores() {
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-60"
           >
             <option value="colaborador">Colaborador</option>
-            <option value="gestor">Gestor</option>
-            {(isAdmin || form.perfilOriginal === "adm") && <option value="adm">ADM</option>}
+            <option value="avaliador">Avaliador</option>
+            <option value="adm">ADM</option>
           </select>
           {ajudaPerfil && (
             <p id="perfil-ajuda" className="text-xs text-muted-foreground">

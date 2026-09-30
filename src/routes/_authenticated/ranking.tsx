@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Crown } from "lucide-react";
 
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { useIsManager } from "@/hooks/useAuth";
+import { usePermissoes } from "@/hooks/useAuth";
 import { fetchQuinzenaAtual, fetchRanking } from "@/lib/queries";
 import { nomeQuinzena } from "@/lib/format";
 
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/ranking")({
 });
 
 function RankingPage() {
-  const { isManager } = useIsManager();
+  const { isAdmin } = usePermissoes();
   const { data: quinzena } = useQuery({ queryKey: ["quinzena-atual"], queryFn: fetchQuinzenaAtual });
   const { data: ranking = [] } = useQuery({
     queryKey: ["ranking", quinzena?.id],
@@ -27,7 +27,7 @@ function RankingPage() {
   });
   const podio = ranking.slice(0, 3);
 
-  if (!isManager) return <EmptyState titulo="Acesso restrito" texto="O ranking é exclusivo da gestão." />;
+  if (!isAdmin) return <EmptyState titulo="Acesso restrito" texto="O ranking é exclusivo dos administradores." />;
 
   return (
     <div>

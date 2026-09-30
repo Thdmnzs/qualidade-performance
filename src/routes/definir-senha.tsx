@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { destinoAposLogin } from "@/lib/areas";
 import { REGRAS_SENHA, senhaAtendeRegras } from "@/lib/senha";
 
 export const Route = createFileRoute("/definir-senha")({
@@ -40,8 +41,8 @@ function lerLinkDaUrl() {
   if (!temErro) return { erro: null, tipo };
   const erro =
     codigoErro === "otp_expired"
-      ? "Este link expirou ou já foi usado. Peça um novo link ao seu gestor."
-      : "Este link é inválido. Peça um novo link ao seu gestor.";
+      ? "Este link expirou ou já foi usado. Peça um novo link a um administrador."
+      : "Este link é inválido. Peça um novo link a um administrador.";
   return { erro, tipo };
 }
 
@@ -53,7 +54,7 @@ function traduzirErroDeSenha(error: { code?: string | undefined }): string {
       return "A nova senha precisa ser diferente da anterior.";
     case "session_expired":
     case "session_not_found":
-      return "Sua sessão expirou. Peça um novo link ao seu gestor.";
+      return "Sua sessão expirou. Peça um novo link a um administrador.";
     default:
       return "Não foi possível salvar a senha. Tente novamente.";
   }
@@ -78,7 +79,7 @@ function DefinirSenha() {
       if (error || !email) {
         setEstado({
           fase: "invalido",
-          mensagem: "Este link é inválido ou já foi usado. Peça um novo link ao seu gestor.",
+          mensagem: "Este link é inválido ou já foi usado. Peça um novo link a um administrador.",
         });
         return;
       }
@@ -101,7 +102,11 @@ function DefinirSenha() {
     }
     toast.success("Senha definida. Bem-vindo(a)!");
     const { data: perfil } = await supabase.rpc("meu_perfil");
-    navigate({ to: perfil === "adm" || perfil === "gestor" ? "/admin" : "/painel", replace: true });
+    // Primeiro acesso entra pela área do colaborador (o ADM vai direto para a gestão).
+    navigate({
+      to: perfil ? destinoAposLogin(perfil, "colaborador").para : "/painel",
+      replace: true,
+    });
   }
 
   return (

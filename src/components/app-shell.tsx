@@ -1,6 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeftRight,
   BarChart3,
   ClipboardCheck,
   LayoutDashboard,
@@ -12,29 +13,35 @@ import {
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useIsManager } from "@/hooks/useAuth";
+import { usePermissoes } from "@/hooks/useAuth";
+import { areaDoEndereco, itensDoMenu, trocaDeArea, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
 
 type NavItem = {
-  to: string;
   label: string;
   icon: typeof LayoutDashboard;
-  manager?: boolean;
   /** true quando a rota é "pai" de outras (ex.: /admin) e só deve acender na própria página */
   exact?: boolean;
 };
 
-const NAV: NavItem[] = [
-  { to: "/painel", label: "Destaques de CX", icon: LayoutDashboard },
-  { to: "/ranking", label: "Ranking", icon: Trophy, manager: true },
-  { to: "/contestacoes", label: "Contestações", icon: MessageSquareWarning },
-  { to: "/admin", label: "Visão geral", icon: BarChart3, manager: true, exact: true },
-  { to: "/admin/avaliacoes", label: "Avaliações", icon: ClipboardCheck, manager: true },
-  { to: "/admin/colaboradores", label: "Colaboradores", icon: Users, manager: true },
-];
+/** Aparência de cada item. QUAIS itens cada perfil vê é decidido em lib/areas.ts. */
+const NAV: Record<Rota, NavItem> = {
+  "/painel": { label: "Destaques de CX", icon: LayoutDashboard },
+  "/contestacoes": { label: "Minhas contestações", icon: MessageSquareWarning },
+  "/admin": { label: "Visão geral", icon: BarChart3, exact: true },
+  "/admin/avaliacoes": { label: "Avaliações", icon: ClipboardCheck },
+  "/admin/contestacoes": { label: "Contestações", icon: MessageSquareWarning },
+  "/ranking": { label: "Ranking", icon: Trophy },
+  "/admin/colaboradores": { label: "Colaboradores", icon: Users },
+};
+
+const ROTULO_AREA = { colaborador: "Área do colaborador", gestao: "Área de avaliação" } as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { isManager, employee, perfil } = useIsManager();
+  const { employee, perfil } = usePermissoes();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const area = areaDoEndereco(pathname);
+  const troca = trocaDeArea(perfil, area);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -45,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
-  const itens = NAV.filter((i) => !i.manager || isManager);
+  const itens = itensDoMenu(perfil, area).map((to) => ({ to, ...NAV[to] }));
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -75,7 +82,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-4 rounded-lg border border-border p-3">
           <p className="truncate text-sm font-medium">{employee?.nome ?? "Usuário"}</p>
-          <p className="text-xs text-muted-foreground">{perfil ? rotuloPerfil[perfil] : "—"}</p>
+          <p className="text-xs text-muted-foreground">
+            {perfil ? rotuloPerfil[perfil] : "—"}
+            {perfil === "avaliador" && ` · ${ROTULO_AREA[area]}`}
+          </p>
+          {troca && (
+            <Link
+              to={troca.para}
+              className="mt-3 flex items-center gap-2 text-xs text-primary hover:underline"
+            >
+              <ArrowLeftRight className="size-3.5" /> {troca.rotulo}
+            </Link>
+          )}
           <button
             onClick={sair}
             className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-destructive"
@@ -96,6 +114,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
+          {troca && (
+            <Link to={troca.para} className="whitespace-nowrap text-xs text-primary">
+              {troca.rotulo}
+            </Link>
+          )}
           <button onClick={sair} className="ml-auto text-xs text-muted-foreground">
             Sair
           </button>

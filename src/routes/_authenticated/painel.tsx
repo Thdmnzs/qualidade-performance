@@ -3,14 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { useCurrentEmployee } from "@/hooks/useAuth";
+import { useCurrentEmployee, usePermissoes } from "@/hooks/useAuth";
 import {
   fetchElegibilidade,
   fetchMediasTime,
   fetchQuinzenaAtual,
   fetchResultados,
 } from "@/lib/queries";
-import { dataBR, nomeQuinzena, numeroBR, rotuloIndicador, rotuloStatusQuinzena } from "@/lib/format";
+import {
+  dataBR,
+  nomeQuinzena,
+  numeroBR,
+  rotuloIndicador,
+  rotuloStatusQuinzena,
+} from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -24,7 +30,11 @@ export const Route = createFileRoute("/_authenticated/painel")({
 
 function Painel() {
   const { data: employee, isLoading: carregandoEmp } = useCurrentEmployee();
-  const { data: quinzena } = useQuery({ queryKey: ["quinzena-atual"], queryFn: fetchQuinzenaAtual });
+  const { temAreaDeColaborador, isLoading: carregandoPerfil } = usePermissoes();
+  const { data: quinzena } = useQuery({
+    queryKey: ["quinzena-atual"],
+    queryFn: fetchQuinzenaAtual,
+  });
 
   const fortnightId = quinzena?.id;
   const employeeId = employee?.id;
@@ -46,7 +56,17 @@ function Painel() {
   });
   const motivos = Array.isArray(elegibilidade?.motivos) ? (elegibilidade?.motivos as string[]) : [];
 
-  if (carregandoEmp) return <p className="text-sm text-muted-foreground">Carregando...</p>;
+  if (carregandoEmp || carregandoPerfil)
+    return <p className="text-sm text-muted-foreground">Carregando...</p>;
+
+  if (!temAreaDeColaborador) {
+    return (
+      <EmptyState
+        titulo="Área do colaborador"
+        texto="O perfil ADM não tem indicadores próprios. Use a Visão geral para acompanhar o time."
+      />
+    );
+  }
 
   if (!employee) {
     return (

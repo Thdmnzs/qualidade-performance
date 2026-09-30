@@ -38,19 +38,33 @@ Scripts úteis: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`
 Variáveis com prefixo `VITE_` são embutidas no JavaScript enviado ao navegador,
 por isso só a chave pública pode tê-lo.
 
+## Perfis
+
+| Perfil | O que faz |
+| --- | --- |
+| **Colaborador** | Vê os próprios indicadores e avaliações (após o fechamento) e abre contestações |
+| **Avaliador** | Também é colaborador. Na área de avaliação, avalia colaboradores, marca o quiz e vê as contestações deles |
+| **ADM** | Gestão completa: visão geral, ranking, cadastro, acessos, avaliação de colaboradores e de avaliadores |
+
+Regras que o banco garante (função `pode_atuar_sobre`): ninguém atua sobre si mesmo; avaliador só atua
+sobre colaboradores; avaliadores são avaliados e têm as contestações tratadas só pelo ADM.
+
+O avaliador usa a mesma conta nas duas áreas. A aba escolhida no login define a área de entrada, e o menu
+permite trocar. A área decide só a navegação: o que cada um pode ler e gravar é decidido pelo banco.
+
 ## Acesso dos colaboradores
 
-Os acessos são criados pela gestão; não existe cadastro aberto.
+Os acessos são criados pelo ADM; não existe cadastro aberto.
 
-1. Em **Colaboradores**, o gestor cadastra a pessoa. O sistema cria o usuário no Supabase Auth
-   e gera um **link de convite** de uso único, que o gestor copia e envia pelo Slack.
-2. A pessoa abre o link, cai em `/definir-senha` e cria a própria senha. O gestor nunca a conhece.
+1. Em **Colaboradores**, o ADM cadastra a pessoa. O sistema cria o usuário no Supabase Auth
+   e gera um **link de convite** de uso único, que o ADM copia e envia pelo Slack.
+2. A pessoa abre o link, cai em `/definir-senha` e cria a própria senha. O ADM nunca a conhece.
 3. **Link de senha** gera um link de redefinição para quem já tem acesso (senha esquecida, convite expirado).
 4. **Inativar** bloqueia o login no Auth e corta o acesso aos dados na hora; o histórico é mantido.
 
 Essas operações usam a chave de serviço e rodam só no servidor (`src/server/acessos.server.ts`).
-As regras de permissão ficam no banco (migration `ciclo_de_acesso`): gestor não gerencia ADM,
-ninguém altera o próprio acesso, e gestor inativo perde os poderes imediatamente.
+As regras de permissão ficam no banco (migration `ciclo_de_acesso`): só o ADM gerencia acessos,
+ninguém altera o próprio acesso, e quem é inativado perde os poderes imediatamente.
 
 Configuração necessária no Supabase:
 
