@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { LinkDeAcessoDialog, type LinkDeAcesso } from "@/components/link-de-acesso-dialog";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +12,17 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsManager, type Perfil } from "@/hooks/useAuth";
 import { fetchColaboradores } from "@/lib/queries";
-import { rotuloPerfil } from "@/lib/format";
+import { alterarStatusFn, criarAcessoFn, gerarLinkDeSenhaFn } from "@/lib/acessos.functions";
+import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/colaboradores")({
   head: () => ({
     meta: [
       { title: "Colaboradores · Qualidade & Performance" },
-      { name: "description", content: "Cadastro, ativação e inativação de colaboradores do time de CX." },
+      {
+        name: "description",
+        content: "Cadastro, ativação e inativação de colaboradores do time de CX.",
+      },
     ],
   }),
   component: Colaboradores,
@@ -37,6 +43,11 @@ function Colaboradores() {
   const { isManager, isAdmin, employee: eu } = useIsManager();
   const qc = useQueryClient();
   const [form, setForm] = useState(vazio);
+  const [linkAberto, setLinkAberto] = useState<LinkDeAcesso | null>(null);
+  const criarAcesso = useServerFn(criarAcessoFn);
+  const gerarLinkDeSenha = useServerFn(gerarLinkDeSenhaFn);
+  const alterarStatus = useServerFn(alterarStatusFn);
+  const atualizarLista = () => qc.invalidateQueries({ queryKey: ["colaboradores"] });
   const { data: lista = [], isLoading } = useQuery({
     queryKey: ["colaboradores"],
     queryFn: fetchColaboradores,
@@ -47,59 +58,106 @@ function Colaboradores() {
     mutationFn: async () => {
       const dados = {
         nome: form.nome.trim(),
-        login: form.login.trim(),
-        email: form.email.trim() || null,
+        login: normalizarLogin(form.login),
+        email: normalizarEmail(form.email),
       };
-      const { error } = form.id
-        ? await supabase.from("employees").update(dados).eq("id", form.id)
-        : await supabase.from("employees").insert(dados);
-      if (error) throw error;
+      if (!LOGIN_VALIDO.test(dados.login)) {
+        throw new Error(
+          "Login deve ter de 3 a 50 caracteres: letras minúsculas, números, ponto, hífen ou _.",
+        );
+      }
 
-      // Perfil é outro fato, gravado em user_roles pela função do banco,
-      // que valida quem pode conceder o quê.
-      if (form.id && form.perfil !== form.perfilOriginal) {
-        const { error: erroPerfil } = await supabase.rpc("definir_perfil", {
-          _employee_id: form.id,
-          _perfil: form.perfil,
+      if (form.id) {
+        const { error } = await supabase.from("employees").update(dados).eq("id", form.id);
+        if (error) throw new Error(mensagemDoBanco(error));
+
+        // Perfil é outro fato, gravado em user_roles pela função do banco,
+        // que valida quem pode conceder o quê.
+        if (form.perfil !== form.perfilOriginal) {
+          const { error: erroPerfil } = await supabase.rpc("definir_perfil", {
+            _employee_id: form.id,
+            _perfil: form.perfil,
+          });
+          if (erroPerfil)
+            throw new Error(`Dados salvos, mas o perfil não foi alterado: ${erroPerfil.message}`);
+        }
+        return { mensagem: "Colaborador atualizado." };
+      }
+
+      // Cadastro novo: primeiro o registro, depois o acesso. Se o acesso falhar,
+      // o cadastro permanece e a linha mostra "Criar acesso" para tentar de novo.
+      const { data: criado, error } = await supabase
+        .from("employees")
+        .insert(dados)
+        .select("id")
+        .single();
+      if (error) throw new Error(mensagemDoBanco(error));
+
+      try {
+        const { link } = await criarAcesso({
+          data: { employeeId: criado.id, perfil: form.perfil },
         });
-        if (erroPerfil)
-          throw new Error(`Dados salvos, mas o perfil não foi alterado: ${erroPerfil.message}`);
+        setLinkAberto({ nome: dados.nome, link, tipo: "convite" });
+        return { mensagem: "Colaborador cadastrado e convite gerado." };
+      } catch (e) {
+        throw new Error(
+          `Colaborador cadastrado, mas o acesso não foi criado: ${(e as Error).message} ` +
+            'Use "Criar acesso" na lista para tentar de novo.',
+        );
       }
     },
-    onSuccess: () => {
-      toast.success(form.id ? "Colaborador atualizado." : "Colaborador cadastrado.");
+    onSuccess: ({ mensagem }) => {
+      toast.success(mensagem);
       setForm(vazio);
-      qc.invalidateQueries({ queryKey: ["colaboradores"] });
     },
     onError: (e: Error) => {
       toast.error(
-        e.message.startsWith("Dados salvos") ? e.message : `Não foi possível salvar: ${e.message}`,
+        e.message.startsWith("Dados salvos") || e.message.startsWith("Colaborador cadastrado")
+          ? e.message
+          : `Não foi possível salvar: ${e.message}`,
       );
-      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+      if (e.message.startsWith("Colaborador cadastrado")) setForm(vazio);
     },
+    onSettled: atualizarLista,
+  });
+
+  const criarAcessoDaLinha = useMutation({
+    mutationFn: async (c: { id: string; nome: string }) => {
+      const { link } = await criarAcesso({ data: { employeeId: c.id, perfil: "colaborador" } });
+      setLinkAberto({ nome: c.nome, link, tipo: "convite" });
+    },
+    onSuccess: () => toast.success("Convite gerado."),
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: atualizarLista,
+  });
+
+  const gerarLink = useMutation({
+    mutationFn: async (c: { id: string; nome: string }) => {
+      const { link } = await gerarLinkDeSenha({ data: { employeeId: c.id } });
+      setLinkAberto({ nome: c.nome, link, tipo: "senha" });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const alternarStatus = useMutation({
-    mutationFn: async (c: { id: string; status: string }) => {
-      const novo = c.status === "ativo" ? "inativo" : "ativo";
-      const { error } = await supabase.from("employees").update({ status: novo }).eq("id", c.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Status atualizado.");
-      qc.invalidateQueries({ queryKey: ["colaboradores"] });
-    },
-    onError: () => toast.error("Não foi possível alterar o status."),
+    mutationFn: (c: { id: string; status: string }) =>
+      alterarStatus({ data: { employeeId: c.id, ativo: c.status !== "ativo" } }),
+    onSuccess: () => toast.success("Status atualizado."),
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: atualizarLista,
   });
+
+  const ocupado = criarAcessoDaLinha.isPending || gerarLink.isPending || alternarStatus.isPending;
 
   if (!isManager) return <EmptyState titulo="Acesso restrito" texto="Área exclusiva da gestão." />;
 
   // Espelha as regras de definir_perfil() só para orientar a tela; o banco é quem garante.
   const editandoASiMesmo = !!form.id && form.id === eu?.id;
-  const perfilEditavel =
-    !!form.id && form.temAcesso && !editandoASiMesmo && (isAdmin || form.perfilOriginal !== "adm");
+  const perfilEditavel = !form.id
+    ? true
+    : form.temAcesso && !editandoASiMesmo && (isAdmin || form.perfilOriginal !== "adm");
   const ajudaPerfil = !form.id
-    ? "Novos cadastros entram como colaborador. O perfil pode ser alterado depois que o acesso for criado."
+    ? "O acesso é criado junto com o cadastro, com este perfil."
     : !form.temAcesso
       ? "Este colaborador ainda não tem acesso à plataforma."
       : editandoASiMesmo
@@ -124,15 +182,40 @@ function Colaboradores() {
       >
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+          <Input
+            id="nome"
+            required
+            value={form.nome}
+            onChange={(e) => setForm({ ...form, nome: e.target.value })}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="login">Login</Label>
-          <Input id="login" required value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} />
+          <Input
+            id="login"
+            required
+            value={form.login}
+            placeholder="nome.sobrenome"
+            onChange={(e) => setForm({ ...form, login: e.target.value })}
+            onBlur={() => setForm((f) => ({ ...f, login: normalizarLogin(f.login) }))}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Input
+            id="email"
+            type="email"
+            required
+            disabled={form.temAcesso}
+            aria-describedby={form.temAcesso ? "email-ajuda" : undefined}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          {form.temAcesso && (
+            <p id="email-ajuda" className="text-xs text-muted-foreground">
+              É o e-mail de login; não pode ser alterado depois que o acesso existe.
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="perfil">Perfil</Label>
@@ -156,7 +239,11 @@ function Colaboradores() {
         </div>
         <div className="flex gap-2 md:col-span-5">
           <Button type="submit" disabled={salvar.isPending}>
-            {form.id ? "Salvar alterações" : "Cadastrar colaborador"}
+            {salvar.isPending
+              ? "Salvando..."
+              : form.id
+                ? "Salvar alterações"
+                : "Cadastrar e gerar convite"}
           </Button>
           {form.id && (
             <Button type="button" variant="ghost" onClick={() => setForm(vazio)}>
@@ -191,7 +278,9 @@ function Colaboradores() {
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs ${
-                        c.status === "ativo" ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"
+                        c.status === "ativo"
+                          ? "bg-primary/15 text-primary"
+                          : "bg-destructive/15 text-destructive"
                       }`}
                     >
                       {c.status === "ativo" ? "Ativo" : "Inativo"}
@@ -202,7 +291,7 @@ function Colaboradores() {
                       </span>
                     )}
                   </td>
-                  <td className="space-x-2 px-4 py-3 text-right">
+                  <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -220,11 +309,42 @@ function Colaboradores() {
                     >
                       Editar
                     </Button>
+                    {c.status === "ativo" && !c.tem_acesso && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={ocupado}
+                        onClick={() => criarAcessoDaLinha.mutate(c)}
+                      >
+                        Criar acesso
+                      </Button>
+                    )}
+                    {c.status === "ativo" && c.tem_acesso && c.id !== eu?.id && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={ocupado}
+                        onClick={() => gerarLink.mutate(c)}
+                      >
+                        Link de senha
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
+                      disabled={ocupado || c.id === eu?.id}
+                      title={
+                        c.id === eu?.id
+                          ? "Você não pode inativar o seu próprio cadastro."
+                          : undefined
+                      }
                       onClick={() => {
-                        if (confirm(`Confirmar ${c.status === "ativo" ? "inativação" : "reativação"} de ${c.nome}?`))
+                        const acao = c.status === "ativo" ? "inativação" : "reativação";
+                        const efeito =
+                          c.status === "ativo"
+                            ? " O login será bloqueado imediatamente; o histórico é mantido."
+                            : "";
+                        if (confirm(`Confirmar ${acao} de ${c.nome}?${efeito}`))
                           alternarStatus.mutate(c);
                       }}
                     >
@@ -237,6 +357,19 @@ function Colaboradores() {
           </table>
         </div>
       )}
+
+      <LinkDeAcessoDialog dados={linkAberto} onFechar={() => setLinkAberto(null)} />
     </div>
   );
+}
+
+/** Traduz violações de regras do banco em mensagens para a tela. */
+function mensagemDoBanco(error: { code?: string; message: string }): string {
+  if (error.message.includes("employees_email_unico"))
+    return "Já existe um colaborador com este e-mail.";
+  if (error.message.includes("employees_login_key"))
+    return "Já existe um colaborador com este login.";
+  if (error.message.includes("employees_email_formato")) return "E-mail inválido.";
+  if (error.message.includes("employees_login_formato")) return "Login inválido.";
+  return error.message;
 }

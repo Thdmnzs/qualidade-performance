@@ -1,8 +1,26 @@
 export const brl = (value: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value ?? 0);
 
+/** "AAAA-MM-DD": data de calendário, sem horário (coluna `date` do Postgres). */
+const DATA_DE_CALENDARIO = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Formata como DD/MM/AAAA.
+ *
+ * Datas de calendário ("2026-09-01") são formatadas SEM conversão de fuso:
+ * `new Date("2026-09-01")` seria meia-noite em UTC, que em Fortaleza (UTC-3)
+ * ainda é 31/08 — o bug que mostrava as quinzenas um dia antes.
+ * Momentos (timestamps com horário) continuam convertidos para America/Fortaleza.
+ */
 export const dataBR = (value: string | Date | null | undefined) => {
   if (!value) return "—";
+  if (typeof value === "string") {
+    const calendario = DATA_DE_CALENDARIO.exec(value);
+    if (calendario) {
+      const [, ano, mes, dia] = calendario;
+      return `${dia}/${mes}/${ano}`;
+    }
+  }
   const d = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza" }).format(d);
 };
@@ -65,3 +83,18 @@ export const rotuloPerfil: Record<string, string> = {
   gestor: "Gestor",
   adm: "ADM",
 };
+
+/** Padrão de login aceito pelo banco (constraint employees_login_formato). */
+export const LOGIN_VALIDO = /^[a-z0-9._-]{3,50}$/;
+
+/** Sugere um login válido a partir do que foi digitado: "Thiago Dantas" -> "thiago.dantas". */
+export const normalizarLogin = (valor: string) =>
+  valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos: "joão" -> "joao"
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ".")
+    .replace(/[^a-z0-9._-]/g, "");
+
+export const normalizarEmail = (valor: string) => valor.trim().toLowerCase();

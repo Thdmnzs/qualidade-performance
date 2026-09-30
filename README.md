@@ -23,7 +23,7 @@ cp .env.example .env   # preencha com os dados do projeto Supabase
 npm run dev            # http://localhost:3000
 ```
 
-Scripts úteis: `npm run typecheck`, `npm run lint`, `npm run build`.
+Scripts úteis: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
 
 ## Variáveis de ambiente
 
@@ -37,6 +37,27 @@ Scripts úteis: `npm run typecheck`, `npm run lint`, `npm run build`.
 
 Variáveis com prefixo `VITE_` são embutidas no JavaScript enviado ao navegador,
 por isso só a chave pública pode tê-lo.
+
+## Acesso dos colaboradores
+
+Os acessos são criados pela gestão; não existe cadastro aberto.
+
+1. Em **Colaboradores**, o gestor cadastra a pessoa. O sistema cria o usuário no Supabase Auth
+   e gera um **link de convite** de uso único, que o gestor copia e envia pelo Slack.
+2. A pessoa abre o link, cai em `/definir-senha` e cria a própria senha. O gestor nunca a conhece.
+3. **Link de senha** gera um link de redefinição para quem já tem acesso (senha esquecida, convite expirado).
+4. **Inativar** bloqueia o login no Auth e corta o acesso aos dados na hora; o histórico é mantido.
+
+Essas operações usam a chave de serviço e rodam só no servidor (`src/server/acessos.server.ts`).
+As regras de permissão ficam no banco (migration `ciclo_de_acesso`): gestor não gerencia ADM,
+ninguém altera o próprio acesso, e gestor inativo perde os poderes imediatamente.
+
+Configuração necessária no Supabase:
+
+- *Authentication → Sign In / Providers*: cadastro aberto **desligado**.
+- *Authentication → URL Configuration*: o endereço do site em **Site URL** e `https://SEU-SITE/**`
+  em **Redirect URLs** (o link de convite só volta para endereços dessa lista).
+- *Authentication → Providers → Email*: **Email OTP Expiration** define a validade dos links.
 
 ## Banco de dados
 

@@ -30,6 +30,12 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+/**
+ * Mensagem única para qualquer falha de autenticação: sessão ausente, expirada
+ * ou token adulterado. Detalhar o motivo não ajuda o usuário e ajudaria um atacante.
+ */
+const SESSAO_INVALIDA = 'Sua sessão expirou ou é inválida. Entre novamente.';
+
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     
@@ -49,27 +55,19 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     const request = getRequest();
 
     if (!request?.headers) {
-      throw new Error('Unauthorized: No request headers available');
+      throw new Error(SESSAO_INVALIDA);
     }
 
 
     const authHeader = request.headers.get('authorization');
 
-    if (!authHeader) {
-      throw new Error('Unauthorized: No authorization header provided');
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new Error(SESSAO_INVALIDA);
     }
 
-    if (!authHeader.startsWith('Bearer ')) {
-      throw new Error('Unauthorized: Only Bearer tokens are supported');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      throw new Error('Unauthorized: No token provided');
-    }
-
+    const token = authHeader.slice('Bearer '.length);
     if (token.split('.').length !== 3) {
-      throw new Error('Unauthorized: Invalid token');
+      throw new Error(SESSAO_INVALIDA);
     }
 
     const supabase = createClient<Database>(
@@ -90,20 +88,22 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       }
     );
 
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      throw new Error('Unauthorized: Invalid token');
-    }
-
-    if (!data.claims.sub) {
-      throw new Error('Unauthorized: No user ID found in token');
+    // getClaims verifica a assinatura do token. Ela pode LANÇAR exceção (não só
+    // retornar erro) quando o token está malformado; tratamos os dois casos igual.
+    let claims;
+    try {
+      const { data, error } = await supabase.auth.getClaims(token);
+      if (error || !data?.claims?.sub) throw error ?? new Error('token sem usuário');
+      claims = data.claims;
+    } catch {
+      throw new Error(SESSAO_INVALIDA);
     }
 
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId: claims.sub,
+        claims,
       },
     });
   },

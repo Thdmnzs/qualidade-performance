@@ -395,7 +395,7 @@ export type Database = {
       employees: {
         Row: {
           created_at: string
-          email: string | null
+          email: string
           foto_url: string | null
           id: string
           login: string
@@ -406,7 +406,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          email: string
           foto_url?: string | null
           id?: string
           login: string
@@ -417,7 +417,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email?: string | null
+          email?: string
           foto_url?: string | null
           id?: string
           login?: string
@@ -920,6 +920,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alterar_status_colaborador: {
+        Args: {
+          _chamador: string
+          _employee_id: string
+          _status: Database["public"]["Enums"]["employee_status"]
+        }
+        Returns: string
+      }
       current_employee_id: { Args: never; Returns: string }
       definir_perfil: {
         Args: {
@@ -960,6 +968,31 @@ export type Database = {
       perfil_do_usuario: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      preparar_criacao_acesso: {
+        Args: {
+          _chamador: string
+          _employee_id: string
+          _perfil: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: string
+      }
+      preparar_link_senha: {
+        Args: { _chamador: string; _employee_id: string }
+        Returns: string
+      }
+      validar_gestao_de_acesso: {
+        Args: { _chamador: string; _employee_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      vincular_acesso: {
+        Args: {
+          _chamador: string
+          _employee_id: string
+          _perfil: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

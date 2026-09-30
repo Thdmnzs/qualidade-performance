@@ -42,10 +42,13 @@ function AuthPage() {
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: senha,
+    });
     setCarregando(false);
     if (error) {
-      toast.error("Não foi possível entrar. Verifique e-mail e senha.");
+      toast.error(mensagemDeLogin(error.code));
       return;
     }
     navigate({ to: tipo === "gestor" ? "/admin" : "/painel", replace: true });
@@ -113,4 +116,21 @@ function AuthPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Mensagem por motivo. Para credenciais erradas, a mensagem é propositalmente
+ * genérica: dizer "e-mail não existe" ajudaria alguém a descobrir contas válidas.
+ */
+function mensagemDeLogin(codigo: string | undefined): string {
+  switch (codigo) {
+    case "user_banned":
+      return "Seu acesso está desativado. Procure seu gestor.";
+    case "email_not_confirmed":
+      return "Seu acesso ainda não foi ativado. Use o link de convite enviado pelo seu gestor.";
+    case "over_request_rate_limit":
+      return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+    default:
+      return "Não foi possível entrar. Verifique e-mail e senha.";
+  }
 }
