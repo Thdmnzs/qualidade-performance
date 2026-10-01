@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   agruparPorColaborador,
+  agruparPorPessoa,
   avaliacaoApontada,
   avaliadoresDe,
   avisoDeQuantidade,
@@ -221,5 +222,35 @@ describe("respostaDaContestacaoValida", () => {
   it("exige 10 caracteres úteis, como o banco", () => {
     expect(respostaDaContestacaoValida("1234567890")).toBe(true);
     expect(respostaDaContestacaoValida("  curta  ")).toBe(false);
+  });
+});
+
+describe("agruparPorPessoa", () => {
+  const lista = [
+    { id: "c1", pessoa: "e2", nome: "Thiago Dantas" },
+    { id: "c2", pessoa: "e1", nome: "Érica Lima" },
+    { id: "c3", pessoa: "e2", nome: "Thiago Dantas" },
+    { id: "c4", pessoa: "e3", nome: "Ana Colab" },
+  ];
+  const grupos = agruparPorPessoa(
+    lista,
+    (c) => c.pessoa,
+    (c) => c.nome,
+  );
+
+  it("um grupo por pessoa, em ordem alfabética com acentos", () => {
+    expect(grupos.map((g) => g.nome)).toEqual(["Ana Colab", "Érica Lima", "Thiago Dantas"]);
+  });
+  it("mantém a ordem original dentro do grupo (a lista já vem da mais recente)", () => {
+    expect(grupos.find((g) => g.id === "e2")!.itens.map((c) => c.id)).toEqual(["c1", "c3"]);
+  });
+  it("lista vazia não gera grupos", () => {
+    expect(
+      agruparPorPessoa(
+        [],
+        () => "x",
+        () => "x",
+      ),
+    ).toEqual([]);
   });
 });

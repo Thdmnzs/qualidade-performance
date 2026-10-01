@@ -176,3 +176,24 @@ export const respostaDaContestacaoValida = (texto: string) => {
   const n = texto.trim().length;
   return n >= 10 && n <= 2000;
 };
+
+export type GrupoPorPessoa<T> = { id: string; nome: string; itens: T[] };
+
+/**
+ * Agrupa qualquer lista por pessoa, em ordem alfabética (com acentos), mantendo
+ * a ordem original dos itens dentro de cada grupo.
+ */
+export function agruparPorPessoa<T>(
+  itens: T[],
+  idDe: (item: T) => string,
+  nomeDe: (item: T) => string,
+): GrupoPorPessoa<T>[] {
+  const grupos = new Map<string, GrupoPorPessoa<T>>();
+  for (const item of itens) {
+    const id = idDe(item);
+    const grupo = grupos.get(id) ?? { id, nome: nomeDe(item), itens: [] };
+    grupo.itens.push(item);
+    grupos.set(id, grupo);
+  }
+  return [...grupos.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}

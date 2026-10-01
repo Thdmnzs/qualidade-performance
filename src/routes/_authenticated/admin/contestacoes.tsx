@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,11 +9,16 @@ import { AntesDepoisDaContestacao } from "@/components/antes-depois-da-contestac
 import { DetalheDaAvaliacao } from "@/components/detalhe-da-avaliacao";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { contestacaoEmAndamento, respostaDaContestacaoValida } from "@/lib/avaliacao";
+import {
+  agruparPorPessoa,
+  contestacaoEmAndamento,
+  respostaDaContestacaoValida,
+} from "@/lib/avaliacao";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
 import { fetchContestacoes } from "@/lib/queries";
 
@@ -83,11 +88,13 @@ function ContestacoesDoTime() {
             titulo="Em aberto"
             contestacoes={emAberto}
             vazio="Nenhuma contestação aguardando resposta."
+            blocosAbertos
           />
           <Secao
             titulo="Respondidas"
             contestacoes={respondidas}
             vazio="Nenhuma contestação respondida ainda."
+            blocosAbertos={false}
           />
         </div>
       )}
@@ -99,27 +106,76 @@ function Secao({
   titulo,
   contestacoes,
   vazio,
+  blocosAbertos,
 }: {
   titulo: string;
   contestacoes: Contestacao[];
   vazio: string;
+  /** Em aberto: blocos abertos (pedem ação). Respondidas: recolhidos (histórico). */
+  blocosAbertos: boolean;
 }) {
+  const blocos = agruparPorPessoa(
+    contestacoes,
+    (c) => c.employee_id,
+    (c) => c.employees?.nome ?? "Colaborador",
+  );
   return (
     <section>
       <h2 className="mb-3 font-display text-lg font-semibold">
         {titulo}{" "}
         <span className="text-sm font-normal text-muted-foreground">({contestacoes.length})</span>
       </h2>
-      {contestacoes.length === 0 ? (
+      {blocos.length === 0 ? (
         <p className="text-sm text-muted-foreground">{vazio}</p>
       ) : (
         <div className="space-y-3">
-          {contestacoes.map((c) => (
-            <CartaoDeContestacao key={c.id} contestacao={c} />
+          {blocos.map((b) => (
+            <BlocoDoColaborador
+              key={b.id}
+              nome={b.nome}
+              contestacoes={b.itens}
+              abertoPorPadrao={blocosAbertos}
+            />
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function BlocoDoColaborador({
+  nome,
+  contestacoes,
+  abertoPorPadrao,
+}: {
+  nome: string;
+  contestacoes: Contestacao[];
+  abertoPorPadrao: boolean;
+}) {
+  const [aberto, setAberto] = useState(abertoPorPadrao);
+  return (
+    <Collapsible
+      open={aberto}
+      onOpenChange={setAberto}
+      className="rounded-2xl border border-border bg-card/50"
+    >
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-5 py-4 text-left">
+        <span className="font-display font-semibold">
+          Contestações · {nome}{" "}
+          <span className="ml-1 text-sm font-normal text-muted-foreground">
+            ({contestacoes.length})
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-3 px-3 pb-3">
+        {contestacoes.map((c) => (
+          <CartaoDeContestacao key={c.id} contestacao={c} />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
