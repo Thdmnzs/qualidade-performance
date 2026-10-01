@@ -4,6 +4,9 @@ import {
   contestacaoAtrasada,
   prazoDeContestacaoAberto,
   publicada,
+  quinzenaEmPrazo,
+  quinzenaPadraoParaAvaliar,
+  quinzenasDoCiclo,
   situacaoDoFechamento,
   situacaoExibida,
 } from "../quinzena";
@@ -130,5 +133,38 @@ describe("situacaoExibida (o selo depois do prazo)", () => {
     expect(
       situacaoExibida({ status: "fechada", prazo_contestacao_ate: PRAZO }, 0, quinta00h01).rotulo,
     ).toBe("Fechada");
+  });
+});
+
+describe("várias quinzenas ativas ao mesmo tempo", () => {
+  // Da mais recente para a mais antiga, como vem do banco.
+  const segundaAberta = { id: "q2", status: "aberta", prazo_contestacao_ate: null };
+  const primeiraEmContestacao = {
+    id: "q1",
+    status: "em_contestacao",
+    prazo_contestacao_ate: PRAZO,
+  };
+  const agostoFechada = {
+    id: "q0",
+    status: "fechada",
+    prazo_contestacao_ate: "2026-09-03T02:59:59.999Z",
+  };
+  const lista = [segundaAberta, primeiraEmContestacao, agostoFechada];
+
+  it("um cartão de ciclo para cada quinzena não fechada", () => {
+    expect(quinzenasDoCiclo(lista).map((q) => q.id)).toEqual(["q2", "q1"]);
+  });
+  it("todas fechadas: cartão só da mais recente (para poder reabrir)", () => {
+    expect(
+      quinzenasDoCiclo([agostoFechada, { ...agostoFechada, id: "antiga" }]).map((q) => q.id),
+    ).toEqual(["q0"]);
+  });
+  it("avaliar: pré-seleciona a mais recente aberta", () => {
+    expect(quinzenaPadraoParaAvaliar(lista)?.id).toBe("q2");
+    expect(quinzenaPadraoParaAvaliar([primeiraEmContestacao, agostoFechada])).toBeUndefined();
+  });
+  it("contestação geral vai para a quinzena no prazo, mesmo não sendo a mais recente", () => {
+    expect(quinzenaEmPrazo(lista, quarta23h58)?.id).toBe("q1");
+    expect(quinzenaEmPrazo(lista, quinta00h01)).toBeUndefined();
   });
 });

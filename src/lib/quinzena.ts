@@ -106,3 +106,30 @@ export const CLASSE_DO_TOM: Record<Tom, string> = {
   alerta: "bg-destructive/15 text-destructive",
   neutro: "bg-secondary text-muted-foreground",
 };
+
+/*
+ * Várias quinzenas ativas ao mesmo tempo são normais: a anterior em
+ * contestação enquanto a nova já corre. As listas abaixo vêm da mais
+ * recente para a mais antiga (ordem de fetchQuinzenas).
+ */
+
+/** Um cartão de ciclo para cada quinzena não fechada; se todas estão fechadas, a mais recente (para reabrir). */
+export function quinzenasDoCiclo<T extends { status: string }>(quinzenas: T[]): T[] {
+  const ativas = quinzenas.filter((q) => q.status !== "fechada");
+  return ativas.length > 0 ? ativas : quinzenas.slice(0, 1);
+}
+
+/** Pré-seleção do formulário de avaliação: a mais recente que aceita avaliações. */
+export function quinzenaPadraoParaAvaliar<T extends { status: string }>(
+  quinzenas: T[],
+): T | undefined {
+  return quinzenas.find((q) => aceitaAvaliacoes(q));
+}
+
+/** Quinzena da contestação geral: a que está no prazo agora (e não simplesmente a mais recente). */
+export function quinzenaEmPrazo<T extends QuinzenaComPrazo>(
+  quinzenas: T[],
+  agora: Date = new Date(),
+): T | undefined {
+  return quinzenas.find((q) => prazoDeContestacaoAberto(q, agora));
+}

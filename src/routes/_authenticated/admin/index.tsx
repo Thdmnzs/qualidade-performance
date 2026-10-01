@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
-import { CicloDaQuinzena } from "@/components/ciclo-da-quinzena";
-import { situacaoExibida } from "@/lib/quinzena";
+import { CicloDaQuinzena, CriarProximaQuinzena } from "@/components/ciclo-da-quinzena";
+import { quinzenasDoCiclo, situacaoExibida } from "@/lib/quinzena";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { usePermissoes } from "@/hooks/useAuth";
 import {
@@ -54,9 +54,15 @@ function AdminHome() {
 
   return (
     <div>
-      <PageHeader titulo="Visão geral" descricao={nomeQuinzena(atual)} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader titulo="Visão geral" descricao={nomeQuinzena(atual)} />
+        <CriarProximaQuinzena />
+      </div>
 
-      {atual && <CicloDaQuinzena quinzena={atual} contestacoes={contestacoes} />}
+      {/* Um cartão por quinzena ainda não fechada (a anterior pode estar em contestação). */}
+      {quinzenasDoCiclo(quinzenas).map((q) => (
+        <CicloDaQuinzena key={q.id} quinzena={q} contestacoes={contestacoes} />
+      ))}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Indicador

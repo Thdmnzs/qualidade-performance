@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lock, LockOpen, Send } from "lucide-react";
+import { CalendarPlus, Lock, LockOpen, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { dataHoraBR, nomeQuinzena } from "@/lib/format";
+import { dataBR, dataHoraBR, nomeQuinzena } from "@/lib/format";
 import {
   contestacaoAtrasada,
   prazoDeContestacaoAberto,
@@ -215,5 +215,48 @@ export function CicloDaQuinzena({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/**
+ * Cria a próxima quinzena em sequência. O banco calcula qual é e as datas
+ * (2ª quinzena até o último dia do mês), e recusa se faltar mais de 7 dias
+ * para ela começar; a mensagem de erro já diz a partir de quando.
+ */
+export function CriarProximaQuinzena() {
+  const qc = useQueryClient();
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      const { data: id, error } = await supabase.rpc("criar_proxima_quinzena");
+      if (error) throw new Error(error.message);
+      const { data: q, error: erroLeitura } = await supabase
+        .from("fortnights")
+        .select("ano, mes, tipo, data_inicio, data_fim")
+        .eq("id", id)
+        .single();
+      if (erroLeitura) throw new Error(erroLeitura.message);
+      return q;
+    },
+    onSuccess: (q) => {
+      toast.success(
+        `${nomeQuinzena(q)} criada (${dataBR(q.data_inicio)} a ${dataBR(q.data_fim)}).`,
+      );
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Button
+      variant="outline"
+      disabled={criar.isPending}
+      onClick={() => {
+        if (confirm("Criar a próxima quinzena? Ela nasce aberta para avaliações.")) criar.mutate();
+      }}
+    >
+      <CalendarPlus className="size-4" />{" "}
+      {criar.isPending ? "Criando..." : "Criar próxima quinzena"}
+    </Button>
   );
 }

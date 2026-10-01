@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -13,7 +13,12 @@ import { usePermissoes } from "@/hooks/useAuth";
 import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
-import { aceitaAvaliacoes, ROTULO_STATUS_QUINZENA, type StatusQuinzena } from "@/lib/quinzena";
+import {
+  aceitaAvaliacoes,
+  quinzenaPadraoParaAvaliar,
+  ROTULO_STATUS_QUINZENA,
+  type StatusQuinzena,
+} from "@/lib/quinzena";
 import {
   AVALIACOES_PREVISTAS,
   avisoDeQuantidade,
@@ -61,6 +66,13 @@ function Avaliacoes() {
     queryFn: fetchQuinzenas,
     enabled: podeAvaliar,
   });
+  // Pré-seleciona a quinzena mais recente aberta (menos risco de avaliar na quinzena errada).
+  useEffect(() => {
+    if (!fortnightId) {
+      const padrao = quinzenaPadraoParaAvaliar(quinzenas);
+      if (padrao) setFortnightId(padrao.id);
+    }
+  }, [quinzenas, fortnightId]);
   const { data: criterios = [] } = useQuery({
     queryKey: ["criterios"],
     enabled: podeAvaliar,

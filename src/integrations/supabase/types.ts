@@ -963,6 +963,7 @@ export type Database = {
         Args: { _descricao: string; _evaluation_id: string }
         Returns: string
       }
+      criar_proxima_quinzena: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       definir_perfil: {
         Args: {

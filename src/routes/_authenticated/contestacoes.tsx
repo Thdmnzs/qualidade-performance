@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
-import { fetchContestacoes, fetchQuinzenaAtual } from "@/lib/queries";
-import { prazoDeContestacaoAberto } from "@/lib/quinzena";
+import { fetchContestacoes, fetchQuinzenas } from "@/lib/queries";
+import { prazoDeContestacaoAberto, quinzenaEmPrazo } from "@/lib/quinzena";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
 
 const COR_STATUS: Record<string, string> = {
@@ -38,10 +38,10 @@ function Contestacoes() {
   const [assunto, setAssunto] = useState("");
   const [descricao, setDescricao] = useState("");
 
-  const { data: quinzena } = useQuery({
-    queryKey: ["quinzena-atual"],
-    queryFn: fetchQuinzenaAtual,
-  });
+  // A quinzena no prazo de contestação (não necessariamente a mais recente:
+  // a próxima pode já estar aberta enquanto esta é contestada).
+  const { data: quinzenas = [] } = useQuery({ queryKey: ["quinzenas"], queryFn: fetchQuinzenas });
+  const quinzena = quinzenaEmPrazo(quinzenas);
   const { data: contestacoes = [] } = useQuery({
     // Só as próprias, inclusive para avaliadores (as dos outros ficam em /admin/contestacoes).
     queryKey: ["contestacoes", "minhas", employee?.id],
