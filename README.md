@@ -52,6 +52,12 @@ sobre colaboradores; avaliadores são avaliados e têm as contestações tratada
 O avaliador usa a mesma conta nas duas áreas. A aba escolhida no login define a área de entrada, e o menu
 permite trocar. A área decide só a navegação: o que cada um pode ler e gravar é decidido pelo banco.
 
+## Identidade visual
+
+- **Área logada:** tema escuro em tons de verde, definido só pelas variáveis de `src/styles.css`. Trocar a identidade é trocar essas variáveis; nenhuma tela usa cor fixa. Contraste conferido pelo WCAG AA: cores vivas (verde, vermelho, amarelo) levam texto escuro quando são fundo.
+- **Login e página inicial:** identidade própria (cartão branco sobre a imagem de fundo), com cores fixas, independente do tema.
+- **Logos:** `logo-fluke.png` (letras pretas, para fundo claro) e `logo-fluke-branca.png` (letras brancas, para o menu escuro). O favicon e o ícone do celular saem do ponto verde da logo.
+
 ## Ciclo da quinzena e contestações
 
 O ADM conduz cada quinzena pela **Visão geral**; cada passo é validado pelo banco e registrado na auditoria.

@@ -62,10 +62,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar p-4 md:flex">
         <div className="px-2 py-4">
-          <p className="font-display text-lg font-bold leading-tight text-primary">
-            Qualidade &amp; Performance
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">Plataforma interna de CX</p>
+          {/* Versão da logo com letras brancas, para o tema escuro. */}
+          <img
+            src="/logo-fluke-branca.png"
+            alt="fluke"
+            width={120}
+            height={32}
+            className="h-8 w-auto"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">Qualidade &amp; Performance</p>
         </div>
         <nav className="mt-4 flex flex-1 flex-col gap-1">
           {itens.map((item) => (
@@ -109,6 +114,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar px-4 py-3 md:hidden">
+          <img
+            src="/logo-fluke-branca.png"
+            alt="fluke"
+            width={68}
+            height={18}
+            className="mr-2 h-5 w-auto shrink-0"
+          />
           {itens.map((item) => (
             <Link
               key={item.to}

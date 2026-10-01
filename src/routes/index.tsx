@@ -42,8 +42,8 @@ const DESTAQUES = [
 function Landing() {
   return (
     // Mesma identidade da tela de login: imagem de fundo, cartão branco e o verde da fluke.
-    // A cor da plataforma (bg-background) fica por baixo enquanto a imagem carrega.
-    <div className="min-h-screen bg-background bg-[url('/login-fundo.jpg')] bg-cover bg-fixed bg-center px-4 py-12 sm:py-20">
+    // Cor escura FIXA por baixo enquanto a imagem carrega: esta tela não usa o tema da área logada.
+    <div className="min-h-screen bg-[oklch(0.16_0.008_250)] bg-[url('/login-fundo.jpg')] bg-cover bg-fixed bg-center px-4 py-12 sm:py-20">
       <div className="mx-auto max-w-5xl">
         <section className="rounded-2xl bg-white px-8 py-10 text-slate-900 shadow-2xl shadow-black/40 sm:px-12 sm:py-14">
           <img src="/logo-fluke.png" alt="fluke" width={180} height={48} className="h-10 w-auto" />
