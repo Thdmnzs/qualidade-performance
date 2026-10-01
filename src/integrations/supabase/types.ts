@@ -208,12 +208,15 @@ export type Database = {
       contestations: {
         Row: {
           assunto: string
+          alteracoes: Json | null
           created_at: string
           descricao: string
           employee_id: string
           evaluation_id: string | null
           fortnight_id: string
           id: string
+          nota_anterior: number | null
+          nota_nova: number | null
           resolucao: string | null
           respondida_em: string | null
           responsavel_id: string | null
@@ -223,12 +226,15 @@ export type Database = {
         }
         Insert: {
           assunto: string
+          alteracoes?: Json | null
           created_at?: string
           descricao: string
           employee_id: string
           evaluation_id?: string | null
           fortnight_id: string
           id?: string
+          nota_anterior?: number | null
+          nota_nova?: number | null
           resolucao?: string | null
           respondida_em?: string | null
           responsavel_id?: string | null
@@ -238,12 +244,15 @@ export type Database = {
         }
         Update: {
           assunto?: string
+          alteracoes?: Json | null
           created_at?: string
           descricao?: string
           employee_id?: string
           evaluation_id?: string | null
           fortnight_id?: string
           id?: string
+          nota_anterior?: number | null
+          nota_nova?: number | null
           resolucao?: string | null
           respondida_em?: string | null
           responsavel_id?: string | null
@@ -537,6 +546,7 @@ export type Database = {
           link_conversa: string | null
           motivo_anulacao: string | null
           nota: number | null
+          nota_original: number | null
           ticket: string | null
           tipo: Database["public"]["Enums"]["evaluation_type"]
           updated_at: string
@@ -557,6 +567,7 @@ export type Database = {
           link_conversa?: string | null
           motivo_anulacao?: string | null
           nota?: number | null
+          nota_original?: number | null
           ticket?: string | null
           tipo: Database["public"]["Enums"]["evaluation_type"]
           updated_at?: string
@@ -577,6 +588,7 @@ export type Database = {
           link_conversa?: string | null
           motivo_anulacao?: string | null
           nota?: number | null
+          nota_original?: number | null
           ticket?: string | null
           tipo?: Database["public"]["Enums"]["evaluation_type"]
           updated_at?: string
@@ -1031,6 +1043,15 @@ export type Database = {
       preparar_link_senha: {
         Args: { _chamador: string; _employee_id: string }
         Returns: string
+      }
+      responder_contestacao: {
+        Args: {
+          _aceitar: boolean
+          _contestation_id: string
+          _respostas?: Json
+          _resposta: string
+        }
+        Returns: number
       }
       registrar_avaliacao: {
         Args: {

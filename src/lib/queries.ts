@@ -73,7 +73,11 @@ export async function fetchPremios() {
 export async function fetchContestacoes(employeeId?: string) {
   let query = supabase
     .from("contestations")
-    .select("*, employees(nome)")
+    // Colunas explícitas: quem respondeu (responsavel_id) é oculto do navegador,
+    // e pedir "*" faria o banco recusar a consulta inteira.
+    .select(
+      "id, employee_id, fortnight_id, evaluation_id, assunto, descricao, status, resolucao, respondida_em, created_at, nota_anterior, nota_nova, alteracoes, employees(nome)",
+    )
     .order("created_at", { ascending: false });
   if (employeeId) query = query.eq("employee_id", employeeId);
   const { data, error } = await query;

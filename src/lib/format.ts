@@ -103,8 +103,8 @@ export const rotuloStatusContestacao: Record<string, string> = {
   aberta: "Aberta",
   em_analise: "Em análise",
   respondida: "Respondida",
-  deferida: "Deferida",
-  indeferida: "Indeferida",
+  deferida: "Aceita",
+  indeferida: "Recusada",
 };
 
 /** Confirmação por nome: mesma regra do banco (ignora maiúsculas e espaços nas pontas). */

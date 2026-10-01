@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { AntesDepoisDaContestacao } from "@/components/antes-depois-da-contestacao";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
 import { fetchContestacoes, fetchQuinzenaAtual } from "@/lib/queries";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
+
+const COR_STATUS: Record<string, string> = {
+  aberta: "bg-warning/15 text-warning",
+  em_analise: "bg-warning/15 text-warning",
+  deferida: "bg-primary/15 text-primary",
+  indeferida: "bg-destructive/15 text-destructive",
+};
 
 export const Route = createFileRoute("/_authenticated/contestacoes")({
   head: () => ({
@@ -125,7 +133,9 @@ function Contestacoes() {
             <div key={c.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{c.assunto}</p>
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs">
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${COR_STATUS[c.status] ?? "bg-secondary"}`}
+                >
                   {rotuloStatusContestacao[c.status]}
                 </span>
               </div>
@@ -133,11 +143,24 @@ function Contestacoes() {
                 {c.descricao}
               </p>
               {c.resolucao && (
-                <p className="mt-3 rounded-lg bg-secondary p-3 text-sm">
-                  <span className="font-medium">Resposta: </span>
-                  {c.resolucao}
-                </p>
+                <div className="mt-3 rounded-lg bg-secondary p-3 text-sm">
+                  <p className="font-medium">
+                    {c.status === "deferida" ? "Contestação aceita" : "Contestação recusada"}
+                    {c.respondida_em && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        em {dataHoraBR(c.respondida_em)}
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{c.resolucao}</p>
+                </div>
               )}
+              {/* Antes e depois dos apontamentos e da nota, quando a avaliação foi ajustada. */}
+              <AntesDepoisDaContestacao
+                notaAnterior={c.nota_anterior}
+                notaNova={c.nota_nova}
+                alteracoes={c.alteracoes}
+              />
               <p className="mt-3 text-xs text-muted-foreground">
                 Aberta em {dataHoraBR(c.created_at)}
               </p>

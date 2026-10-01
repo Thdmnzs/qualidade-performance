@@ -8,9 +8,12 @@ import {
   calcularNota,
   contarPorTipo,
   contestacaoEmAndamento,
+  criteriosAlterados,
   filtrarMinhasAvaliacoes,
+  lerAlteracoes,
   motivoContestacaoValido,
   motivoValido,
+  respostaDaContestacaoValida,
   type CriterioDaFicha,
   type Resposta,
 } from "../avaliacao";
@@ -190,5 +193,33 @@ describe("contestacaoEmAndamento", () => {
     expect(contestacaoEmAndamento("em_analise")).toBe(true);
     expect(contestacaoEmAndamento("respondida")).toBe(false);
     expect(contestacaoEmAndamento(undefined)).toBe(false);
+  });
+});
+
+describe("criteriosAlterados (mesma regra do banco para aceitar)", () => {
+  const atual = { c1: "sim", c6: "nao" } as const;
+  it("detecta resposta alterada", () => {
+    expect(criteriosAlterados(atual, { c1: "sim", c6: "sim" })).toEqual(["c6"]);
+  });
+  it("sem mudança de resposta, nada mudou (mesmo que a justificativa mude)", () => {
+    expect(criteriosAlterados(atual, { c1: "sim", c6: "nao" })).toEqual([]);
+  });
+  it("corrigir para pior também é alteração", () => {
+    expect(criteriosAlterados(atual, { c1: "nao", c6: "nao" })).toEqual(["c1"]);
+  });
+});
+
+describe("lerAlteracoes", () => {
+  it("aceita a lista vinda do banco e ignora valores inválidos", () => {
+    expect(lerAlteracoes([{ ordem: 6 }])).toHaveLength(1);
+    expect(lerAlteracoes(null)).toEqual([]);
+    expect(lerAlteracoes({ ordem: 6 })).toEqual([]);
+  });
+});
+
+describe("respostaDaContestacaoValida", () => {
+  it("exige 10 caracteres úteis, como o banco", () => {
+    expect(respostaDaContestacaoValida("1234567890")).toBe(true);
+    expect(respostaDaContestacaoValida("  curta  ")).toBe(false);
   });
 });

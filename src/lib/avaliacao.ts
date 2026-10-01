@@ -144,3 +144,35 @@ export const motivoContestacaoValido = (motivo: string) => {
 /** Contestação ainda em andamento: impede abrir outra para a mesma avaliação. */
 export const contestacaoEmAndamento = (status: string | undefined) =>
   status === "aberta" || status === "em_analise";
+
+/** Um critério alterado ao aceitar uma contestação (guardado no banco em contestations.alteracoes). */
+export type AlteracaoDeCriterio = {
+  ordem: number;
+  descricao: string;
+  antes: { resposta: Resposta; desconto: number; observacao: string | null };
+  depois: { resposta: Resposta; desconto: number; observacao: string | null };
+};
+
+export const ROTULO_RESPOSTA: Record<Resposta, string> = { sim: "Sim", medio: "Médio", nao: "Não" };
+
+/** Lê com segurança o JSON de alterações vindo do banco. */
+export function lerAlteracoes(json: unknown): AlteracaoDeCriterio[] {
+  return Array.isArray(json) ? (json as AlteracaoDeCriterio[]) : [];
+}
+
+/**
+ * Mesma regra do banco para aceitar: pelo menos um critério com a RESPOSTA
+ * diferente (mudar só o texto da justificativa não conta).
+ */
+export function criteriosAlterados(
+  atual: Record<string, Resposta | undefined>,
+  novo: Record<string, Resposta | undefined>,
+): string[] {
+  return Object.keys(atual).filter((id) => atual[id] !== novo[id]);
+}
+
+/** Resposta do avaliador à contestação: mesma regra do banco (10 a 2000 caracteres úteis). */
+export const respostaDaContestacaoValida = (texto: string) => {
+  const n = texto.trim().length;
+  return n >= 10 && n <= 2000;
+};

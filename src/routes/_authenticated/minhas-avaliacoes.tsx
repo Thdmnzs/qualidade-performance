@@ -49,6 +49,8 @@ type MinhaAvaliacao = {
   assunto: string | null;
   data_contato: string | null;
   nota: number | null;
+  /** Nota do registro, antes de qualquer contestação aceita (null se nunca foi ajustada). */
+  notaOriginal: number | null;
   apontada: boolean;
 };
 
@@ -73,7 +75,7 @@ function MinhasAvaliacoes() {
       const { data, error } = await supabase
         .from("evaluations")
         .select(
-          "id, fortnight_id, tipo, assunto, data_contato, nota, created_at, evaluation_items(resposta)",
+          "id, fortnight_id, tipo, assunto, data_contato, nota, nota_original, created_at, evaluation_items(resposta)",
         )
         .eq("employee_id", employee!.id)
         .eq("anulada", false)
@@ -86,6 +88,7 @@ function MinhasAvaliacoes() {
         assunto: a.assunto,
         data_contato: a.data_contato,
         nota: a.nota,
+        notaOriginal: a.nota_original,
         apontada: avaliacaoApontada(a.evaluation_items ?? []),
       }));
     },
@@ -212,12 +215,30 @@ function MinhasAvaliacoes() {
                           |
                         </span>
                         <span className="font-normal text-muted-foreground">Nota:</span>{" "}
-                        <span className="font-display text-primary">
-                          {numeroBR(Number(a.nota))}
-                        </span>
+                        {a.notaOriginal !== null && a.notaOriginal !== a.nota ? (
+                          <>
+                            <span className="font-display text-muted-foreground line-through">
+                              {numeroBR(Number(a.notaOriginal))}
+                            </span>
+                            {" → "}
+                            <span className="font-display text-primary">
+                              {numeroBR(Number(a.nota))}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-display text-primary">
+                            {numeroBR(Number(a.nota))}
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
                         {nomeDaQuinzena(a.fortnight_id)}
+                        {a.notaOriginal !== null && a.notaOriginal !== a.nota && (
+                          <span className="text-primary">
+                            {" · "}Nota anterior {numeroBR(Number(a.notaOriginal))}, nova nota{" "}
+                            {numeroBR(Number(a.nota))} após contestação
+                          </span>
+                        )}
                       </span>
                     </span>
                   </button>
