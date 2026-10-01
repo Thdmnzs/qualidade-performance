@@ -67,13 +67,9 @@ function AuthPage() {
   }
 
   return (
-    // Visual inspirado no login da fluke: cartão claro sobre o fundo escuro da plataforma.
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl"
-      />
-
+    // Visual inspirado no login da fluke: cartão claro sobre a imagem de fundo.
+    // A cor da plataforma (bg-background) fica por baixo enquanto a imagem carrega.
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background bg-[url('/login-fundo.jpg')] bg-cover bg-center px-4 py-10">
       <div className="relative w-full max-w-[420px] rounded-2xl bg-white px-8 pb-8 pt-10 text-slate-900 shadow-2xl shadow-black/40">
         <img
           src="/logo-fluke.png"
