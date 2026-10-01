@@ -50,6 +50,7 @@ export function areaDoEndereco(pathname: string): Area {
 
 export type Rota =
   | "/painel"
+  | "/minhas-avaliacoes"
   | "/contestacoes"
   | "/admin"
   | "/admin/avaliacoes"
@@ -72,7 +73,7 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
     return ["/admin/avaliacoes", "/admin/contestacoes"];
   }
   // Colaborador, e avaliador na área de colaborador.
-  return ["/painel", "/contestacoes"];
+  return ["/painel", "/minhas-avaliacoes", "/contestacoes"];
 }
 
 /** Atalho para trocar de área sem sair (só o avaliador tem as duas). */

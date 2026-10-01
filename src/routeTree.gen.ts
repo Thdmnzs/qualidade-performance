@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
 import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authenticated/contestacoes'
+import { Route as AuthenticatedMinhasAvaliacoesRouteImport } from './routes/_authenticated/minhas-avaliacoes'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticated/ranking'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
@@ -44,6 +45,12 @@ const AuthenticatedContestacoesRoute =
   AuthenticatedContestacoesRouteImport.update({
     id: '/contestacoes',
     path: '/contestacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMinhasAvaliacoesRoute =
+  AuthenticatedMinhasAvaliacoesRouteImport.update({
+    id: '/minhas-avaliacoes',
+    path: '/minhas-avaliacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/_authenticated/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/_authenticated/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/ranking': typeof AuthenticatedRankingRoute
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/minhas-avaliacoes'
     | '/painel'
     | '/ranking'
     | '/admin/avaliacoes'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/minhas-avaliacoes'
     | '/painel'
     | '/ranking'
     | '/admin/avaliacoes'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/_authenticated/contestacoes'
+    | '/_authenticated/minhas-avaliacoes'
     | '/_authenticated/painel'
     | '/_authenticated/ranking'
     | '/_authenticated/admin/avaliacoes'
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContestacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/minhas-avaliacoes': {
+      id: '/_authenticated/minhas-avaliacoes'
+      path: '/minhas-avaliacoes'
+      fullPath: '/minhas-avaliacoes'
+      preLoaderRoute: typeof AuthenticatedMinhasAvaliacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
@@ -249,6 +269,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedContestacoesRoute: typeof AuthenticatedContestacoesRoute
+  AuthenticatedMinhasAvaliacoesRoute: typeof AuthenticatedMinhasAvaliacoesRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedRankingRoute: typeof AuthenticatedRankingRoute
   AuthenticatedAdminAvaliacoesRoute: typeof AuthenticatedAdminAvaliacoesRoute
@@ -259,6 +280,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContestacoesRoute: AuthenticatedContestacoesRoute,
+  AuthenticatedMinhasAvaliacoesRoute: AuthenticatedMinhasAvaliacoesRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedRankingRoute: AuthenticatedRankingRoute,
   AuthenticatedAdminAvaliacoesRoute: AuthenticatedAdminAvaliacoesRoute,

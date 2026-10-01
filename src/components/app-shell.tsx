@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   ClipboardCheck,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   MessageSquareWarning,
@@ -27,7 +28,8 @@ type NavItem = {
 
 /** Aparência de cada item. QUAIS itens cada perfil vê é decidido em lib/areas.ts. */
 const NAV: Record<Rota, NavItem> = {
-  "/painel": { label: "Destaques de CX", icon: LayoutDashboard },
+  "/painel": { label: "Visão geral", icon: LayoutDashboard },
+  "/minhas-avaliacoes": { label: "Minhas avaliações", icon: ClipboardList },
   "/contestacoes": { label: "Minhas contestações", icon: MessageSquareWarning },
   "/admin": { label: "Visão geral", icon: BarChart3, exact: true },
   "/admin/avaliacoes": { label: "Avaliações", icon: ClipboardCheck },

@@ -21,7 +21,7 @@ import {
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Destaques de CX · Meu painel" },
+      { title: "Visão geral · Qualidade & Performance" },
       { name: "description", content: "Seus indicadores e elegibilidade na quinzena." },
     ],
   }),

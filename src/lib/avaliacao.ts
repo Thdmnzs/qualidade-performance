@@ -114,3 +114,33 @@ export function avaliadoresDe(avaliacoes: Pick<AvaliacaoDaGestao, "avaliado_por"
 /** Motivo de exclusão: mesma regra do banco (pelo menos 5 caracteres úteis). */
 export const MOTIVO_MINIMO = 5;
 export const motivoValido = (motivo: string) => motivo.trim().length >= MOTIVO_MINIMO;
+
+/** Apontada = pelo menos um critério com desconto ("Não" ou "Médio"). */
+export function avaliacaoApontada(itens: { resposta: string }[]): boolean {
+  return itens.some((i) => i.resposta !== "sim");
+}
+
+export type FiltroApontada = "todas" | "sim" | "nao";
+
+/** Filtros de "Minhas avaliações": quinzena (ou todas) e apontada (sim, não ou todas). */
+export function filtrarMinhasAvaliacoes<T extends { fortnight_id: string; apontada: boolean }>(
+  avaliacoes: T[],
+  filtro: { quinzena: string | "todas"; apontada: FiltroApontada },
+): T[] {
+  return avaliacoes.filter(
+    (a) =>
+      (filtro.quinzena === "todas" || a.fortnight_id === filtro.quinzena) &&
+      (filtro.apontada === "todas" || a.apontada === (filtro.apontada === "sim")),
+  );
+}
+
+/** Motivo da contestação: mesma regra do banco (10 a 2000 caracteres úteis). */
+export const MOTIVO_CONTESTACAO_MINIMO = 10;
+export const motivoContestacaoValido = (motivo: string) => {
+  const n = motivo.trim().length;
+  return n >= MOTIVO_CONTESTACAO_MINIMO && n <= 2000;
+};
+
+/** Contestação ainda em andamento: impede abrir outra para a mesma avaliação. */
+export const contestacaoEmAndamento = (status: string | undefined) =>
+  status === "aberta" || status === "em_analise";

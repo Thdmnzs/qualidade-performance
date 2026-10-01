@@ -937,6 +937,10 @@ export type Database = {
         }
         Returns: string
       }
+      contestar_avaliacao: {
+        Args: { _descricao: string; _evaluation_id: string }
+        Returns: string
+      }
       current_employee_id: { Args: never; Returns: string }
       definir_perfil: {
         Args: {

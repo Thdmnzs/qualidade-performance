@@ -75,3 +75,16 @@ describe("trocaDeArea", () => {
     expect(trocaDeArea("adm", "gestao")).toBeNull();
   });
 });
+
+describe("área do colaborador", () => {
+  it("tem Visão geral, Minhas avaliações e Minhas contestações, nesta ordem", () => {
+    expect(itensDoMenu("colaborador", "colaborador")).toEqual([
+      "/painel",
+      "/minhas-avaliacoes",
+      "/contestacoes",
+    ]);
+  });
+  it("Minhas avaliações é da área do colaborador, e não da gestão", () => {
+    expect(areaDoEndereco("/minhas-avaliacoes")).toBe("colaborador");
+  });
+});

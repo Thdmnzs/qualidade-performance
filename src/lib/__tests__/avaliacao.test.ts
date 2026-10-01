@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   agruparPorColaborador,
+  avaliacaoApontada,
   avaliadoresDe,
   avisoDeQuantidade,
   calcularNota,
   contarPorTipo,
+  contestacaoEmAndamento,
+  filtrarMinhasAvaliacoes,
+  motivoContestacaoValido,
   motivoValido,
   type CriterioDaFicha,
   type Resposta,
@@ -122,5 +126,69 @@ describe("motivoValido (mesma regra do banco)", () => {
     expect(motivoValido("Ticket errado")).toBe(true);
     expect(motivoValido("  ab  ")).toBe(false);
     expect(motivoValido("")).toBe(false);
+  });
+});
+
+describe("avaliacaoApontada", () => {
+  it("é apontada com qualquer Não ou Médio", () => {
+    expect(avaliacaoApontada([{ resposta: "sim" }, { resposta: "nao" }])).toBe(true);
+    expect(avaliacaoApontada([{ resposta: "medio" }])).toBe(true);
+  });
+  it("não é apontada quando tudo é Sim", () => {
+    expect(avaliacaoApontada([{ resposta: "sim" }, { resposta: "sim" }])).toBe(false);
+  });
+});
+
+describe("filtrarMinhasAvaliacoes", () => {
+  const lista = [
+    { id: "1", fortnight_id: "q1", apontada: true },
+    { id: "2", fortnight_id: "q1", apontada: false },
+    { id: "3", fortnight_id: "q2", apontada: true },
+  ];
+  const ids = (r: { id: string }[]) => r.map((a) => a.id);
+
+  it("sem filtro, mostra tudo", () => {
+    expect(ids(filtrarMinhasAvaliacoes(lista, { quinzena: "todas", apontada: "todas" }))).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+  it("filtra por quinzena", () => {
+    expect(ids(filtrarMinhasAvaliacoes(lista, { quinzena: "q1", apontada: "todas" }))).toEqual([
+      "1",
+      "2",
+    ]);
+  });
+  it("filtra por apontada", () => {
+    expect(ids(filtrarMinhasAvaliacoes(lista, { quinzena: "todas", apontada: "sim" }))).toEqual([
+      "1",
+      "3",
+    ]);
+    expect(ids(filtrarMinhasAvaliacoes(lista, { quinzena: "todas", apontada: "nao" }))).toEqual([
+      "2",
+    ]);
+  });
+  it("combina os dois filtros", () => {
+    expect(ids(filtrarMinhasAvaliacoes(lista, { quinzena: "q1", apontada: "sim" }))).toEqual(["1"]);
+  });
+});
+
+describe("motivoContestacaoValido (mesma regra do banco)", () => {
+  it("aceita exatamente 10 caracteres e recusa 9", () => {
+    expect(motivoContestacaoValido("1234567890")).toBe(true);
+    expect(motivoContestacaoValido("123456789")).toBe(false);
+  });
+  it("ignora espaços em volta, como o banco", () => {
+    expect(motivoContestacaoValido("   123456789   ")).toBe(false);
+  });
+});
+
+describe("contestacaoEmAndamento", () => {
+  it("aberta e em análise bloqueiam nova contestação; respondida não", () => {
+    expect(contestacaoEmAndamento("aberta")).toBe(true);
+    expect(contestacaoEmAndamento("em_analise")).toBe(true);
+    expect(contestacaoEmAndamento("respondida")).toBe(false);
+    expect(contestacaoEmAndamento(undefined)).toBe(false);
   });
 });
