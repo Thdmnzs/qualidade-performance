@@ -41,29 +41,42 @@ const DESTAQUES = [
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-5xl px-6 py-20">
-        <p className="text-sm font-medium uppercase tracking-widest text-primary">Uso interno · CX</p>
-        <h1 className="mt-4 font-display text-4xl font-bold leading-tight md:text-5xl">
-          Plataforma de Qualidade &amp; Performance
-        </h1>
-        <p className="mt-4 max-w-2xl text-muted-foreground">
-          Centraliza os resultados do time de atendimento por quinzena: indicadores, avaliações de
-          qualidade, contestações, elegibilidade à premiação e ranking.
-        </p>
-        <Link
-          to="/auth"
-          className="mt-8 inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
-        >
-          Entrar na plataforma
-        </Link>
+    // Mesma identidade da tela de login: imagem de fundo, cartão branco e o verde da fluke.
+    // A cor da plataforma (bg-background) fica por baixo enquanto a imagem carrega.
+    <div className="min-h-screen bg-background bg-[url('/login-fundo.jpg')] bg-cover bg-fixed bg-center px-4 py-12 sm:py-20">
+      <div className="mx-auto max-w-5xl">
+        <section className="rounded-2xl bg-white px-8 py-10 text-slate-900 shadow-2xl shadow-black/40 sm:px-12 sm:py-14">
+          <img src="/logo-fluke.png" alt="fluke" width={180} height={48} className="h-10 w-auto" />
+          <p className="mt-8 text-xs font-semibold uppercase tracking-widest text-green-700">
+            Uso interno · CX
+          </p>
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight sm:text-5xl">
+            Plataforma de Qualidade &amp; Performance
+          </h1>
+          <p className="mt-4 max-w-2xl text-slate-600">
+            Centraliza os resultados do time de atendimento por quinzena: indicadores, avaliações de
+            qualidade, contestações, elegibilidade à premiação e ranking.
+          </p>
+          <Link
+            to="/auth"
+            className="mt-8 inline-flex items-center justify-center rounded-lg bg-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-700/30 transition-colors hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+          >
+            Entrar na plataforma
+          </Link>
+        </section>
 
-        <div className="mt-16 grid gap-4 md:grid-cols-3">
+        {/* Destaques translúcidos: o cartão branco continua sendo o foco. */}
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
           {DESTAQUES.map((d) => (
-            <div key={d.titulo} className="rounded-2xl border border-border bg-card p-6">
-              <d.icon className="size-6 text-primary" />
+            <div
+              key={d.titulo}
+              className="rounded-2xl border border-white/15 bg-white/10 p-6 text-white backdrop-blur-md"
+            >
+              <span className="flex size-10 items-center justify-center rounded-full bg-white">
+                <d.icon className="size-5 text-green-700" aria-hidden="true" />
+              </span>
               <h2 className="mt-4 font-display text-lg font-semibold">{d.titulo}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{d.texto}</p>
+              <p className="mt-2 text-sm text-white/75">{d.texto}</p>
             </div>
           ))}
         </div>
