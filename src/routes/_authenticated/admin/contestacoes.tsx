@@ -21,6 +21,7 @@ import {
 } from "@/lib/avaliacao";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
 import { fetchContestacoes } from "@/lib/queries";
+import { contestacaoAtrasada } from "@/lib/quinzena";
 
 export const Route = createFileRoute("/_authenticated/admin/contestacoes")({
   head: () => ({
@@ -153,6 +154,7 @@ function BlocoDoColaborador({
   abertoPorPadrao: boolean;
 }) {
   const [aberto, setAberto] = useState(abertoPorPadrao);
+  const atrasadas = contestacoes.filter((c) => contestacaoAtrasada(c)).length;
   return (
     <Collapsible
       open={aberto}
@@ -165,6 +167,11 @@ function BlocoDoColaborador({
           <span className="ml-1 text-sm font-normal text-muted-foreground">
             ({contestacoes.length})
           </span>
+          {atrasadas > 0 && (
+            <span className="ml-2 text-xs font-normal text-destructive">
+              {atrasadas} atrasada(s)
+            </span>
+          )}
         </span>
         <ChevronDown
           className={`size-4 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`}
@@ -183,6 +190,7 @@ function CartaoDeContestacao({ contestacao: c }: { contestacao: Contestacao }) {
   const [aberto, setAberto] = useState(false);
   const [modo, setModo] = useState<Modo>("ver");
   const emAndamento = contestacaoEmAndamento(c.status);
+  const atrasada = contestacaoAtrasada(c);
 
   return (
     <div className="rounded-2xl border border-border bg-card">
@@ -203,6 +211,11 @@ function CartaoDeContestacao({ contestacao: c }: { contestacao: Contestacao }) {
             <span className="block font-medium">{c.assunto}</span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
               {c.employees?.nome} · aberta em {dataHoraBR(c.created_at)}
+              {emAndamento && c.responder_ate && (
+                <span className={atrasada ? "text-destructive" : undefined}>
+                  {" · "}responder até {dataHoraBR(c.responder_ate)}
+                </span>
+              )}
             </span>
           </span>
         </span>
@@ -211,6 +224,11 @@ function CartaoDeContestacao({ contestacao: c }: { contestacao: Contestacao }) {
         >
           {rotuloStatusContestacao[c.status]}
         </span>
+        {atrasada && (
+          <span className="rounded-full bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
+            Atrasada
+          </span>
+        )}
       </button>
 
       {aberto && (

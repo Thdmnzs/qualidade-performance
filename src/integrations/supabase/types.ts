@@ -219,6 +219,7 @@ export type Database = {
           nota_nova: number | null
           resolucao: string | null
           respondida_em: string | null
+          responder_ate: string | null
           responsavel_id: string | null
           result_id: string | null
           status: Database["public"]["Enums"]["contestation_status"]
@@ -237,6 +238,7 @@ export type Database = {
           nota_nova?: number | null
           resolucao?: string | null
           respondida_em?: string | null
+          responder_ate?: string | null
           responsavel_id?: string | null
           result_id?: string | null
           status?: Database["public"]["Enums"]["contestation_status"]
@@ -255,6 +257,7 @@ export type Database = {
           nota_nova?: number | null
           resolucao?: string | null
           respondida_em?: string | null
+          responder_ate?: string | null
           responsavel_id?: string | null
           result_id?: string | null
           status?: Database["public"]["Enums"]["contestation_status"]
@@ -622,6 +625,7 @@ export type Database = {
           id: string
           mes: number
           prazo_contestacao_ate: string | null
+          publicado_em: string | null
           status: Database["public"]["Enums"]["fortnight_status"]
           tipo: Database["public"]["Enums"]["fortnight_type"]
           updated_at: string
@@ -636,6 +640,7 @@ export type Database = {
           id?: string
           mes: number
           prazo_contestacao_ate?: string | null
+          publicado_em?: string | null
           status?: Database["public"]["Enums"]["fortnight_status"]
           tipo: Database["public"]["Enums"]["fortnight_type"]
           updated_at?: string
@@ -650,6 +655,7 @@ export type Database = {
           id?: string
           mes?: number
           prazo_contestacao_ate?: string | null
+          publicado_em?: string | null
           status?: Database["public"]["Enums"]["fortnight_status"]
           tipo?: Database["public"]["Enums"]["fortnight_type"]
           updated_at?: string
@@ -948,6 +954,10 @@ export type Database = {
           _status: Database["public"]["Enums"]["employee_status"]
         }
         Returns: string
+      }
+      alterar_ciclo_quinzena: {
+        Args: { _acao: string; _fortnight_id: string; _motivo?: string }
+        Returns: Database["public"]["Enums"]["fortnight_status"]
       }
       contestar_avaliacao: {
         Args: { _descricao: string; _evaluation_id: string }

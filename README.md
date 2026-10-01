@@ -52,6 +52,21 @@ sobre colaboradores; avaliadores são avaliados e têm as contestações tratada
 O avaliador usa a mesma conta nas duas áreas. A aba escolhida no login define a área de entrada, e o menu
 permite trocar. A área decide só a navegação: o que cada um pode ler e gravar é decidido pelo banco.
 
+## Ciclo da quinzena e contestações
+
+O ADM conduz cada quinzena pela **Visão geral**; cada passo é validado pelo banco e registrado na auditoria.
+
+| Status | O que acontece |
+| --- | --- |
+| **Aberta** | Avaliadores registram e excluem avaliações. O colaborador ainda não vê nada. |
+| **Em contestação** | Após "Publicar": o colaborador vê as próprias avaliações e pode contestar por **2 dias úteis, contando o dia da publicação, até as 23h59**. Avaliações não são mais registradas nem excluídas; só ajustadas aceitando uma contestação. |
+| **Fechada** | Só depois do prazo e sem contestações pendentes. Os resultados ficam oficiais. |
+
+- Quem recebe a contestação tem **1 dia útil** (até as 23h59 do dia útil seguinte) para responder; vencido, ela aparece como **Atrasada** e continua respondível.
+- Aceitar = ajustar a ficha no mesmo passo: a nota é recalculada e o antes/depois fica guardado.
+- **Reabrir** (ADM) exige motivo, volta a quinzena para "Aberta" e fica na auditoria.
+- Dia útil = segunda a sexta; feriados não são considerados nesta versão.
+
 ## Acesso dos colaboradores
 
 Os acessos são criados pelo ADM; não existe cadastro aberto.

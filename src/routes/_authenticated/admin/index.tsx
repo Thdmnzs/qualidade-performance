@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
+import { CicloDaQuinzena } from "@/components/ciclo-da-quinzena";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { usePermissoes } from "@/hooks/useAuth";
 import {
@@ -9,13 +10,22 @@ import {
   fetchMediasTime,
   fetchQuinzenas,
 } from "@/lib/queries";
-import { dataBR, nomeQuinzena, numeroBR, rotuloIndicador, rotuloStatusQuinzena } from "@/lib/format";
+import {
+  dataBR,
+  nomeQuinzena,
+  numeroBR,
+  rotuloIndicador,
+  rotuloStatusQuinzena,
+} from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
       { title: "Visão geral · Gestão de Qualidade" },
-      { name: "description", content: "Acompanhamento das quinzenas, médias do time e pendências." },
+      {
+        name: "description",
+        content: "Acompanhamento das quinzenas, médias do time e pendências.",
+      },
     ],
   }),
   component: AdminHome,
@@ -41,7 +51,9 @@ function AdminHome() {
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!isAdmin)
-    return <EmptyState titulo="Acesso restrito" texto="Esta área é exclusiva de administradores." />;
+    return (
+      <EmptyState titulo="Acesso restrito" texto="Esta área é exclusiva de administradores." />
+    );
 
   const abertas = contestacoes.filter((c) => c.status === "aberta" || c.status === "em_analise");
 
@@ -49,8 +61,13 @@ function AdminHome() {
     <div>
       <PageHeader titulo="Visão geral" descricao={nomeQuinzena(atual)} />
 
+      {atual && <CicloDaQuinzena quinzena={atual} contestacoes={contestacoes} />}
+
       <div className="grid gap-4 md:grid-cols-3">
-        <Indicador titulo="Colaboradores ativos" valor={colaboradores.filter((c) => c.status === "ativo").length} />
+        <Indicador
+          titulo="Colaboradores ativos"
+          valor={colaboradores.filter((c) => c.status === "ativo").length}
+        />
         <Indicador titulo="Contestações em aberto" valor={abertas.length} />
         <Indicador
           titulo="Status da quinzena"

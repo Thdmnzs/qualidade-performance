@@ -29,8 +29,9 @@ import {
   type FiltroApontada,
   type TipoAvaliacao,
 } from "@/lib/avaliacao";
-import { dataBR, nomeQuinzena, numeroBR, rotuloStatusContestacao } from "@/lib/format";
+import { dataBR, dataHoraBR, nomeQuinzena, numeroBR, rotuloStatusContestacao } from "@/lib/format";
 import { fetchContestacoes, fetchQuinzenas } from "@/lib/queries";
+import { prazoDeContestacaoAberto } from "@/lib/quinzena";
 
 export const Route = createFileRoute("/_authenticated/minhas-avaliacoes")({
   head: () => ({
@@ -110,6 +111,13 @@ function MinhasAvaliacoes() {
 
   const visiveis = filtrarMinhasAvaliacoes(avaliacoes, { quinzena, apontada });
   const nomeDaQuinzena = (id: string) => nomeQuinzena(quinzenas.find((q) => q.id === id));
+  const quinzenaDe = (id: string) => quinzenas.find((q) => q.id === id);
+  const podeContestar = (fortnightId: string) => {
+    const q = quinzenaDe(fortnightId);
+    return !!q && prazoDeContestacaoAberto(q);
+  };
+  // Quinzenas com prazo aberto agora, para o aviso no topo.
+  const emPrazo = quinzenas.filter((q) => prazoDeContestacaoAberto(q));
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!temAreaDeColaborador) {
@@ -125,8 +133,18 @@ function MinhasAvaliacoes() {
     <div>
       <PageHeader
         titulo="Minhas avaliações"
-        descricao="Suas avaliações de qualidade. Elas aparecem aqui depois do fechamento de cada quinzena."
+        descricao="Suas avaliações de qualidade. Elas aparecem aqui quando a quinzena é publicada para contestação."
       />
+
+      {emPrazo.map((q) => (
+        <p
+          key={q.id}
+          className="mb-4 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm"
+        >
+          Você pode contestar as avaliações da <strong>{nomeQuinzena(q)}</strong> até{" "}
+          <strong>{dataHoraBR(q.prazo_contestacao_ate!)}</strong>.
+        </p>
+      ))}
 
       <div className="mb-6 flex flex-wrap items-end gap-4">
         <div className="space-y-1">
@@ -175,7 +193,7 @@ function MinhasAvaliacoes() {
       ) : avaliacoes.length === 0 ? (
         <EmptyState
           titulo="Nenhuma avaliação disponível"
-          texto="Suas avaliações aparecem aqui depois do fechamento da quinzena."
+          texto="Suas avaliações aparecem aqui quando a quinzena é publicada para contestação."
         />
       ) : visiveis.length === 0 ? (
         <EmptyState
@@ -252,10 +270,14 @@ function MinhasAvaliacoes() {
                       <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
                         Contestação {rotuloStatusContestacao[status!]?.toLowerCase()}
                       </span>
-                    ) : (
+                    ) : podeContestar(a.fortnight_id) ? (
                       <Button size="sm" variant="outline" onClick={() => setContestando(a)}>
                         <MessageSquareWarning className="size-3.5" /> Contestar
                       </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Prazo de contestação encerrado
+                      </span>
                     )}
                   </div>
                 </div>

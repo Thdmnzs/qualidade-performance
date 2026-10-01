@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
 import { fetchContestacoes, fetchQuinzenaAtual } from "@/lib/queries";
+import { prazoDeContestacaoAberto } from "@/lib/quinzena";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
 
 const COR_STATUS: Record<string, string> = {
@@ -88,42 +89,49 @@ function Contestacoes() {
         descricao="Abra uma contestação sobre resultados ou avaliações da quinzena."
       />
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!quinzena) {
-            toast.error("Nenhuma quinzena disponível.");
-            return;
-          }
-          criar.mutate();
-        }}
-        className="mb-8 space-y-4 rounded-2xl border border-border bg-card p-5"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="assunto">Assunto</Label>
-          <Input
-            id="assunto"
-            value={assunto}
-            onChange={(e) => setAssunto(e.target.value)}
-            required
-            disabled={prazoEncerrado}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="descricao">Descrição</Label>
-          <Textarea
-            id="descricao"
-            rows={4}
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            required
-            disabled={prazoEncerrado}
-          />
-        </div>
-        <Button type="submit" disabled={criar.isPending || prazoEncerrado}>
-          {prazoEncerrado ? "Prazo encerrado" : "Enviar contestação"}
-        </Button>
-      </form>
+      {quinzena && prazoDeContestacaoAberto(quinzena) ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!quinzena) {
+              toast.error("Nenhuma quinzena disponível.");
+              return;
+            }
+            criar.mutate();
+          }}
+          className="mb-8 space-y-4 rounded-2xl border border-border bg-card p-5"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="assunto">Assunto</Label>
+            <Input
+              id="assunto"
+              value={assunto}
+              onChange={(e) => setAssunto(e.target.value)}
+              required
+              disabled={prazoEncerrado}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="descricao">Descrição</Label>
+            <Textarea
+              id="descricao"
+              rows={4}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              required
+              disabled={prazoEncerrado}
+            />
+          </div>
+          <Button type="submit" disabled={criar.isPending || prazoEncerrado}>
+            {prazoEncerrado ? "Prazo encerrado" : "Enviar contestação"}
+          </Button>
+        </form>
+      ) : (
+        <p className="mb-8 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          Contestações são aceitas quando a quinzena é publicada, por 2 dias úteis (até as 23h59 do
+          último dia). Para contestar uma avaliação específica, use "Minhas avaliações".
+        </p>
+      )}
 
       {contestacoes.length === 0 ? (
         <EmptyState titulo="Nenhuma contestação" texto="Você ainda não abriu contestações." />

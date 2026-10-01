@@ -13,6 +13,7 @@ import { usePermissoes } from "@/hooks/useAuth";
 import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
+import { aceitaAvaliacoes, ROTULO_STATUS_QUINZENA, type StatusQuinzena } from "@/lib/quinzena";
 import {
   AVALIACOES_PREVISTAS,
   avisoDeQuantidade,
@@ -230,8 +231,11 @@ function Avaliacoes() {
             >
               <option value="">Selecione</option>
               {quinzenas.map((q) => (
-                <option key={q.id} value={q.id} disabled={q.status === "fechada"}>
-                  {nomeQuinzena(q)} {q.status === "fechada" ? "(fechada)" : ""}
+                <option key={q.id} value={q.id} disabled={!aceitaAvaliacoes(q)}>
+                  {nomeQuinzena(q)}{" "}
+                  {aceitaAvaliacoes(q)
+                    ? ""
+                    : `(${ROTULO_STATUS_QUINZENA[q.status as StatusQuinzena]?.toLowerCase()})`}
                 </option>
               ))}
             </select>
