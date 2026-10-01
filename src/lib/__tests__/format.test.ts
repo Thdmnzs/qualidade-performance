@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { dataBR, LOGIN_VALIDO, normalizarEmail, normalizarLogin } from "../format";
+import {
+  confirmacaoConfere,
+  dataBR,
+  LOGIN_VALIDO,
+  normalizarEmail,
+  normalizarLogin,
+} from "../format";
 
 describe("dataBR", () => {
   it("formata data de calendário sem deslocar o dia (bug das quinzenas)", () => {
@@ -40,5 +46,14 @@ describe("normalizarLogin", () => {
 describe("normalizarEmail", () => {
   it("remove espaços e usa minúsculas, como o banco exige", () => {
     expect(normalizarEmail("  Thiago@Empresa.com ")).toBe("thiago@empresa.com");
+  });
+});
+
+describe("confirmacaoConfere (mesma regra do banco)", () => {
+  it("aceita o nome com maiúsculas e espaços diferentes", () => {
+    expect(confirmacaoConfere("  thiago DANTAS ", "Thiago Dantas")).toBe(true);
+  });
+  it("recusa nome incompleto", () => {
+    expect(confirmacaoConfere("Thiago", "Thiago Dantas")).toBe(false);
   });
 });

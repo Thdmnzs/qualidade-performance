@@ -949,6 +949,10 @@ export type Database = {
         Args: { _evaluation_id: string; _motivo: string }
         Returns: undefined
       }
+      excluir_colaborador_definitivo: {
+        Args: { _chamador: string; _confirmacao: string; _employee_id: string }
+        Returns: string
+      }
       fortnight_is_closed: { Args: { _fortnight_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -1038,6 +1042,30 @@ export type Database = {
           nota: number
           total_interacao: number
           total_ticket_n2: number
+        }[]
+      }
+      resumo_exclusao_colaborador: {
+        Args: { _employee_id: string }
+        Returns: {
+          avaliacoes: number
+          avaliacoes_feitas_para_outros: number
+          contestacoes: number
+          elegibilidades: number
+          quiz: number
+          rankings: number
+          resultados: number
+        }[]
+      }
+      resumo_exclusao_colaborador_interno: {
+        Args: { _employee_id: string }
+        Returns: {
+          avaliacoes: number
+          avaliacoes_feitas_para_outros: number
+          contestacoes: number
+          elegibilidades: number
+          quiz: number
+          rankings: number
+          resultados: number
         }[]
       }
       validar_gestao_de_acesso: {

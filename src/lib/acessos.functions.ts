@@ -64,3 +64,14 @@ export const alterarStatusFn = createServerFn({ method: "POST" })
       return { ok: true };
     }),
   );
+
+export const excluirColaboradorFn = createServerFn({ method: "POST" })
+  .middleware([...autenticado])
+  .validator(z.object({ employeeId: z.string().uuid(), confirmacao: z.string().min(1).max(200) }))
+  .handler(async ({ data, context }) =>
+    comErrosSeguros(async () => {
+      const { excluirColaborador } = await import("@/server/acessos.server");
+      await excluirColaborador({ ...data, chamadorId: context.userId });
+      return { ok: true };
+    }),
+  );

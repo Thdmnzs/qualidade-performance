@@ -106,3 +106,7 @@ export const rotuloStatusContestacao: Record<string, string> = {
   deferida: "Deferida",
   indeferida: "Indeferida",
 };
+
+/** Confirmação por nome: mesma regra do banco (ignora maiúsculas e espaços nas pontas). */
+export const confirmacaoConfere = (digitado: string, nome: string) =>
+  digitado.trim().toLowerCase() === nome.trim().toLowerCase();

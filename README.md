@@ -61,6 +61,10 @@ Os acessos são criados pelo ADM; não existe cadastro aberto.
 2. A pessoa abre o link, cai em `/definir-senha` e cria a própria senha. O ADM nunca a conhece.
 3. **Link de senha** gera um link de redefinição para quem já tem acesso (senha esquecida, convite expirado).
 4. **Inativar** bloqueia o login no Auth e corta o acesso aos dados na hora; o histórico é mantido.
+5. **Excluir** (só ADM, só inativos, confirmando com o nome completo) apaga a pessoa e tudo o que é dela:
+   cadastro, acesso, avaliações recebidas, contestações, resultados, quiz, ranking e elegibilidade. Não tem volta.
+   O que ela fez para outros (por exemplo, avaliações feitas como avaliadora) continua, como "Avaliador removido".
+   A auditoria guarda só quem excluiu, quando e quantos registros foram apagados, sem dados pessoais.
 
 Essas operações usam a chave de serviço e rodam só no servidor (`src/server/acessos.server.ts`).
 As regras de permissão ficam no banco (migration `ciclo_de_acesso`): só o ADM gerencia acessos,

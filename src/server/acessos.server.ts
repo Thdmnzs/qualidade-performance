@@ -159,3 +159,33 @@ export async function alterarStatus(params: {
     );
   }
 }
+
+/**
+ * Exclusão definitiva de colaborador inativo (regra de 01/10/2026).
+ * O banco apaga tudo numa transação e devolve o user_id; depois o servidor
+ * apaga o acesso no Auth. Se essa segunda parte falhar, os dados já foram
+ * excluídos, e a pessoa já estava com o login bloqueado (inativa): o risco
+ * é só sobrar uma conta órfã, que o ADM remove no painel do Supabase.
+ */
+export async function excluirColaborador(params: {
+  employeeId: string;
+  confirmacao: string;
+  chamadorId: string;
+}): Promise<void> {
+  const { data: userId, error } = await supabaseAdmin.rpc("excluir_colaborador_definitivo", {
+    _employee_id: params.employeeId,
+    _confirmacao: params.confirmacao,
+    _chamador: params.chamadorId,
+  });
+  if (error) traduzirErroDoBanco(error, "excluir_colaborador_definitivo");
+
+  if (!userId) return;
+  const { error: erroAuth } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (erroAuth) {
+    console.error("[acessos] deleteUser após exclusão:", userId, erroAuth);
+    throw new ErroDeAcesso(
+      "Os dados do colaborador foram excluídos, mas o acesso dele não pôde ser removido. " +
+        "Remova-o em Authentication → Users, no painel do Supabase.",
+    );
+  }
+}

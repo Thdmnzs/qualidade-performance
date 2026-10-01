@@ -1,10 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  ExcluirColaboradorDialog,
+  type ColaboradorParaExcluir,
+} from "@/components/excluir-colaborador-dialog";
 import { LinkDeAcessoDialog, type LinkDeAcesso } from "@/components/link-de-acesso-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +50,7 @@ function Colaboradores() {
   const qc = useQueryClient();
   const [form, setForm] = useState(vazio);
   const [linkAberto, setLinkAberto] = useState<LinkDeAcesso | null>(null);
+  const [excluindo, setExcluindo] = useState<ColaboradorParaExcluir | null>(null);
   const criarAcesso = useServerFn(criarAcessoFn);
   const gerarLinkDeSenha = useServerFn(gerarLinkDeSenhaFn);
   const alterarStatus = useServerFn(alterarStatusFn);
@@ -53,6 +60,8 @@ function Colaboradores() {
     queryFn: fetchColaboradores,
     enabled: isAdmin,
   });
+  const ativos = lista.filter((c) => c.status === "ativo");
+  const inativos = lista.filter((c) => c.status === "inativo");
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -164,11 +173,121 @@ function Colaboradores() {
         ? "Você não pode alterar o seu próprio perfil."
         : null;
 
+  // Mesma tabela para os dois blocos; o botão Excluir só aparece para inativos.
+  const tabelaDe = (itens: typeof lista) => (
+    <div className="overflow-x-auto border-t border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3">Nome</th>
+            <th className="px-4 py-3">Login</th>
+            <th className="px-4 py-3">Perfil</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map((c) => (
+            <tr key={c.id} className="border-t border-border">
+              <td className="px-4 py-3 font-medium">{c.nome}</td>
+              <td className="px-4 py-3 text-muted-foreground">{c.login}</td>
+              <td className="px-4 py-3">{rotuloPerfil[c.perfil]}</td>
+              <td className="px-4 py-3">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    c.status === "ativo"
+                      ? "bg-primary/15 text-primary"
+                      : "bg-destructive/15 text-destructive"
+                  }`}
+                >
+                  {c.status === "ativo" ? "Ativo" : "Inativo"}
+                </span>
+                {!c.tem_acesso && (
+                  <span className="ml-2 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                    Sem acesso
+                  </span>
+                )}
+              </td>
+              <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setForm({
+                      id: c.id,
+                      nome: c.nome,
+                      login: c.login,
+                      email: c.email ?? "",
+                      perfil: c.perfil,
+                      perfilOriginal: c.perfil,
+                      temAcesso: c.tem_acesso,
+                    })
+                  }
+                >
+                  Editar
+                </Button>
+                {c.status === "ativo" && !c.tem_acesso && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={ocupado}
+                    onClick={() => criarAcessoDaLinha.mutate(c)}
+                  >
+                    Criar acesso
+                  </Button>
+                )}
+                {c.status === "ativo" && c.tem_acesso && c.id !== eu?.id && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={ocupado}
+                    onClick={() => gerarLink.mutate(c)}
+                  >
+                    Link de senha
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={ocupado || c.id === eu?.id}
+                  title={
+                    c.id === eu?.id ? "Você não pode inativar o seu próprio cadastro." : undefined
+                  }
+                  onClick={() => {
+                    const acao = c.status === "ativo" ? "inativação" : "reativação";
+                    const efeito =
+                      c.status === "ativo"
+                        ? " O login será bloqueado imediatamente; o histórico é mantido."
+                        : "";
+                    if (confirm(`Confirmar ${acao} de ${c.nome}?${efeito}`))
+                      alternarStatus.mutate(c);
+                  }}
+                >
+                  {c.status === "ativo" ? "Inativar" : "Reativar"}
+                </Button>
+                {c.status === "inativo" && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={ocupado}
+                    onClick={() => setExcluindo({ id: c.id, nome: c.nome })}
+                  >
+                    Excluir
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader
         titulo="Colaboradores"
-        descricao="Cadastre e gerencie o time. Colaboradores com histórico nunca são excluídos — apenas inativados."
+        descricao="Cadastre e gerencie o time. Inativar bloqueia o acesso; excluir (só inativos) apaga a pessoa e tudo o que é dela."
       />
 
       <form
@@ -256,107 +375,36 @@ function Colaboradores() {
       ) : lista.length === 0 ? (
         <EmptyState titulo="Nenhum colaborador" texto="Cadastre o primeiro colaborador acima." />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Nome</th>
-                <th className="px-4 py-3">Login</th>
-                <th className="px-4 py-3">Perfil</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((c) => (
-                <tr key={c.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-medium">{c.nome}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.login}</td>
-                  <td className="px-4 py-3">{rotuloPerfil[c.perfil]}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs ${
-                        c.status === "ativo"
-                          ? "bg-primary/15 text-primary"
-                          : "bg-destructive/15 text-destructive"
-                      }`}
-                    >
-                      {c.status === "ativo" ? "Ativo" : "Inativo"}
-                    </span>
-                    {!c.tem_acesso && (
-                      <span className="ml-2 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-                        Sem acesso
-                      </span>
-                    )}
-                  </td>
-                  <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        setForm({
-                          id: c.id,
-                          nome: c.nome,
-                          login: c.login,
-                          email: c.email ?? "",
-                          perfil: c.perfil,
-                          perfilOriginal: c.perfil,
-                          temAcesso: c.tem_acesso,
-                        })
-                      }
-                    >
-                      Editar
-                    </Button>
-                    {c.status === "ativo" && !c.tem_acesso && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={ocupado}
-                        onClick={() => criarAcessoDaLinha.mutate(c)}
-                      >
-                        Criar acesso
-                      </Button>
-                    )}
-                    {c.status === "ativo" && c.tem_acesso && c.id !== eu?.id && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={ocupado}
-                        onClick={() => gerarLink.mutate(c)}
-                      >
-                        Link de senha
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={ocupado || c.id === eu?.id}
-                      title={
-                        c.id === eu?.id
-                          ? "Você não pode inativar o seu próprio cadastro."
-                          : undefined
-                      }
-                      onClick={() => {
-                        const acao = c.status === "ativo" ? "inativação" : "reativação";
-                        const efeito =
-                          c.status === "ativo"
-                            ? " O login será bloqueado imediatamente; o histórico é mantido."
-                            : "";
-                        if (confirm(`Confirmar ${acao} de ${c.nome}?${efeito}`))
-                          alternarStatus.mutate(c);
-                      }}
-                    >
-                      {c.status === "ativo" ? "Inativar" : "Reativar"}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          <BlocoDeColaboradores
+            titulo="Colaboradores ativos"
+            quantidade={ativos.length}
+            abertoPorPadrao
+          >
+            {ativos.length === 0 ? (
+              <p className="px-5 pb-4 text-sm text-muted-foreground">Nenhum colaborador ativo.</p>
+            ) : (
+              tabelaDe(ativos)
+            )}
+          </BlocoDeColaboradores>
+          <BlocoDeColaboradores titulo="Colaboradores inativos" quantidade={inativos.length}>
+            {inativos.length === 0 ? (
+              <p className="px-5 pb-4 text-sm text-muted-foreground">Nenhum colaborador inativo.</p>
+            ) : (
+              <>
+                <p className="px-5 pb-3 text-xs text-muted-foreground">
+                  Inativos não acessam a plataforma. Excluir apaga a pessoa e tudo o que é dela, sem
+                  volta.
+                </p>
+                {tabelaDe(inativos)}
+              </>
+            )}
+          </BlocoDeColaboradores>
         </div>
       )}
 
       <LinkDeAcessoDialog dados={linkAberto} onFechar={() => setLinkAberto(null)} />
+      <ExcluirColaboradorDialog colaborador={excluindo} onFechar={() => setExcluindo(null)} />
     </div>
   );
 }
@@ -370,4 +418,37 @@ function mensagemDoBanco(error: { code?: string; message: string }): string {
   if (error.message.includes("employees_email_formato")) return "E-mail inválido.";
   if (error.message.includes("employees_login_formato")) return "Login inválido.";
   return error.message;
+}
+
+/** Bloco recolhível com título e contagem. */
+function BlocoDeColaboradores({
+  titulo,
+  quantidade,
+  abertoPorPadrao = false,
+  children,
+}: {
+  titulo: string;
+  quantidade: number;
+  abertoPorPadrao?: boolean;
+  children: ReactNode;
+}) {
+  const [aberto, setAberto] = useState(abertoPorPadrao);
+  return (
+    <Collapsible
+      open={aberto}
+      onOpenChange={setAberto}
+      className="rounded-2xl border border-border bg-card"
+    >
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-5 py-4 text-left">
+        <span className="font-display font-semibold">
+          {titulo}{" "}
+          <span className="ml-1 text-sm font-normal text-muted-foreground">({quantidade})</span>
+        </span>
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  );
 }
