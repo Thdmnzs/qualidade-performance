@@ -10,13 +10,8 @@ import {
   fetchQuinzenaAtual,
   fetchResultados,
 } from "@/lib/queries";
-import {
-  dataBR,
-  nomeQuinzena,
-  numeroBR,
-  rotuloIndicador,
-  rotuloStatusQuinzena,
-} from "@/lib/format";
+import { dataBR, nomeQuinzena, numeroBR, rotuloIndicador } from "@/lib/format";
+import { situacaoExibida } from "@/lib/quinzena";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -83,7 +78,7 @@ function Painel() {
         titulo={`Olá, ${employee.nome.split(" ")[0]}`}
         descricao={
           quinzena
-            ? `${nomeQuinzena(quinzena)} · ${rotuloStatusQuinzena[quinzena.status]} · ${dataBR(quinzena.data_inicio)} a ${dataBR(quinzena.data_fim)}`
+            ? `${nomeQuinzena(quinzena)} · ${situacaoExibida(quinzena, 0).rotulo} · ${dataBR(quinzena.data_inicio)} a ${dataBR(quinzena.data_fim)}`
             : "Nenhuma quinzena cadastrada ainda."
         }
       />

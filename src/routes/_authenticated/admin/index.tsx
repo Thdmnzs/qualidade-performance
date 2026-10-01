@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { CicloDaQuinzena } from "@/components/ciclo-da-quinzena";
+import { situacaoExibida } from "@/lib/quinzena";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { usePermissoes } from "@/hooks/useAuth";
 import {
@@ -10,13 +11,7 @@ import {
   fetchMediasTime,
   fetchQuinzenas,
 } from "@/lib/queries";
-import {
-  dataBR,
-  nomeQuinzena,
-  numeroBR,
-  rotuloIndicador,
-  rotuloStatusQuinzena,
-} from "@/lib/format";
+import { dataBR, nomeQuinzena, numeroBR, rotuloIndicador } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -71,7 +66,12 @@ function AdminHome() {
         <Indicador titulo="Contestações em aberto" valor={abertas.length} />
         <Indicador
           titulo="Status da quinzena"
-          valor={(atual && rotuloStatusQuinzena[atual.status]) ?? "—"}
+          valor={
+            atual
+              ? situacaoExibida(atual, abertas.filter((c) => c.fortnight_id === atual.id).length)
+                  .rotulo
+              : "—"
+          }
         />
       </div>
 
@@ -110,7 +110,12 @@ function AdminHome() {
                   <td className="px-4 py-3 text-muted-foreground">
                     {dataBR(q.data_inicio)} – {dataBR(q.data_fim)}
                   </td>
-                  <td className="px-4 py-3">{rotuloStatusQuinzena[q.status]}</td>
+                  <td className="px-4 py-3">
+                    {
+                      situacaoExibida(q, abertas.filter((c) => c.fortnight_id === q.id).length)
+                        .rotulo
+                    }
+                  </td>
                 </tr>
               ))}
             </tbody>

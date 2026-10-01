@@ -19,8 +19,9 @@ import { dataHoraBR, nomeQuinzena } from "@/lib/format";
 import {
   contestacaoAtrasada,
   prazoDeContestacaoAberto,
-  ROTULO_STATUS_QUINZENA,
+  CLASSE_DO_TOM,
   situacaoDoFechamento,
+  situacaoExibida,
   type StatusQuinzena,
 } from "@/lib/quinzena";
 
@@ -36,14 +37,6 @@ type Quinzena = {
 };
 type ContestacaoResumo = { fortnight_id: string; status: string; responder_ate: string | null };
 type Acao = "publicar" | "fechar" | "reabrir";
-
-const COR: Record<string, string> = {
-  aberta: "bg-primary/15 text-primary",
-  em_analise: "bg-primary/15 text-primary",
-  em_contestacao: "bg-warning/15 text-warning",
-  pronta_para_fechamento: "bg-warning/15 text-warning",
-  fechada: "bg-secondary text-muted-foreground",
-};
 
 /**
  * Ciclo da quinzena (só ADM): aberta -> em contestação -> fechada.
@@ -67,6 +60,8 @@ export function CicloDaQuinzena({
   const atrasadas = daQuinzena.filter((c) => contestacaoAtrasada(c)).length;
   const fechamento = situacaoDoFechamento(quinzena, pendentes);
   const prazoAberto = prazoDeContestacaoAberto(quinzena);
+  // O status gravado só muda pela ação do ADM; o selo mostra o momento real.
+  const selo = situacaoExibida(quinzena, pendentes);
 
   const alterar = useMutation({
     mutationFn: async ({ acao, motivo }: { acao: Acao; motivo?: string }) => {
@@ -121,10 +116,8 @@ export function CicloDaQuinzena({
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Ciclo da quinzena</p>
           <p className="mt-1 font-display text-lg font-semibold">{nomeQuinzena(quinzena)}</p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-medium ${COR[status] ?? "bg-secondary"}`}
-        >
-          {ROTULO_STATUS_QUINZENA[status] ?? status}
+        <span className={`rounded-full px-3 py-1 text-xs font-medium ${CLASSE_DO_TOM[selo.tom]}`}>
+          {selo.rotulo}
         </span>
       </div>
 

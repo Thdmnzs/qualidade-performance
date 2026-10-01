@@ -118,6 +118,10 @@ function MinhasAvaliacoes() {
   };
   // Quinzenas com prazo aberto agora, para o aviso no topo.
   const emPrazo = quinzenas.filter((q) => prazoDeContestacaoAberto(q));
+  // Prazo encerrado, mas o ADM ainda não fechou: o colaborador precisa saber.
+  const aguardandoFechamento = quinzenas.filter(
+    (q) => q.status === "em_contestacao" && !prazoDeContestacaoAberto(q),
+  );
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!temAreaDeColaborador) {
@@ -135,6 +139,17 @@ function MinhasAvaliacoes() {
         titulo="Minhas avaliações"
         descricao="Suas avaliações de qualidade. Elas aparecem aqui quando a quinzena é publicada para contestação."
       />
+
+      {aguardandoFechamento.map((q) => (
+        <p
+          key={q.id}
+          className="mb-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground"
+        >
+          O prazo para contestar a <strong className="text-foreground">{nomeQuinzena(q)}</strong>{" "}
+          terminou em {q.prazo_contestacao_ate ? dataHoraBR(q.prazo_contestacao_ate) : "—"}. A
+          quinzena está aguardando o fechamento.
+        </p>
+      ))}
 
       {emPrazo.map((q) => (
         <p

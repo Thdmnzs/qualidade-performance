@@ -5,6 +5,7 @@ import {
   prazoDeContestacaoAberto,
   publicada,
   situacaoDoFechamento,
+  situacaoExibida,
 } from "../quinzena";
 
 // Prazo: quarta 16/09/2026, 23h59 em Fortaleza (= 02:59:59 UTC do dia 17).
@@ -97,5 +98,37 @@ describe("aceitaAvaliacoes e publicada", () => {
       false,
       true,
     ]);
+  });
+});
+
+describe("situacaoExibida (o selo depois do prazo)", () => {
+  it("dentro do prazo: Em contestação", () => {
+    expect(situacaoExibida(emContestacao, 0, quarta23h58)).toEqual({
+      rotulo: "Em contestação",
+      tom: "atencao",
+    });
+  });
+  it("prazo encerrado sem pendências: Pronta para fechamento", () => {
+    expect(situacaoExibida(emContestacao, 0, quinta00h01)).toEqual({
+      rotulo: "Pronta para fechamento",
+      tom: "positivo",
+    });
+  });
+  it("prazo encerrado com pendências: alerta, com a quantidade", () => {
+    expect(situacaoExibida(emContestacao, 2, quinta00h01)).toEqual({
+      rotulo: "Prazo encerrado · 2 pendentes",
+      tom: "alerta",
+    });
+    expect(situacaoExibida(emContestacao, 1, quinta00h01).rotulo).toBe(
+      "Prazo encerrado · 1 pendente",
+    );
+  });
+  it("aberta e fechada não mudam", () => {
+    expect(situacaoExibida({ status: "aberta", prazo_contestacao_ate: null }, 0).rotulo).toBe(
+      "Aberta",
+    );
+    expect(
+      situacaoExibida({ status: "fechada", prazo_contestacao_ate: PRAZO }, 0, quinta00h01).rotulo,
+    ).toBe("Fechada");
   });
 });

@@ -65,3 +65,44 @@ export function situacaoDoFechamento(
   }
   return { podeFechar: true, motivo: null };
 }
+
+export type Tom = "positivo" | "atencao" | "alerta" | "neutro";
+export type SituacaoExibida = { rotulo: string; tom: Tom };
+
+/**
+ * O que a tela mostra como status. O status gravado não muda sozinho quando o
+ * prazo termina (fechar é ação do ADM), mas a tela precisa deixar claro que o
+ * período acabou: "Pronta para fechamento" é o nome da especificação para isso.
+ */
+export function situacaoExibida(
+  q: QuinzenaComPrazo,
+  pendentes: number,
+  agora: Date = new Date(),
+): SituacaoExibida {
+  if (q.status === "em_contestacao" && !prazoDeContestacaoAberto(q, agora)) {
+    return pendentes > 0
+      ? {
+          rotulo: `Prazo encerrado · ${pendentes} ${pendentes === 1 ? "pendente" : "pendentes"}`,
+          tom: "alerta",
+        }
+      : { rotulo: "Pronta para fechamento", tom: "positivo" };
+  }
+  const tom: Record<string, Tom> = {
+    aberta: "positivo",
+    em_analise: "positivo",
+    em_contestacao: "atencao",
+    pronta_para_fechamento: "positivo",
+    fechada: "neutro",
+  };
+  return {
+    rotulo: ROTULO_STATUS_QUINZENA[q.status as StatusQuinzena] ?? q.status,
+    tom: tom[q.status] ?? "neutro",
+  };
+}
+
+export const CLASSE_DO_TOM: Record<Tom, string> = {
+  positivo: "bg-primary/15 text-primary",
+  atencao: "bg-warning/15 text-warning",
+  alerta: "bg-destructive/15 text-destructive",
+  neutro: "bg-secondary text-muted-foreground",
+};
