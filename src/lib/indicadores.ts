@@ -80,3 +80,56 @@ export function horasEMinutos(horas: number): string {
   const totalMin = Math.round(horas * 60);
   return `${Math.floor(totalMin / 60)}h${String(totalMin % 60).padStart(2, "0")}`;
 }
+
+/* ---------------- Qualidade (especificação, card de qualidade) ---------------- */
+
+/** Nota mínima de qualidade para elegibilidade (nível 4G). */
+export const QUALIDADE_MINIMA = 91;
+
+/**
+ * Nível pela escala da especificação: 5G = 98 a 100; 4,5G = 95 a 97,99;
+ * 4G = 91 a 94,99; 3G = 86 a 90,99; 2G = abaixo de 86.
+ * (O exemplo da especificação, "95,3 — 5G", contradiz a escala: 95,3 é 4,5G.)
+ */
+export function nivelQualidade(nota: number): string {
+  if (nota >= 98) return "5G";
+  if (nota >= 95) return "4,5G";
+  if (nota >= 91) return "4G";
+  if (nota >= 86) return "3G";
+  return "2G";
+}
+
+/* ---------------- Horas logadas ---------------- */
+
+/** Média semanal: total da quinzena ÷ semanas (dias corridos ÷ 7). */
+export function mediaSemanal(
+  totalHoras: number,
+  q: { data_inicio: string; data_fim: string },
+): number {
+  return totalHoras / (diasDaQuinzena(q) / 7);
+}
+
+/* ---------------- Formato dos valores ---------------- */
+
+const decimal = (v: number, casas = 1) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: casas });
+
+/**
+ * Valor com a unidade do indicador. Os resultados ficam no banco já na
+ * unidade da meta: tickets/h, minutos, % e horas (decimal).
+ */
+export function formatarValor(chave: ChaveIndicador | "qualidade", valor: number): string {
+  switch (chave) {
+    case "produtividade":
+      return `${decimal(valor)} tickets/h`;
+    case "sla_chat":
+    case "sla_email":
+      return `${decimal(valor)} min`;
+    case "csat":
+      return `${decimal(valor)}%`;
+    case "horas_online":
+      return horasEMinutos(valor);
+    case "qualidade":
+      return decimal(valor, 2);
+  }
+}

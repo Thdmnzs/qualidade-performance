@@ -1091,6 +1091,15 @@ export type Database = {
         }
         Returns: number
       }
+      qualidade_da_quinzena: {
+        Args: { _fortnight_id: string }
+        Returns: {
+          media_time: number
+          minha_nota: number
+          minhas_avaliacoes: number
+          pessoas_avaliadas: number
+        }[]
+      }
       registrar_avaliacao: {
         Args: {
           _assunto: string

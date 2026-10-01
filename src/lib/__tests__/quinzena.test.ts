@@ -7,6 +7,7 @@ import {
   quinzenaEmPrazo,
   quinzenaPadraoParaAvaliar,
   quinzenasDoCiclo,
+  quinzenasPublicadas,
   situacaoDoFechamento,
   situacaoExibida,
 } from "../quinzena";
@@ -166,5 +167,16 @@ describe("várias quinzenas ativas ao mesmo tempo", () => {
   it("contestação geral vai para a quinzena no prazo, mesmo não sendo a mais recente", () => {
     expect(quinzenaEmPrazo(lista, quarta23h58)?.id).toBe("q1");
     expect(quinzenaEmPrazo(lista, quinta00h01)).toBeUndefined();
+  });
+});
+
+describe("quinzenasPublicadas (Visão geral do colaborador)", () => {
+  it("só as publicadas, mantendo a ordem da mais recente para a mais antiga", () => {
+    const lista = [
+      { id: "out1", status: "aberta" },
+      { id: "set2", status: "em_contestacao" },
+      { id: "set1", status: "fechada" },
+    ];
+    expect(quinzenasPublicadas(lista).map((q) => q.id)).toEqual(["set2", "set1"]);
   });
 });

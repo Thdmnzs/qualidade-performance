@@ -113,3 +113,14 @@ export async function fetchAvaliaveis() {
   if (error) throw error;
   return data ?? [];
 }
+
+/** Metas dos indicadores (regra de negócio "metas_indicadores"): fonte única para todas as telas. */
+export async function fetchMetas(): Promise<import("@/lib/indicadores").Metas> {
+  const { data, error } = await supabase
+    .from("business_settings")
+    .select("valor")
+    .eq("chave", "metas_indicadores")
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.valor ?? {}) as import("@/lib/indicadores").Metas;
+}

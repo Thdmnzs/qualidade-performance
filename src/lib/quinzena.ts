@@ -133,3 +133,8 @@ export function quinzenaEmPrazo<T extends QuinzenaComPrazo>(
 ): T | undefined {
   return quinzenas.find((q) => prazoDeContestacaoAberto(q, agora));
 }
+
+/** Quinzenas que o colaborador pode consultar (publicadas), da mais recente para a mais antiga. */
+export function quinzenasPublicadas<T extends { status: string }>(quinzenas: T[]): T[] {
+  return quinzenas.filter((q) => publicada(q));
+}

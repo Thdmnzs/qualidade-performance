@@ -7,7 +7,6 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePermissoes } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { dataBR, nomeQuinzena } from "@/lib/format";
 import {
   diasDaQuinzena,
@@ -15,9 +14,8 @@ import {
   horasExigidas,
   INDICADORES,
   textoDaMeta,
-  type Metas,
 } from "@/lib/indicadores";
-import { fetchQuinzenas } from "@/lib/queries";
+import { fetchMetas, fetchQuinzenas } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/admin/indicadores")({
   head: () => ({
@@ -47,18 +45,11 @@ function Indicadores() {
   const quinzena = quinzenas.find((q) => q.id === fortnightId);
 
   // Metas: fonte única no banco (regra de negócio "metas_indicadores").
+  // Metas: fonte única no banco (regra de negócio "metas_indicadores").
   const { data: metas, isLoading: carregandoMetas } = useQuery({
     queryKey: ["metas-indicadores"],
+    queryFn: fetchMetas,
     enabled: isAdmin,
-    queryFn: async (): Promise<Metas> => {
-      const { data, error } = await supabase
-        .from("business_settings")
-        .select("valor")
-        .eq("chave", "metas_indicadores")
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.valor ?? {}) as Metas;
-    },
   });
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
