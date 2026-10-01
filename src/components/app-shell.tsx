@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { QuinzenaProvisoria } from "@/components/quinzena-provisoria";
 import { usePermissoes } from "@/hooks/useAuth";
 import { areaDoEndereco, itensDoMenu, trocaDeArea, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
@@ -80,6 +81,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+        {/* PROVISÓRIO: fechar/reabrir quinzena para testes (só ADM). */}
+        <QuinzenaProvisoria />
         <div className="mt-4 rounded-lg border border-border p-3">
           <p className="truncate text-sm font-medium">{employee?.nome ?? "Usuário"}</p>
           <p className="text-xs text-muted-foreground">
