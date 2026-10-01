@@ -28,11 +28,18 @@ import {
   type AvaliacaoDaGestao,
   type BlocoDoColaborador,
 } from "@/lib/avaliacao";
-import { dataHoraBR, nomeQuinzena, numeroBR } from "@/lib/format";
+import { dataBR, dataHoraBR, nomeQuinzena, numeroBR } from "@/lib/format";
 
 type Quinzena = { id: string; ano: number; mes: number; tipo: string };
 
 const TODAS = "todas";
+
+/** Separador visual entre os campos da linha: "Interação | Assunto: … | …". */
+const Separador = () => (
+  <span className="mx-2 text-border" aria-hidden="true">
+    |
+  </span>
+);
 
 /**
  * Avaliações agrupadas por colaborador. Cada bloco tem o próprio filtro de
@@ -173,13 +180,23 @@ function BlocoColaborador({
                     />
                     <span>
                       <span className="block text-sm font-medium">
-                        {ROTULO_TIPO[a.tipo]} · {a.ticket ?? "sem ticket"}
-                        <span className="ml-2 font-display text-primary">
+                        {ROTULO_TIPO[a.tipo]}
+                        <Separador />
+                        <span className="font-normal text-muted-foreground">Assunto:</span>{" "}
+                        {a.assunto ?? "—"}
+                        <Separador />
+                        <span className="font-normal text-muted-foreground">
+                          Data do contato:
+                        </span>{" "}
+                        {a.data_contato ? dataBR(a.data_contato) : "—"}
+                        <Separador />
+                        <span className="font-normal text-muted-foreground">Nota:</span>{" "}
+                        <span className="font-display text-primary">
                           {numeroBR(Number(a.nota))}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {dataHoraBR(a.created_at)}
+                        Registrada em {dataHoraBR(a.created_at)}
                         {filtro === TODAS && ` · ${nomeDaQuinzena(a.fortnight_id)}`}
                       </span>
                     </span>
@@ -369,7 +386,7 @@ function ExcluirAvaliacaoDialog({
             {avaliacao && (
               <>
                 {ROTULO_TIPO[avaliacao.tipo]} de {avaliacao.colaborador}
-                {avaliacao.ticket ? ` (ticket ${avaliacao.ticket})` : ""}, nota{" "}
+                {avaliacao.assunto ? ` (${avaliacao.assunto})` : ""}, nota{" "}
                 {numeroBR(Number(avaliacao.nota))}.
               </>
             )}{" "}
@@ -385,7 +402,7 @@ function ExcluirAvaliacaoDialog({
             rows={3}
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Ex.: ticket errado, colaborador errado"
+            placeholder="Ex.: conversa errada, colaborador errado"
             aria-describedby="motivo-ajuda"
           />
           <p id="motivo-ajuda" className="text-xs text-muted-foreground">

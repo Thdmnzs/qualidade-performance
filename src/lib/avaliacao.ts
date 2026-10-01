@@ -59,7 +59,8 @@ export type AvaliacaoDaGestao = {
   colaborador: string;
   fortnight_id: string;
   tipo: TipoAvaliacao;
-  ticket: string | null;
+  assunto: string | null;
+  data_contato: string | null;
   nota: number | null;
   created_at: string;
   avaliado_por: string;

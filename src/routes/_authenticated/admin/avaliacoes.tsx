@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
 import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
-import { nomeQuinzena, numeroBR } from "@/lib/format";
+import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   AVALIACOES_PREVISTAS,
   avisoDeQuantidade,
@@ -41,7 +41,8 @@ function Avaliacoes() {
   const [employeeId, setEmployeeId] = useState("");
   const [fortnightId, setFortnightId] = useState("");
   const [tipo, setTipo] = useState<"interacao" | "ticket_n2">("interacao");
-  const [ticket, setTicket] = useState("");
+  const [assunto, setAssunto] = useState("");
+  const [dataContato, setDataContato] = useState("");
   const [link, setLink] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
@@ -123,7 +124,8 @@ function Avaliacoes() {
         _employee_id: employeeId,
         _fortnight_id: fortnightId,
         _tipo: tipo,
-        _ticket: ticket,
+        _assunto: assunto,
+        _data_contato: dataContato,
         _link_conversa: link,
         _comentarios: comentarios,
         _respostas: ficha.map((c) => ({
@@ -144,7 +146,8 @@ function Avaliacoes() {
       toast.success(`Avaliação registrada. Nota: ${numeroBR(Number(registrada.nota))}.`);
       setRespostas({});
       setObservacoes({});
-      setTicket("");
+      setAssunto("");
+      setDataContato("");
       setLink("");
       setComentarios("");
       qc.invalidateQueries({ queryKey: ["avaliacoes-gestao"] });
@@ -264,10 +267,28 @@ function Avaliacoes() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="tk">Ticket</Label>
-            <Input id="tk" value={ticket} onChange={(e) => setTicket(e.target.value)} />
+            <Label htmlFor="as">Assunto</Label>
+            <Input
+              id="as"
+              required
+              maxLength={200}
+              placeholder="Ex.: Portabilidade"
+              value={assunto}
+              onChange={(e) => setAssunto(e.target.value)}
+            />
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
+            <Label htmlFor="dc">Data do contato</Label>
+            <Input
+              id="dc"
+              type="date"
+              required
+              max={hojeEmFortaleza()}
+              value={dataContato}
+              onChange={(e) => setDataContato(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="lk">Link da conversa</Label>
             <Input id="lk" type="url" value={link} onChange={(e) => setLink(e.target.value)} />
           </div>

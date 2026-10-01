@@ -974,16 +974,17 @@ export type Database = {
       listar_avaliacoes_gestao: {
         Args: { _fortnight_id?: string }
         Returns: {
+          assunto: string
           avaliado_por: string
           colaborador: string
           created_at: string
+          data_contato: string
           employee_id: string
           fortnight_id: string
           id: string
           link_conversa: string
           nota: number
           pode_excluir: boolean
-          ticket: string
           tipo: Database["public"]["Enums"]["evaluation_type"]
         }[]
       }
@@ -1029,12 +1030,13 @@ export type Database = {
       }
       registrar_avaliacao: {
         Args: {
+          _assunto: string
           _comentarios: string
+          _data_contato: string
           _employee_id: string
           _fortnight_id: string
           _link_conversa: string
           _respostas: Json
-          _ticket: string
           _tipo: Database["public"]["Enums"]["evaluation_type"]
         }
         Returns: {

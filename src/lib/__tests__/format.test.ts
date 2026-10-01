@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   confirmacaoConfere,
   dataBR,
+  hojeEmFortaleza,
   LOGIN_VALIDO,
   normalizarEmail,
   normalizarLogin,
@@ -55,5 +56,15 @@ describe("confirmacaoConfere (mesma regra do banco)", () => {
   });
   it("recusa nome incompleto", () => {
     expect(confirmacaoConfere("Thiago", "Thiago Dantas")).toBe(false);
+  });
+});
+
+describe("hojeEmFortaleza (mesmo 'hoje' do banco)", () => {
+  it("às 23h30 no Brasil ainda é o mesmo dia, mesmo já sendo dia seguinte em UTC", () => {
+    // 02:30 UTC do dia 2 = 23:30 do dia 1 em Fortaleza (UTC-3)
+    expect(hojeEmFortaleza(new Date("2026-10-02T02:30:00Z"))).toBe("2026-10-01");
+  });
+  it("às 03h00 UTC já virou o dia em Fortaleza", () => {
+    expect(hojeEmFortaleza(new Date("2026-10-02T03:00:00Z"))).toBe("2026-10-02");
   });
 });

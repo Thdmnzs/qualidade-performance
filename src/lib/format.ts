@@ -110,3 +110,16 @@ export const rotuloStatusContestacao: Record<string, string> = {
 /** Confirmação por nome: mesma regra do banco (ignora maiúsculas e espaços nas pontas). */
 export const confirmacaoConfere = (digitado: string, nome: string) =>
   digitado.trim().toLowerCase() === nome.trim().toLowerCase();
+
+/**
+ * "Hoje" no fuso de Fortaleza, como AAAA-MM-DD (formato do campo de data).
+ * É o mesmo "hoje" que o banco usa para recusar data de contato futura,
+ * então tela e banco não discordam perto da meia-noite.
+ */
+export const hojeEmFortaleza = (agora: Date = new Date()) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Fortaleza",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(agora);
