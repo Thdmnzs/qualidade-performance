@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { avisoDeQuantidade, calcularNota, type CriterioDaFicha, type Resposta } from "../avaliacao";
+
+import {
+  agruparPorColaborador,
+  avaliadoresDe,
+  avisoDeQuantidade,
+  calcularNota,
+  contarPorTipo,
+  motivoValido,
+  type CriterioDaFicha,
+  type Resposta,
+} from "../avaliacao";
 
 // Ficha versão 1, como está no banco (soma dos pesos = 200).
 const pesos: Array<[number, number, number | null]> = [
@@ -52,5 +62,64 @@ describe("avisoDeQuantidade (avisar, mas permitir)", () => {
   it("avisa ao atingir o previsto", () => {
     expect(avisoDeQuantidade("interacao", 6)).toContain("já tem 6 avaliações de Interação");
     expect(avisoDeQuantidade("ticket_n2", 4)).toContain("o previsto são 4");
+  });
+});
+
+describe("agruparPorColaborador", () => {
+  const av = (
+    employee_id: string,
+    colaborador: string,
+    created_at: string,
+    avaliado_por: string,
+    tipo: "interacao" | "ticket_n2" = "interacao",
+  ) => ({
+    id: `${employee_id}-${created_at}`,
+    employee_id,
+    colaborador,
+    fortnight_id: "q1",
+    tipo,
+    ticket: null,
+    nota: 100,
+    created_at,
+    avaliado_por,
+    pode_excluir: true,
+  });
+  const lista = [
+    av("e2", "Thiago Dantas", "2026-09-02T10:00:00Z", "Rachel Kivel"),
+    av("e1", "Ana Colab", "2026-09-01T10:00:00Z", "Admin Teste", "ticket_n2"),
+    av("e2", "Thiago Dantas", "2026-09-05T10:00:00Z", "Admin Teste"),
+    av("e3", "Érica Lima", "2026-09-03T10:00:00Z", "Rachel Kivel"),
+  ];
+
+  it("cria um bloco por colaborador, em ordem alfabética (com acento)", () => {
+    expect(agruparPorColaborador(lista).map((b) => b.colaborador)).toEqual([
+      "Ana Colab",
+      "Érica Lima",
+      "Thiago Dantas",
+    ]);
+  });
+
+  it("dentro do bloco, a avaliação mais recente vem primeiro", () => {
+    const thiago = agruparPorColaborador(lista).find((b) => b.employeeId === "e2")!;
+    expect(thiago.avaliacoes.map((a) => a.created_at)).toEqual([
+      "2026-09-05T10:00:00Z",
+      "2026-09-02T10:00:00Z",
+    ]);
+  });
+
+  it("conta por tipo e lista quem avaliou sem repetir", () => {
+    const thiago = agruparPorColaborador(lista).find((b) => b.employeeId === "e2")!;
+    expect(contarPorTipo(thiago.avaliacoes)).toEqual({ interacao: 2, ticket_n2: 0 });
+    expect(avaliadoresDe(thiago.avaliacoes)).toEqual(["Admin Teste", "Rachel Kivel"]);
+  });
+
+  it("lista vazia não gera blocos", () => expect(agruparPorColaborador([])).toEqual([]));
+});
+
+describe("motivoValido (mesma regra do banco)", () => {
+  it("exige pelo menos 5 caracteres úteis", () => {
+    expect(motivoValido("Ticket errado")).toBe(true);
+    expect(motivoValido("  ab  ")).toBe(false);
+    expect(motivoValido("")).toBe(false);
   });
 });

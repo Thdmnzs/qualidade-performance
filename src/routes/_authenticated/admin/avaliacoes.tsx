@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
-import { fetchAvaliacoes, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
-import { dataHoraBR, nomeQuinzena, numeroBR } from "@/lib/format";
+import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
+import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
+import { nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   AVALIACOES_PREVISTAS,
   avisoDeQuantidade,
@@ -72,8 +73,9 @@ function Avaliacoes() {
     },
   });
   const { data: avaliacoes = [] } = useQuery({
-    queryKey: ["avaliacoes", fortnightId],
-    queryFn: () => fetchAvaliacoes(fortnightId || undefined),
+    // Todas as quinzenas: cada bloco filtra a sua.
+    queryKey: ["avaliacoes-gestao"],
+    queryFn: () => fetchAvaliacoesGestao(),
     enabled: podeAvaliar,
   });
   const { data: quiz = [] } = useQuery({
@@ -145,7 +147,7 @@ function Avaliacoes() {
       setTicket("");
       setLink("");
       setComentarios("");
-      qc.invalidateQueries({ queryKey: ["avaliacoes"] });
+      qc.invalidateQueries({ queryKey: ["avaliacoes-gestao"] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-totais"] });
     },
     onError: (e: Error) => toast.error(`Não foi possível salvar: ${e.message}`),
@@ -411,36 +413,11 @@ function Avaliacoes() {
       )}
 
       <h2 className="mb-3 font-display text-lg font-semibold">Avaliações registradas</h2>
-      {avaliacoes.length === 0 ? (
-        <EmptyState titulo="Nenhuma avaliação" texto="As avaliações registradas aparecem aqui." />
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Colaborador</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Ticket</th>
-                <th className="px-4 py-3">Nota</th>
-                <th className="px-4 py-3">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {avaliacoes.map((a) => (
-                <tr key={a.id} className="border-t border-border">
-                  <td className="px-4 py-3">{a.employees?.nome}</td>
-                  <td className="px-4 py-3">
-                    {a.tipo === "interacao" ? "Interação" : "Ticket N2"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{a.ticket ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium">{numeroBR(a.nota)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{dataHoraBR(a.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <AvaliacoesPorColaborador
+        avaliacoes={avaliacoes}
+        quinzenas={quinzenas}
+        quinzenaPadrao={fortnightId || quinzenas[0]?.id}
+      />
     </div>
   );
 }

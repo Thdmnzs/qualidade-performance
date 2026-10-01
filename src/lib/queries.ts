@@ -88,15 +88,17 @@ export async function fetchColaboradores() {
   return data ?? [];
 }
 
-export async function fetchAvaliacoes(fortnightId?: string, employeeId?: string) {
-  let query = supabase
-    .from("evaluations")
-    .select("*, employees(nome)")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (fortnightId) query = query.eq("fortnight_id", fortnightId);
-  if (employeeId) query = query.eq("employee_id", employeeId);
-  const { data, error } = await query;
+/**
+ * Avaliações para avaliadores e ADM, já com "Avaliado por" e "pode_excluir".
+ * O banco devolve só o que o usuário pode ver, e nunca as excluídas.
+ * (A leitura direta da tabela não traz mais quem avaliou: essa coluna é
+ * escondida do navegador para o colaborador nunca saber quem o avaliou.)
+ */
+export async function fetchAvaliacoesGestao(fortnightId?: string) {
+  const { data, error } = await supabase.rpc(
+    "listar_avaliacoes_gestao",
+    fortnightId ? { _fortnight_id: fortnightId } : {},
+  );
   if (error) throw error;
   return data ?? [];
 }

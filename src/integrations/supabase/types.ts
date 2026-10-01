@@ -524,6 +524,8 @@ export type Database = {
       evaluations: {
         Row: {
           anulada: boolean
+          anulada_em: string | null
+          anulada_por: string | null
           assunto: string | null
           avaliador_id: string | null
           comentarios: string | null
@@ -533,6 +535,7 @@ export type Database = {
           fortnight_id: string
           id: string
           link_conversa: string | null
+          motivo_anulacao: string | null
           nota: number | null
           ticket: string | null
           tipo: Database["public"]["Enums"]["evaluation_type"]
@@ -541,6 +544,8 @@ export type Database = {
         }
         Insert: {
           anulada?: boolean
+          anulada_em?: string | null
+          anulada_por?: string | null
           assunto?: string | null
           avaliador_id?: string | null
           comentarios?: string | null
@@ -550,6 +555,7 @@ export type Database = {
           fortnight_id: string
           id?: string
           link_conversa?: string | null
+          motivo_anulacao?: string | null
           nota?: number | null
           ticket?: string | null
           tipo: Database["public"]["Enums"]["evaluation_type"]
@@ -558,6 +564,8 @@ export type Database = {
         }
         Update: {
           anulada?: boolean
+          anulada_em?: string | null
+          anulada_por?: string | null
           assunto?: string | null
           avaliador_id?: string | null
           comentarios?: string | null
@@ -567,6 +575,7 @@ export type Database = {
           fortnight_id?: string
           id?: string
           link_conversa?: string | null
+          motivo_anulacao?: string | null
           nota?: number | null
           ticket?: string | null
           tipo?: Database["public"]["Enums"]["evaluation_type"]
@@ -936,6 +945,10 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      excluir_avaliacao: {
+        Args: { _evaluation_id: string; _motivo: string }
+        Returns: undefined
+      }
       fortnight_is_closed: { Args: { _fortnight_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -952,6 +965,22 @@ export type Database = {
           id: string
           nome: string
           perfil: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      listar_avaliacoes_gestao: {
+        Args: { _fortnight_id?: string }
+        Returns: {
+          avaliado_por: string
+          colaborador: string
+          created_at: string
+          employee_id: string
+          fortnight_id: string
+          id: string
+          link_conversa: string
+          nota: number
+          pode_excluir: boolean
+          ticket: string
+          tipo: Database["public"]["Enums"]["evaluation_type"]
         }[]
       }
       listar_colaboradores: {

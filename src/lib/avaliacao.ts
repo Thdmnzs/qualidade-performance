@@ -52,3 +52,64 @@ export function avisoDeQuantidade(tipo: TipoAvaliacao, jaRegistradas: number): s
     `(o previsto são ${previsto}).`
   );
 }
+
+export type AvaliacaoDaGestao = {
+  id: string;
+  employee_id: string;
+  colaborador: string;
+  fortnight_id: string;
+  tipo: TipoAvaliacao;
+  ticket: string | null;
+  nota: number | null;
+  created_at: string;
+  avaliado_por: string;
+  pode_excluir: boolean;
+};
+
+export type BlocoDoColaborador<T extends AvaliacaoDaGestao = AvaliacaoDaGestao> = {
+  employeeId: string;
+  colaborador: string;
+  avaliacoes: T[];
+};
+
+/** Um bloco por colaborador, em ordem alfabética, cada um com as avaliações mais recentes primeiro. */
+export function agruparPorColaborador<T extends AvaliacaoDaGestao>(
+  avaliacoes: T[],
+): BlocoDoColaborador<T>[] {
+  const blocos = new Map<string, BlocoDoColaborador<T>>();
+  for (const a of avaliacoes) {
+    const bloco = blocos.get(a.employee_id) ?? {
+      employeeId: a.employee_id,
+      colaborador: a.colaborador,
+      avaliacoes: [],
+    };
+    bloco.avaliacoes.push(a);
+    blocos.set(a.employee_id, bloco);
+  }
+  return [...blocos.values()]
+    .map((b) => ({
+      ...b,
+      avaliacoes: [...b.avaliacoes].sort((x, y) => y.created_at.localeCompare(x.created_at)),
+    }))
+    .sort((a, b) => a.colaborador.localeCompare(b.colaborador, "pt-BR"));
+}
+
+export function contarPorTipo(
+  avaliacoes: Pick<AvaliacaoDaGestao, "tipo">[],
+): Record<TipoAvaliacao, number> {
+  return {
+    interacao: avaliacoes.filter((a) => a.tipo === "interacao").length,
+    ticket_n2: avaliacoes.filter((a) => a.tipo === "ticket_n2").length,
+  };
+}
+
+/** Quem avaliou, sem repetição e em ordem alfabética (resumo no cabeçalho do bloco). */
+export function avaliadoresDe(avaliacoes: Pick<AvaliacaoDaGestao, "avaliado_por">[]): string[] {
+  return [...new Set(avaliacoes.map((a) => a.avaliado_por))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+}
+
+/** Motivo de exclusão: mesma regra do banco (pelo menos 5 caracteres úteis). */
+export const MOTIVO_MINIMO = 5;
+export const motivoValido = (motivo: string) => motivo.trim().length >= MOTIVO_MINIMO;
