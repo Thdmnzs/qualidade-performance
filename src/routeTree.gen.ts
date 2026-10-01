@@ -21,6 +21,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAvaliacoesRouteImport } from './routes/_authenticated/admin/avaliacoes'
 import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_authenticated/admin/colaboradores'
 import { Route as AuthenticatedAdminContestacoesRouteImport } from './routes/_authenticated/admin/contestacoes'
+import { Route as AuthenticatedAdminIndicadoresRouteImport } from './routes/_authenticated/admin/indicadores'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -86,6 +87,12 @@ const AuthenticatedAdminContestacoesRoute =
     path: '/admin/contestacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminIndicadoresRoute =
+  AuthenticatedAdminIndicadoresRouteImport.update({
+    id: '/admin/indicadores',
+    path: '/admin/indicadores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -126,6 +135,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/_authenticated/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/_authenticated/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
+    | '/admin/indicadores'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
+    | '/admin/indicadores'
     | '/admin'
   id:
     | '__root__'
@@ -168,6 +180,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/avaliacoes'
     | '/_authenticated/admin/colaboradores'
     | '/_authenticated/admin/contestacoes'
+    | '/_authenticated/admin/indicadores'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContestacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/indicadores': {
+      id: '/_authenticated/admin/indicadores'
+      path: '/admin/indicadores'
+      fullPath: '/admin/indicadores'
+      preLoaderRoute: typeof AuthenticatedAdminIndicadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -275,6 +295,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAvaliacoesRoute: typeof AuthenticatedAdminAvaliacoesRoute
   AuthenticatedAdminColaboradoresRoute: typeof AuthenticatedAdminColaboradoresRoute
   AuthenticatedAdminContestacoesRoute: typeof AuthenticatedAdminContestacoesRoute
+  AuthenticatedAdminIndicadoresRoute: typeof AuthenticatedAdminIndicadoresRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -286,6 +307,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAvaliacoesRoute: AuthenticatedAdminAvaliacoesRoute,
   AuthenticatedAdminColaboradoresRoute: AuthenticatedAdminColaboradoresRoute,
   AuthenticatedAdminContestacoesRoute: AuthenticatedAdminContestacoesRoute,
+  AuthenticatedAdminIndicadoresRoute: AuthenticatedAdminIndicadoresRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

@@ -5,6 +5,7 @@ import {
   BarChart3,
   ClipboardCheck,
   ClipboardList,
+  Gauge,
   LayoutDashboard,
   LogOut,
   MessageSquareWarning,
@@ -34,6 +35,7 @@ const NAV: Record<Rota, NavItem> = {
   "/admin/avaliacoes": { label: "Avaliações", icon: ClipboardCheck },
   "/admin/contestacoes": { label: "Contestações", icon: MessageSquareWarning },
   "/ranking": { label: "Ranking", icon: Trophy },
+  "/admin/indicadores": { label: "Indicadores", icon: Gauge },
   "/admin/colaboradores": { label: "Colaboradores", icon: Users },
 };
 

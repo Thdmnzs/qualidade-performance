@@ -56,7 +56,8 @@ export type Rota =
   | "/admin/avaliacoes"
   | "/admin/contestacoes"
   | "/ranking"
-  | "/admin/colaboradores";
+  | "/admin/colaboradores"
+  | "/admin/indicadores";
 
 /** Itens do menu, na ordem, por perfil e área atual. */
 export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
@@ -65,6 +66,7 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
       "/admin",
       "/admin/avaliacoes",
       "/admin/contestacoes",
+      "/admin/indicadores",
       "/ranking",
       "/admin/colaboradores",
     ];

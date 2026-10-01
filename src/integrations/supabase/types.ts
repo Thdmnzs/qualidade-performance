@@ -698,6 +698,33 @@ export type Database = {
         }
         Relationships: []
       }
+      intercom_diagnosticos: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          erro: string | null
+          id: string
+          ok: boolean
+          resumo: Json | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          ok: boolean
+          resumo?: Json | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          ok?: boolean
+          resumo?: Json | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           canal: string

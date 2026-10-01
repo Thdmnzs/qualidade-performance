@@ -88,3 +88,12 @@ describe("área do colaborador", () => {
     expect(areaDoEndereco("/minhas-avaliacoes")).toBe("colaborador");
   });
 });
+
+describe("aba Indicadores", () => {
+  it("aparece só para o ADM, entre Contestações e Ranking", () => {
+    const itens = itensDoMenu("adm", "gestao");
+    expect(itens.indexOf("/admin/indicadores")).toBe(itens.indexOf("/admin/contestacoes") + 1);
+    expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/indicadores");
+    expect(itensDoMenu("colaborador", "colaborador")).not.toContain("/admin/indicadores");
+  });
+});
