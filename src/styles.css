@@ -109,6 +109,13 @@
   --sidebar-accent-foreground: #5cf08f;
   --sidebar-border: rgb(255 255 255 / 8%);
   --sidebar-ring: rgb(62 224 122 / 60%);
+
+  /* Conversas do Intercom. A cor exata fica na borda e no fundo; o nome de quem
+     escreveu usa um tom legível (o azul exato fica abaixo de 4,5:1 como texto). */
+  --msg-cliente: #5b78e6;
+  --msg-cliente-texto: #748cea;
+  --msg-colaborador: #8e9fbd;
+  --msg-nota: #ffb224;
 }
 
 .dark {
@@ -154,4 +161,29 @@
   background-image:
     radial-gradient(circle at 15% 0%, oklch(0.86 0.24 147 / 0.12), transparent 45%),
     radial-gradient(circle at 85% 10%, oklch(0.7 0.14 200 / 0.08), transparent 40%);
+}
+
+/* Bolhas das conversas do Intercom: fundo levemente tingido + borda na cor do autor.
+   O texto da mensagem fica na cor padrão (contraste acima de 11:1). */
+@layer components {
+  .msg-cliente {
+    background: color-mix(in srgb, var(--msg-cliente) 12%, transparent);
+    border-left: 3px solid var(--msg-cliente);
+  }
+  .msg-colaborador {
+    background: color-mix(in srgb, var(--msg-colaborador) 12%, transparent);
+    border-left: 3px solid var(--msg-colaborador);
+  }
+  .msg-nota {
+    background: color-mix(in srgb, var(--msg-nota) 12%, transparent);
+    border-left: 3px solid var(--msg-nota);
+  }
+  .msg-bot {
+    background: color-mix(in srgb, var(--muted-foreground) 8%, transparent);
+    border-left: 3px solid var(--border);
+  }
+  .msg-autor-cliente { color: var(--msg-cliente-texto); }
+  .msg-autor-colaborador { color: var(--msg-colaborador); }
+  .msg-autor-nota { color: var(--msg-nota); }
+  .msg-autor-bot { color: var(--muted-foreground); }
 }

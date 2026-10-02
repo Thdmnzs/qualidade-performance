@@ -8,8 +8,23 @@
  * falta) e NÃO guarda nenhuma conversa nem dado de cliente: das buscas de
  * conversas e tickets, guarda só a contagem.
  */
+import { randomInt } from "node:crypto";
+
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { cruzarAtendentes, type Atendente } from "@/lib/intercom";
+import {
+  cruzarAtendentes,
+  assuntoSugerido,
+  atendenteEscreveu,
+  dataDoContato,
+  escolherAleatorio,
+  extrairIdDaConversa,
+  linkDaConversa,
+  montarTranscricao,
+  normalizarEmailIntercom,
+  type ConversaIntercom,
+  type Atendente,
+  type Mensagem,
+} from "@/lib/intercom";
 
 /** Versão atual da API (2.16, de julho de 2026). */
 const VERSAO_API = "2.16";
@@ -168,4 +183,252 @@ export async function verificarIntercom(chamadorId: string): Promise<ResultadoDa
     await registrar(false, null, "Erro inesperado na verificação.");
     throw new ErroDoIntercom("Erro inesperado ao verificar o Intercom. Tente novamente.");
   }
+}
+
+/* ======================= Contatos para avaliação ======================= */
+
+export type Contato = {
+  sorteioId: string | null;
+  /** true quando o avaliador já tinha este contato em aberto (não é um sorteio novo). */
+  jaEmAberto: boolean;
+  conversaId: string;
+  link: string;
+  assunto: string | null;
+  dataContato: string | null;
+  canal: string | null;
+  atendenteEscreveu: boolean;
+  mensagens: Mensagem[];
+};
+
+/** Até quantas páginas de 150 conversas listar por sorteio (1.500 por quinzena é muito acima do normal). */
+const MAX_PAGINAS = 10;
+/** Quantas conversas sorteadas tentar até achar uma em que o atendente escreveu. */
+const MAX_TENTATIVAS = 8;
+
+async function exigir<T>(r: Resposta<T>, oQue: string): Promise<T> {
+  if (r.ok) return r.dados;
+  throw new ErroDoIntercom(
+    r.status === 401
+      ? "O Intercom recusou o token. Verifique a conexão na tela de Colaboradores."
+      : `Não foi possível ${oQue} no Intercom (${motivo(r.status)}).`,
+  );
+}
+
+/** Mensagem do banco (as nossas são claras) ou uma genérica. */
+function erroDoBanco(error: { message?: string } | null) {
+  if (error) throw new ErroDoIntercom(error.message || "Não foi possível concluir a operação.");
+}
+
+async function exigirAvaliadorSobre(chamadorId: string, employeeId: string) {
+  const { data: pode, error } = await supabaseAdmin.rpc("pode_atuar_sobre", {
+    _uid: chamadorId,
+    _employee_id: employeeId,
+  });
+  if (error || !pode) throw new ErroDoIntercom("Você não pode buscar contatos deste colaborador.");
+}
+
+async function appIdDoWorkspace(): Promise<string> {
+  const eu = await exigir(
+    await chamar<{ app?: { id_code?: string } }>("/me"),
+    "identificar o workspace",
+  );
+  if (!eu.app?.id_code) throw new ErroDoIntercom("O Intercom não informou o código do workspace.");
+  return eu.app.id_code;
+}
+
+/** O atendente do Intercom que corresponde ao colaborador (pelo e-mail). */
+async function atendenteDoColaborador(employeeId: string): Promise<{ id: string; nome: string }> {
+  const { data: emp, error } = await supabaseAdmin
+    .from("employees")
+    .select("nome, email")
+    .eq("id", employeeId)
+    .single();
+  if (error || !emp) throw new ErroDoIntercom("Colaborador não encontrado.");
+  const dados = await exigir(
+    await chamar<{ admins?: Atendente[] }>("/admins"),
+    "listar os atendentes",
+  );
+  const a = (dados.admins ?? []).find(
+    (x) => normalizarEmailIntercom(x.email) === normalizarEmailIntercom(emp.email),
+  );
+  if (!a?.id) {
+    throw new ErroDoIntercom(
+      `${emp.nome} não tem conta no Intercom com o e-mail ${emp.email ?? "(sem e-mail)"}. Ajuste o e-mail no cadastro ou no Intercom.`,
+    );
+  }
+  return { id: String(a.id), nome: emp.nome };
+}
+
+async function obterConversa(id: string): Promise<ConversaIntercom> {
+  return exigir(
+    await chamar<ConversaIntercom>(`/conversations/${encodeURIComponent(id)}`),
+    "abrir a conversa",
+  );
+}
+
+function paraContato(
+  c: ConversaIntercom,
+  appId: string,
+  adminId: string,
+  sorteioId: string | null,
+  jaEmAberto: boolean,
+): Contato {
+  const id = String(c.id);
+  return {
+    sorteioId,
+    jaEmAberto,
+    conversaId: id,
+    link: linkDaConversa(appId, id),
+    assunto: assuntoSugerido(c),
+    dataContato: c.created_at ? dataDoContato(c.created_at) : null,
+    canal: c.source?.type ?? null,
+    atendenteEscreveu: atendenteEscreveu(c, adminId),
+    mensagens: montarTranscricao(c),
+  };
+}
+
+/** Conversas ENCERRADAS atribuídas ao atendente no período (todas as páginas, para o sorteio ser justo). */
+async function conversasDoPeriodo(adminId: string, inicio: number, fim: number): Promise<string[]> {
+  const ids: string[] = [];
+  let cursor: string | undefined;
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const r = await exigir(
+      await chamar<{
+        conversations?: { id: string | number }[];
+        pages?: { next?: { starting_after?: string } };
+      }>("/conversations/search", {
+        query: {
+          operator: "AND",
+          value: [
+            { field: "admin_assignee_id", operator: "=", value: Number(adminId) },
+            { field: "state", operator: "=", value: "closed" },
+            { field: "created_at", operator: ">", value: String(inicio) },
+            { field: "created_at", operator: "<", value: String(fim) },
+          ],
+        },
+        pagination: { per_page: 150, ...(cursor ? { starting_after: cursor } : {}) },
+      }),
+      "buscar as conversas",
+    );
+    ids.push(...(r.conversations ?? []).map((c) => String(c.id)));
+    cursor = r.pages?.next?.starting_after;
+    if (!cursor) break;
+  }
+  return ids;
+}
+
+/** Limites da quinzena em segundos, no fuso de Fortaleza (dia inteiro de início e de fim). */
+const limitesDaQuinzena = (inicio: string, fim: string) => ({
+  inicio: Math.floor(Date.parse(`${inicio}T00:00:00-03:00`) / 1000),
+  fim: Math.floor(Date.parse(`${fim}T23:59:59-03:00`) / 1000),
+});
+
+export async function sortearContato(p: {
+  chamadorId: string;
+  employeeId: string;
+  fortnightId: string;
+}): Promise<Contato> {
+  await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
+  const appId = await appIdDoWorkspace();
+  const atendente = await atendenteDoColaborador(p.employeeId);
+
+  // Já há um contato em aberto deste avaliador? Mostra o mesmo (não é um sorteio novo).
+  const { data: sorteios, error: erroSorteios } = await supabaseAdmin
+    .from("sorteios_contato")
+    .select("id, conversa_id, link, descartado_em, sorteado_por")
+    .eq("employee_id", p.employeeId)
+    .eq("fortnight_id", p.fortnightId);
+  erroDoBanco(erroSorteios);
+  const { data: avaliadas, error: erroAvaliadas } = await supabaseAdmin
+    .from("evaluations")
+    .select("link_conversa")
+    .eq("employee_id", p.employeeId)
+    .eq("fortnight_id", p.fortnightId)
+    .eq("anulada", false);
+  erroDoBanco(erroAvaliadas);
+  const linksAvaliados = new Set((avaliadas ?? []).map((e) => e.link_conversa).filter(Boolean));
+  const emAberto = (sorteios ?? []).find(
+    (s) => s.sorteado_por === p.chamadorId && !s.descartado_em && !linksAvaliados.has(s.link),
+  );
+  if (emAberto) {
+    return paraContato(
+      await obterConversa(emAberto.conversa_id),
+      appId,
+      atendente.id,
+      emAberto.id,
+      true,
+    );
+  }
+
+  const { data: q, error: erroQ } = await supabaseAdmin
+    .from("fortnights")
+    .select("data_inicio, data_fim")
+    .eq("id", p.fortnightId)
+    .single();
+  if (erroQ || !q) throw new ErroDoIntercom("Quinzena não encontrada.");
+  const { inicio, fim } = limitesDaQuinzena(q.data_inicio, q.data_fim);
+
+  const candidatos = await conversasDoPeriodo(atendente.id, inicio, fim);
+  const excluir = new Set<string>((sorteios ?? []).map((s) => s.conversa_id));
+  for (const l of linksAvaliados) {
+    const id = l ? extrairIdDaConversa(l) : null;
+    if (id) excluir.add(id);
+  }
+
+  for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
+    // Gerador criptográfico: imprevisível, ninguém consegue "escolher" o resultado.
+    const id = escolherAleatorio(candidatos, excluir, () => randomInt(0, 1_000_000) / 1_000_000);
+    if (!id) break;
+    const c = await obterConversa(id);
+    if (!atendenteEscreveu(c, atendente.id)) {
+      excluir.add(id); // atribuída ao atendente, mas sem resposta dele: não serve para avaliar
+      continue;
+    }
+    const link = linkDaConversa(appId, id);
+    const { data: sorteioId, error } = await supabaseAdmin.rpc("registrar_sorteio_contato", {
+      _chamador: p.chamadorId,
+      _employee_id: p.employeeId,
+      _fortnight_id: p.fortnightId,
+      _tipo: "interacao",
+      _conversa_id: id,
+      _link: link,
+    });
+    erroDoBanco(error);
+    return paraContato(c, appId, atendente.id, sorteioId as string, false);
+  }
+  throw new ErroDoIntercom(
+    `Não há conversas encerradas de ${atendente.nome} disponíveis para sortear nesta quinzena (com resposta dele e ainda não avaliadas).`,
+  );
+}
+
+/** Inserção manual: busca a conversa pelo link ou número (sem registrar sorteio). */
+export async function buscarContato(p: {
+  chamadorId: string;
+  employeeId: string;
+  referencia: string;
+}): Promise<Contato> {
+  await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
+  const id = extrairIdDaConversa(p.referencia);
+  if (!id)
+    throw new ErroDoIntercom(
+      "Não reconheci o link. Cole o link da conversa do Intercom, ou só o número dela.",
+    );
+  const [appId, atendente] = await Promise.all([
+    appIdDoWorkspace(),
+    atendenteDoColaborador(p.employeeId),
+  ]);
+  return paraContato(await obterConversa(id), appId, atendente.id, null, false);
+}
+
+export async function descartarContato(p: {
+  chamadorId: string;
+  sorteioId: string;
+  motivo: string;
+}): Promise<void> {
+  const { error } = await supabaseAdmin.rpc("descartar_sorteio_contato", {
+    _chamador: p.chamadorId,
+    _sorteio_id: p.sorteioId,
+    _motivo: p.motivo,
+  });
+  erroDoBanco(error);
 }

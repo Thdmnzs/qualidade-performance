@@ -907,6 +907,45 @@ export type Database = {
           },
         ]
       }
+      sorteios_contato: {
+        Row: {
+          conversa_id: string
+          criado_em: string
+          descartado_em: string | null
+          employee_id: string
+          fortnight_id: string
+          id: string
+          link: string
+          motivo_descarte: string | null
+          sorteado_por: string | null
+          tipo: Database["public"]["Enums"]["evaluation_type"]
+        }
+        Insert: {
+          conversa_id: string
+          criado_em?: string
+          descartado_em?: string | null
+          employee_id: string
+          fortnight_id: string
+          id?: string
+          link: string
+          motivo_descarte?: string | null
+          sorteado_por?: string | null
+          tipo: Database["public"]["Enums"]["evaluation_type"]
+        }
+        Update: {
+          conversa_id?: string
+          criado_em?: string
+          descartado_em?: string | null
+          employee_id?: string
+          fortnight_id?: string
+          id?: string
+          link?: string
+          motivo_descarte?: string | null
+          sorteado_por?: string | null
+          tipo?: Database["public"]["Enums"]["evaluation_type"]
+        }
+        Relationships: []
+      }
       team_metrics: {
         Row: {
           created_at: string
@@ -999,6 +1038,10 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      descartar_sorteio_contato: {
+        Args: { _chamador: string; _motivo: string; _sorteio_id: string }
+        Returns: undefined
+      }
       excluir_avaliacao: {
         Args: { _evaluation_id: string; _motivo: string }
         Returns: undefined
@@ -1080,6 +1123,17 @@ export type Database = {
       }
       preparar_link_senha: {
         Args: { _chamador: string; _employee_id: string }
+        Returns: string
+      }
+      registrar_sorteio_contato: {
+        Args: {
+          _chamador: string
+          _conversa_id: string
+          _employee_id: string
+          _fortnight_id: string
+          _link: string
+          _tipo: Database["public"]["Enums"]["evaluation_type"]
+        }
         Returns: string
       }
       responder_contestacao: {

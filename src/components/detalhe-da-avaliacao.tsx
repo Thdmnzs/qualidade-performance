@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { numeroBR } from "@/lib/format";
+import { linkSeguroDoIntercom } from "@/lib/intercom";
 
 const ESTILO_RESPOSTA = {
   sim: { rotulo: "Sim", classe: "bg-primary/15 text-primary" },
@@ -110,16 +111,22 @@ export function DetalheDaAvaliacao({ avaliacaoId }: { avaliacaoId: string }) {
               {data.comentarios}
             </p>
           )}
-          {data.link && (
-            <a
-              href={data.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
-            >
-              Abrir a conversa <ExternalLink className="size-3.5" />
-            </a>
-          )}
+          {data.link &&
+            (linkSeguroDoIntercom(data.link) ? (
+              <a
+                href={linkSeguroDoIntercom(data.link)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                Abrir a conversa no Intercom <ExternalLink className="size-3.5" />
+              </a>
+            ) : (
+              // Endereço fora do Intercom: mostrado como texto, nunca como link.
+              <p className="break-all text-xs text-muted-foreground">
+                Link registrado (fora do Intercom, não clicável): {data.link}
+              </p>
+            ))}
         </div>
       )}
     </div>

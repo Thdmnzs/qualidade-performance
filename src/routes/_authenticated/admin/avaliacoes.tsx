@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes } from "@/hooks/useAuth";
 import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
+import { ContatoIntercom } from "@/components/contato-intercom";
+import { linkSeguroDoIntercom } from "@/lib/intercom";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   aceitaAvaliacoes,
@@ -50,6 +52,8 @@ function Avaliacoes() {
   const [assunto, setAssunto] = useState("");
   const [dataContato, setDataContato] = useState("");
   const [link, setLink] = useState("");
+  // Muda a cada avaliação registrada, para o painel do contato recomeçar.
+  const [rodada, setRodada] = useState(0);
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
@@ -133,6 +137,12 @@ function Avaliacoes() {
   const salvar = useMutation({
     // O banco valida, calcula a nota e grava avaliação + itens numa transação.
     mutationFn: async () => {
+      // Só links do Intercom: um endereço digitado à mão nunca vira link para fora.
+      if (link.trim() && !linkSeguroDoIntercom(link)) {
+        throw new Error(
+          "O link da conversa precisa ser do Intercom (https://app.intercom.com/...).",
+        );
+      }
       const { data, error } = await supabase.rpc("registrar_avaliacao", {
         _employee_id: employeeId,
         _fortnight_id: fortnightId,
@@ -160,6 +170,7 @@ function Avaliacoes() {
       setRespostas({});
       setObservacoes({});
       setAssunto("");
+      setRodada((r) => r + 1);
       setDataContato("");
       setLink("");
       setComentarios("");
@@ -310,106 +321,128 @@ function Avaliacoes() {
           </div>
         </div>
 
-        {totais && (
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            Nesta quinzena:{" "}
-            {(Object.keys(AVALIACOES_PREVISTAS) as Array<keyof typeof AVALIACOES_PREVISTAS>).map(
-              (t, i) => {
-                const acima = totais[t] >= AVALIACOES_PREVISTAS[t];
-                return (
-                  <span key={t}>
-                    {i > 0 && " · "}
-                    <span className={acima ? "font-medium text-warning" : "text-foreground"}>
-                      {ROTULO_TIPO[t]} {totais[t]}/{AVALIACOES_PREVISTAS[t]}
-                    </span>
-                  </span>
-                );
-              },
-            )}
-          </p>
-        )}
-
-        <div className="divide-y divide-border rounded-xl border border-border">
-          {ficha.map((c) => (
-            <div key={c.id} className="p-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {c.ordem}. {c.descricao}
-                    {c.gravidade === "gravissimo" && (
-                      <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">
-                        gravíssimo
+        {/* Lado a lado: o avaliador lê a conversa e marca a ficha ao mesmo tempo.
+            Em telas pequenas, um embaixo do outro. */}
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <div className="lg:sticky lg:top-4">
+            <ContatoIntercom
+              employeeId={employeeId}
+              fortnightId={fortnightId}
+              tipo={tipo}
+              limparQuando={rodada}
+              onContato={(c) => {
+                // Preenche o que veio do Intercom; o avaliador pode ajustar o assunto.
+                setLink(c.link);
+                if (c.dataContato) setDataContato(c.dataContato);
+                if (c.assunto) setAssunto(c.assunto);
+              }}
+            />
+          </div>
+          <div className="space-y-5">
+            {totais && (
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                Nesta quinzena:{" "}
+                {(
+                  Object.keys(AVALIACOES_PREVISTAS) as Array<keyof typeof AVALIACOES_PREVISTAS>
+                ).map((t, i) => {
+                  const acima = totais[t] >= AVALIACOES_PREVISTAS[t];
+                  return (
+                    <span key={t}>
+                      {i > 0 && " · "}
+                      <span className={acima ? "font-medium text-warning" : "text-foreground"}>
+                        {ROTULO_TIPO[t]} {totais[t]}/{AVALIACOES_PREVISTAS[t]}
                       </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.grupo} · peso {numeroBR(Number(c.peso), 0)}
-                    {c.permite_medio ? ` · médio ${numeroBR(Number(c.peso_medio), 0)}` : ""}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  {(["sim", ...(c.permite_medio ? ["medio"] : []), "nao"] as Resposta[]).map(
-                    (r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => {
-                          setRespostas({ ...respostas, [c.id]: r });
-                          if (r !== "nao") {
-                            const { [c.id]: _removida, ...resto } = observacoes;
-                            setObservacoes(resto);
-                          }
-                        }}
-                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                          respostas[c.id] === r
-                            ? r === "nao"
-                              ? "bg-destructive text-destructive-foreground"
-                              : "bg-primary text-primary-foreground"
-                            : "bg-secondary text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {r === "sim" ? "Sim" : r === "medio" ? "Médio" : "Não"}
-                      </button>
-                    ),
+                    </span>
+                  );
+                })}
+              </p>
+            )}
+
+            <div className="divide-y divide-border rounded-xl border border-border">
+              {ficha.map((c) => (
+                <div key={c.id} className="p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">
+                        {c.ordem}. {c.descricao}
+                        {c.gravidade === "gravissimo" && (
+                          <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">
+                            gravíssimo
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {c.grupo} · peso {numeroBR(Number(c.peso), 0)}
+                        {c.permite_medio ? ` · médio ${numeroBR(Number(c.peso_medio), 0)}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      {(["sim", ...(c.permite_medio ? ["medio"] : []), "nao"] as Resposta[]).map(
+                        (r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => {
+                              setRespostas({ ...respostas, [c.id]: r });
+                              if (r !== "nao") {
+                                const { [c.id]: _removida, ...resto } = observacoes;
+                                setObservacoes(resto);
+                              }
+                            }}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                              respostas[c.id] === r
+                                ? r === "nao"
+                                  ? "bg-destructive text-destructive-foreground"
+                                  : "bg-primary text-primary-foreground"
+                                : "bg-secondary text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {r === "sim" ? "Sim" : r === "medio" ? "Médio" : "Não"}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                  {respostas[c.id] === "nao" && (
+                    <div className="mt-3 space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <Label htmlFor={`obs-${c.id}`} className="text-xs">
+                        Feedback do avaliador (obrigatório)
+                      </Label>
+                      <Textarea
+                        id={`obs-${c.id}`}
+                        rows={2}
+                        placeholder="Explique o motivo da marcação “Não” neste item…"
+                        value={observacoes[c.id] ?? ""}
+                        onChange={(e) => setObservacoes({ ...observacoes, [c.id]: e.target.value })}
+                      />
+                    </div>
                   )}
                 </div>
-              </div>
-              {respostas[c.id] === "nao" && (
-                <div className="mt-3 space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <Label htmlFor={`obs-${c.id}`} className="text-xs">
-                    Feedback do avaliador (obrigatório)
-                  </Label>
-                  <Textarea
-                    id={`obs-${c.id}`}
-                    rows={2}
-                    placeholder="Explique o motivo da marcação “Não” neste item…"
-                    value={observacoes[c.id] ?? ""}
-                    onChange={(e) => setObservacoes({ ...observacoes, [c.id]: e.target.value })}
-                  />
-                </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cm">Comentários / feedback</Label>
-          <Textarea
-            id="cm"
-            rows={3}
-            value={comentarios}
-            onChange={(e) => setComentarios(e.target.value)}
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="cm">Comentários / feedback</Label>
+              <Textarea
+                id="cm"
+                rows={3}
+                value={comentarios}
+                onChange={(e) => setComentarios(e.target.value)}
+              />
+            </div>
 
-        <div className="flex items-center justify-between">
-          <p className="font-display text-2xl font-bold text-primary">
-            <span className="mr-2 text-sm font-normal text-muted-foreground">Prévia da nota</span>
-            {numeroBR(nota)}
-          </p>
-          <Button type="submit" disabled={salvar.isPending}>
-            {salvar.isPending ? "Registrando..." : "Registrar avaliação"}
-          </Button>
+            <div className="flex items-center justify-between">
+              <p className="font-display text-2xl font-bold text-primary">
+                <span className="mr-2 text-sm font-normal text-muted-foreground">
+                  Prévia da nota
+                </span>
+                {numeroBR(nota)}
+              </p>
+              <Button type="submit" disabled={salvar.isPending}>
+                {salvar.isPending ? "Registrando..." : "Registrar avaliação"}
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
 
