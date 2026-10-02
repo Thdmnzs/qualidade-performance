@@ -117,22 +117,12 @@ export function ConexaoIntercom() {
           <div>
             <p className="text-xs text-muted-foreground">No Intercom, sem cadastro aqui</p>
             <p className="font-display text-xl">{semCadastro.length}</p>
-            {semCadastro.length > 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {semCadastro.map((p) => p.email).join(", ")}
-              </p>
-            )}
           </div>
           <div>
             <p className="text-xs text-muted-foreground">
               Colaboradores ativos sem conta no Intercom
             </p>
             <p className="font-display text-xl">{semIntercom.length}</p>
-            {semIntercom.length > 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {semIntercom.map((p) => `${p.nome} (${p.email ?? "sem e-mail"})`).join(", ")}
-              </p>
-            )}
           </div>
         </div>
       )}
