@@ -52,6 +52,16 @@ sobre colaboradores; avaliadores são avaliados e têm as contestações tratada
 O avaliador usa a mesma conta nas duas áreas. A aba escolhida no login define a área de entrada, e o menu
 permite trocar. A área decide só a navegação: o que cada um pode ler e gravar é decidido pelo banco.
 
+## Base de processos (pré-avaliação por IA)
+
+Cópia versionada dos processos do Notion (Flukepédia | B2C, Flukepédia | B2B e Guia de Clientes Atritados),
+nas tabelas `processos` e `processos_versoes`. Cada página guarda o código (ex.: `B2C-CNT-INT-02`), o status de
+revisão pela Qualidade e o texto de cada versão; uma versão nova só nasce quando o texto muda. Lida pelo ADM e
+pelos avaliadores; gravada só pelo servidor, pela função `registrar_versao_processo`.
+
+- **Piloto (02/10/2026):** `B2C-CNT-INT-01` e `B2C-CNT-INT-02`, por importação assistida. Serão substituídos
+  pela sincronização automática quando a conexão do Notion (`NOTION_TOKEN`) estiver configurada.
+
 ## Identidade visual
 
 - **Área logada:** tema escuro em tons de verde, definido só pelas variáveis de `src/styles.css`. Trocar a identidade é trocar essas variáveis; nenhuma tela usa cor fixa. Contraste conferido pelo WCAG AA: cores vivas (verde, vermelho, amarelo) levam texto escuro quando são fundo.
