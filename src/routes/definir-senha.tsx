@@ -15,7 +15,7 @@ export const Route = createFileRoute("/definir-senha")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Definir senha · Qualidade & Performance" },
+      { title: "Definir senha · QualityHUB" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -114,7 +114,7 @@ function DefinirSenha() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="font-display text-3xl font-bold text-primary">
-            Qualidade &amp; Performance
+            QualityHUB
           </h1>
         </div>
 

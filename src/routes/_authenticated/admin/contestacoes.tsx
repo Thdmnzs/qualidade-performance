@@ -26,7 +26,7 @@ import { contestacaoAtrasada } from "@/lib/quinzena";
 export const Route = createFileRoute("/_authenticated/admin/contestacoes")({
   head: () => ({
     meta: [
-      { title: "Contestações do time · Qualidade & Performance" },
+      { title: "Contestações do time · QualityHUB" },
       { name: "description", content: "Contestações abertas pelos colaboradores." },
     ],
   }),

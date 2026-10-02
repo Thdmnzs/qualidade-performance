@@ -10,7 +10,7 @@ import { nomeQuinzena } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/ranking")({
   head: () => ({
     meta: [
-      { title: "Ranking da quinzena · Qualidade & Performance" },
+      { title: "Ranking da quinzena · QualityHUB" },
       { name: "description", content: "Ranking e pódio do time de CX na quinzena." },
     ],
   }),

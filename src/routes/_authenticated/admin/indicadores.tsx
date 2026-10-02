@@ -20,7 +20,7 @@ import { fetchMetas, fetchQuinzenas } from "@/lib/queries";
 export const Route = createFileRoute("/_authenticated/admin/indicadores")({
   head: () => ({
     meta: [
-      { title: "Indicadores · Qualidade & Performance" },
+      { title: "Indicadores · QualityHUB" },
       {
         name: "description",
         content: "Indicadores do time, enviados em arquivo e revisados pelo ADM.",

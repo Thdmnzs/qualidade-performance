@@ -25,7 +25,7 @@ const COR_STATUS: Record<string, string> = {
 export const Route = createFileRoute("/_authenticated/contestacoes")({
   head: () => ({
     meta: [
-      { title: "Minhas contestações · Qualidade & Performance" },
+      { title: "Minhas contestações · QualityHUB" },
       { name: "description", content: "Abertura e acompanhamento de contestações da quinzena." },
     ],
   }),

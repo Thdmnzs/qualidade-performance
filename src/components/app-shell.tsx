@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             height={32}
             className="h-8 w-auto"
           />
-          <p className="mt-2 text-xs text-muted-foreground">Qualidade &amp; Performance</p>
+          <p className="mt-2 text-xs text-muted-foreground">QualityHUB</p>
         </div>
         <nav className="mt-4 flex flex-1 flex-col gap-1">
           {itens.map((item) => (

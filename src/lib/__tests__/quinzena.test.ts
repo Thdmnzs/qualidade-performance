@@ -7,6 +7,7 @@ import {
   quinzenaEmPrazo,
   quinzenaPadraoParaAvaliar,
   quinzenasDoCiclo,
+  quinzenasEmAndamento,
   quinzenasPublicadas,
   situacaoDoFechamento,
   situacaoExibida,
@@ -178,5 +179,17 @@ describe("quinzenasPublicadas (Visão geral do colaborador)", () => {
       { id: "set1", status: "fechada" },
     ];
     expect(quinzenasPublicadas(lista).map((q) => q.id)).toEqual(["set2", "set1"]);
+  });
+});
+
+describe("quinzenasEmAndamento (Avaliações registradas)", () => {
+  it("esconde só as fechadas, mantendo a ordem", () => {
+    const lista = [
+      { id: "out1", status: "aberta" },
+      { id: "set2", status: "em_contestacao" },
+      { id: "set1", status: "fechada" },
+      { id: "ago2", status: "pronta_para_fechamento" },
+    ];
+    expect(quinzenasEmAndamento(lista).map((q) => q.id)).toEqual(["out1", "set2", "ago2"]);
   });
 });

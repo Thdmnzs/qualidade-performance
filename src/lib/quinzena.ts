@@ -138,3 +138,12 @@ export function quinzenaEmPrazo<T extends QuinzenaComPrazo>(
 export function quinzenasPublicadas<T extends { status: string }>(quinzenas: T[]): T[] {
   return quinzenas.filter((q) => publicada(q));
 }
+
+/**
+ * Quinzenas exibidas em "Avaliações registradas": as que ainda não foram
+ * fechadas. Fechar só é possível depois do prazo de contestação, então uma
+ * quinzena fechada já está encerrada de vez. É só exibição: nada é apagado.
+ */
+export function quinzenasEmAndamento<T extends { status: string }>(quinzenas: T[]): T[] {
+  return quinzenas.filter((q) => q.status !== "fechada");
+}

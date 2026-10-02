@@ -18,6 +18,7 @@ import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   aceitaAvaliacoes,
   quinzenaPadraoParaAvaliar,
+  quinzenasEmAndamento,
   ROTULO_STATUS_QUINZENA,
   type StatusQuinzena,
 } from "@/lib/quinzena";
@@ -32,7 +33,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/avaliacoes")({
   head: () => ({
     meta: [
-      { title: "Avaliações de qualidade · Qualidade & Performance" },
+      { title: "Avaliações de qualidade · QualityHUB" },
       {
         name: "description",
         content: "Formulário de qualidade com 14 critérios e registro de quiz por quinzena.",
@@ -112,6 +113,13 @@ function Avaliacoes() {
   // Mesma regra do banco: vale a maior versão com critérios ativos.
   const versao = criterios.reduce((max, c) => Math.max(max, c.versao), 0) || 1;
   const ficha = useMemo(() => criterios.filter((c) => c.versao === versao), [criterios, versao]);
+
+  // "Avaliações registradas" mostra só as quinzenas não fechadas (apenas exibição).
+  const emAndamento = useMemo(() => quinzenasEmAndamento(quinzenas), [quinzenas]);
+  const avaliacoesEmAndamento = useMemo(() => {
+    const ids = new Set(emAndamento.map((q) => q.id));
+    return avaliacoes.filter((a) => ids.has(a.fortnight_id));
+  }, [avaliacoes, emAndamento]);
   // Só prévia: a nota oficial é calculada pelo banco ao registrar.
   const nota = useMemo(() => calcularNota(ficha, respostas), [ficha, respostas]);
   const completa = ficha.length > 0 && ficha.every((c) => respostas[c.id]);
@@ -482,11 +490,17 @@ function Avaliacoes() {
         </>
       )}
 
-      <h2 className="mb-3 font-display text-lg font-semibold">Avaliações registradas</h2>
+      <h2 className="font-display text-lg font-semibold">Avaliações registradas</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Quinzenas fechadas não aparecem aqui. As avaliações delas continuam guardadas, e o
+        colaborador segue vendo as dele em "Minhas avaliações".
+      </p>
       <AvaliacoesPorColaborador
-        avaliacoes={avaliacoes}
-        quinzenas={quinzenas}
-        quinzenaPadrao={fortnightId || quinzenas[0]?.id}
+        avaliacoes={avaliacoesEmAndamento}
+        quinzenas={emAndamento}
+        quinzenaPadrao={
+          emAndamento.some((q) => q.id === fortnightId) ? fortnightId : emAndamento[0]?.id
+        }
       />
     </div>
   );
