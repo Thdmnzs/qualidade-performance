@@ -20,8 +20,8 @@ import {
   respostaDaContestacaoValida,
 } from "@/lib/avaliacao";
 import { dataHoraBR, rotuloStatusContestacao } from "@/lib/format";
-import { fetchContestacoes } from "@/lib/queries";
-import { contestacaoAtrasada } from "@/lib/quinzena";
+import { fetchContestacoes, fetchQuinzenas } from "@/lib/queries";
+import { contestacaoAtrasada, quinzenasEmAndamento } from "@/lib/quinzena";
 
 export const Route = createFileRoute("/_authenticated/admin/contestacoes")({
   head: () => ({
@@ -56,7 +56,17 @@ function ContestacoesDoTime() {
   // As próprias (o avaliador também é colaborador) ficam em "Minhas contestações".
   const doTime = todas.filter((c) => c.employee_id !== employee?.id);
   const emAberto = doTime.filter((c) => contestacaoEmAndamento(c.status));
-  const respondidas = doTime.filter((c) => !contestacaoEmAndamento(c.status));
+  // Respondidas de quinzenas fechadas saem da lista (só exibição; nada é apagado).
+  // "Em aberto" mostra tudo: se uma quinzena for reaberta, o pendente segue visível.
+  const { data: quinzenas = [] } = useQuery({
+    queryKey: ["quinzenas"],
+    queryFn: fetchQuinzenas,
+    enabled: podeAvaliar,
+  });
+  const emAndamento = new Set(quinzenasEmAndamento(quinzenas).map((q) => q.id));
+  const respondidas = doTime.filter(
+    (c) => !contestacaoEmAndamento(c.status) && emAndamento.has(c.fortnight_id),
+  );
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!podeAvaliar) {
@@ -94,9 +104,13 @@ function ContestacoesDoTime() {
           <Secao
             titulo="Respondidas"
             contestacoes={respondidas}
-            vazio="Nenhuma contestação respondida ainda."
+            vazio="Nenhuma contestação respondida nas quinzenas em andamento."
             blocosAbertos={false}
           />
+          <p className="-mt-5 text-xs text-muted-foreground">
+            As respondidas de quinzenas fechadas não aparecem aqui. Elas continuam guardadas, e o
+            colaborador segue vendo as dele em "Minhas contestações".
+          </p>
         </div>
       )}
     </div>
