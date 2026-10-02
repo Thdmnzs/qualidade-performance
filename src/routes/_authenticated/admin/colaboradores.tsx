@@ -9,6 +9,7 @@ import {
   ExcluirColaboradorDialog,
   type ColaboradorParaExcluir,
 } from "@/components/excluir-colaborador-dialog";
+import { ConexaoIntercom } from "@/components/conexao-intercom";
 import { LinkDeAcessoDialog, type LinkDeAcesso } from "@/components/link-de-acesso-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -289,6 +290,9 @@ function Colaboradores() {
         titulo="Colaboradores"
         descricao="Cadastre e gerencie o time. Inativar bloqueia o acesso; excluir (só inativos) apaga a pessoa e tudo o que é dela."
       />
+
+      {/* Só ADM chega a esta tela; a verificação também confere isso no servidor. */}
+      <ConexaoIntercom />
 
       <form
         onSubmit={(e) => {
