@@ -11,7 +11,6 @@ import {
   linkDaConversa,
   linkSeguroDoIntercom,
   montarTranscricao,
-  tagsDaConversa,
 } from "../intercom";
 
 const cadastros = [
@@ -214,19 +213,23 @@ describe("classificação do atendimento", () => {
       Urgente: false,
       Lista: ["x"],
     },
-    tags: { tags: [{ name: "portabilidade" }, { name: " vip " }, { name: "" }] },
   };
 
-  it("os cinco campos principais, na ordem, e depois os outros preenchidos", () => {
+  it("só os cinco campos, na ordem; os outros atributos ficam de fora (minimização)", () => {
     expect(atributosDaConversa(classificada)).toEqual([
       { nome: "Natureza", valor: "Problema/Reclamação" },
       { nome: "Assunto", valor: "Aquisição" },
       { nome: "Detalhe", valor: "Aquisição: Número Virtual" },
       { nome: "Jornada", valor: "B2B" },
       { nome: "Conclusão", valor: "Resolvido" },
-      { nome: "Prioridade", valor: "2" },
-      { nome: "Urgente", valor: "Não" },
     ]);
+  });
+  it("dados do cliente em outros atributos nunca saem (como o Resumo do Cliente, com CPF)", () => {
+    const comResumo = {
+      id: 1,
+      custom_attributes: { Natureza: "Dúvida", "Resumo do Cliente": "CPF: 000.000.000-00" },
+    };
+    expect(JSON.stringify(atributosDaConversa(comResumo))).not.toContain("CPF");
   });
   it("campo principal vazio aparece como não preenchido (null)", () => {
     const r = atributosDaConversa({
@@ -241,10 +244,6 @@ describe("classificação do atendimento", () => {
       "Conclusão=null",
     ]);
     expect(atributosDaConversa({ id: 1 }).every((a) => a.valor === null)).toBe(true);
-  });
-  it("tags sem espaços e sem vazias", () => {
-    expect(tagsDaConversa(classificada)).toEqual(["portabilidade", "vip"]);
-    expect(tagsDaConversa({ id: 1 })).toEqual([]);
   });
   it("sem título, o assunto do formulário vem do Detalhe", () => {
     expect(assuntoSugerido(classificada)).toBe("Aquisição: Número Virtual");

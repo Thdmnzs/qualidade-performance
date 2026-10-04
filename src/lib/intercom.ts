@@ -94,7 +94,6 @@ export type ConversaIntercom = {
   id: string | number;
   /** Atributos personalizados (Natureza, Assunto, Detalhe, Jornada, Conclusão...). */
   custom_attributes?: Record<string, unknown> | null;
-  tags?: { tags?: { name?: string | null }[] | null } | null;
   created_at?: number | null;
   title?: string | null;
   state?: string | null;
@@ -240,24 +239,12 @@ const valorDoAtributo = (v: unknown): string | null => {
 };
 
 /**
- * Os cinco campos principais sempre aparecem, na ordem do Intercom, com null
- * quando não foram preenchidos (é isso que o avaliador precisa enxergar).
- * Outros atributos preenchidos vêm depois, em ordem alfabética.
+ * SÓ os cinco campos de classificação, sempre na mesma ordem, com null quando
+ * não preenchidos. Os demais atributos da conversa ficam de fora DE PROPÓSITO:
+ * alguns trazem dados do cliente (como o "Resumo do Cliente", com CPF e e-mail),
+ * que a avaliação não precisa (LGPD, art. 6º, III: minimização).
  */
 export function atributosDaConversa(c: ConversaIntercom): Atributo[] {
   const ca = c.custom_attributes ?? {};
-  const principais: Atributo[] = ATRIBUTOS_PRINCIPAIS.map((nome) => ({
-    nome,
-    valor: valorDoAtributo(ca[nome]),
-  }));
-  const outros = Object.keys(ca)
-    .filter((k) => !(ATRIBUTOS_PRINCIPAIS as readonly string[]).includes(k))
-    .map((nome) => ({ nome, valor: valorDoAtributo(ca[nome]) }))
-    .filter((a) => a.valor !== null)
-    .sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR"));
-  return [...principais, ...outros];
-}
-
-export function tagsDaConversa(c: ConversaIntercom): string[] {
-  return (c.tags?.tags ?? []).map((t) => t.name?.trim() ?? "").filter(Boolean);
+  return ATRIBUTOS_PRINCIPAIS.map((nome) => ({ nome, valor: valorDoAtributo(ca[nome]) }));
 }

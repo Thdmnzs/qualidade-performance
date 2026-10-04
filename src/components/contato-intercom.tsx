@@ -284,7 +284,7 @@ export function ContatoIntercom({
         </Dialog>
       </section>
 
-      {contato && <ClassificacaoDoAtendimento atributos={contato.atributos} tags={contato.tags} />}
+      {contato && <ClassificacaoDoAtendimento atributos={contato.atributos} />}
     </div>
   );
 }
@@ -293,13 +293,7 @@ export function ContatoIntercom({
  * Classificação do atendimento, como no painel do Intercom (critério 14 da ficha).
  * Os campos principais aparecem sempre; vazio fica em destaque como "não preenchido".
  */
-function ClassificacaoDoAtendimento({
-  atributos,
-  tags,
-}: {
-  atributos: Contato["atributos"];
-  tags: string[];
-}) {
+function ClassificacaoDoAtendimento({ atributos }: { atributos: Contato["atributos"] }) {
   return (
     <section
       className="rounded-2xl border border-border bg-card p-5"
@@ -320,20 +314,6 @@ function ClassificacaoDoAtendimento({
           </div>
         ))}
       </dl>
-      <div className="mt-3 border-t border-border pt-3">
-        <p className="text-xs text-muted-foreground">Tags</p>
-        {tags.length === 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">Nenhuma tag.</p>
-        ) : (
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {tags.map((t) => (
-              <li key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">
-                {t}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </section>
   );
 }
