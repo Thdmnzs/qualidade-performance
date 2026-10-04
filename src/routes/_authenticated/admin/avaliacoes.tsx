@@ -189,21 +189,15 @@ function Avaliacoes() {
   });
 
   const marcarQuiz = useMutation({
+    // O banco confere quem pode registrar, recusa quinzena fechada, grava quem
+    // registrou e audita (antes, a tela gravava direto e informava o responsável).
     mutationFn: async ({ emp, entregue }: { emp: string; entregue: boolean }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const existente = quiz.find((q) => q.employee_id === emp);
-      const { error } = existente
-        ? await supabase
-            .from("quiz_results")
-            .update({ entregue, registrado_por: user.user?.id ?? null })
-            .eq("id", existente.id)
-        : await supabase.from("quiz_results").insert({
-            employee_id: emp,
-            fortnight_id: fortnightId,
-            entregue,
-            registrado_por: user.user?.id ?? null,
-          });
-      if (error) throw error;
+      const { error } = await supabase.rpc("registrar_quiz", {
+        _employee_id: emp,
+        _fortnight_id: fortnightId,
+        _entregue: entregue,
+      });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quiz", fortnightId] }),
     onError: (e: Error) => toast.error(`Não foi possível registrar o quiz: ${e.message}`),

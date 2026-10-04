@@ -1368,6 +1368,10 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_quiz: {
+        Args: { _employee_id: string; _entregue: boolean; _fortnight_id: string }
+        Returns: boolean
+      }
       registrar_sorteio_contato: {
         Args: {
           _chamador: string
