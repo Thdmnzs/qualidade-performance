@@ -52,6 +52,7 @@ export type Rota =
   | "/painel"
   | "/minhas-avaliacoes"
   | "/contestacoes"
+  | "/perfil"
   | "/admin"
   | "/admin/avaliacoes"
   | "/admin/contestacoes"
@@ -77,7 +78,7 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
     return ["/admin/avaliacoes", "/admin/contestacoes"];
   }
   // Colaborador, e avaliador na área de colaborador.
-  return ["/painel", "/minhas-avaliacoes", "/contestacoes"];
+  return ["/painel", "/minhas-avaliacoes", "/contestacoes", "/perfil"];
 }
 
 /** Atalho para trocar de área sem sair (só o avaliador tem as duas). */

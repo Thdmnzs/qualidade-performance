@@ -77,11 +77,12 @@ describe("trocaDeArea", () => {
 });
 
 describe("área do colaborador", () => {
-  it("tem Visão geral, Minhas avaliações e Minhas contestações, nesta ordem", () => {
+  it("tem Visão geral, Minhas avaliações, Minhas contestações e Meu perfil, nesta ordem", () => {
     expect(itensDoMenu("colaborador", "colaborador")).toEqual([
       "/painel",
       "/minhas-avaliacoes",
       "/contestacoes",
+      "/perfil",
     ]);
   });
   it("Minhas avaliações é da área do colaborador, e não da gestão", () => {
@@ -103,5 +104,13 @@ describe("aba Processos", () => {
     const itens = itensDoMenu("adm", "gestao");
     expect(itens.indexOf("/admin/processos")).toBe(itens.indexOf("/admin/indicadores") + 1);
     expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/processos");
+  });
+});
+
+describe("Meu perfil", () => {
+  it("fica na área do colaborador (inclusive para o avaliador), por último", () => {
+    expect(itensDoMenu("colaborador", "colaborador").at(-1)).toBe("/perfil");
+    expect(itensDoMenu("avaliador", "colaborador")).toContain("/perfil");
+    expect(itensDoMenu("adm", "gestao")).not.toContain("/perfil");
   });
 });

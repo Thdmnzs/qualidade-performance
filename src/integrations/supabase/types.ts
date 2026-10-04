@@ -170,6 +170,74 @@ export type Database = {
         }
         Relationships: []
       }
+      conquistas: {
+        Row: {
+          ativa: boolean
+          condicao: string
+          dimensao: string
+          nome: string
+          numero: number
+          unica: boolean
+          xp: number
+        }
+        Insert: {
+          ativa?: boolean
+          condicao: string
+          dimensao: string
+          nome: string
+          numero: number
+          unica?: boolean
+          xp: number
+        }
+        Update: {
+          ativa?: boolean
+          condicao?: string
+          dimensao?: string
+          nome?: string
+          numero?: number
+          unica?: boolean
+          xp?: number
+        }
+        Relationships: []
+      }
+      conquistas_ganhas: {
+        Row: {
+          conquista: number
+          employee_id: string
+          fortnight_id: string
+          ganha_em: string
+          id: string
+          sequencia: number
+          xp: number
+        }
+        Insert: {
+          conquista: number
+          employee_id: string
+          fortnight_id: string
+          ganha_em?: string
+          id?: string
+          sequencia?: number
+          xp: number
+        }
+        Update: {
+          conquista?: number
+          employee_id?: string
+          fortnight_id?: string
+          ganha_em?: string
+          id?: string
+          sequencia?: number
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conquistas_ganhas_fortnight_id_fkey"
+            columns: ["fortnight_id"]
+            isOneToOne: false
+            referencedRelation: "fortnights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contestation_messages: {
         Row: {
           autor_id: string | null
@@ -766,6 +834,24 @@ export type Database = {
           },
         ]
       }
+      perfis_colaborador: {
+        Row: {
+          atualizado_em: string
+          destaques: number[]
+          employee_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          destaques?: number[]
+          employee_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          destaques?: number[]
+          employee_id?: string
+        }
+        Relationships: []
+      }
       processos: {
         Row: {
           ativo: boolean
@@ -1177,6 +1263,7 @@ export type Database = {
         Args: { _bases: string[]; _presentes: string[] }
         Returns: number
       }
+      definir_destaques: { Args: { _conquistas: number[] }; Returns: number[] }
       descartar_sorteio_contato: {
         Args: { _chamador: string; _motivo: string; _sorteio_id: string }
         Returns: undefined

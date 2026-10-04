@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageSquareWarning,
   Trophy,
+  UserRound,
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -31,6 +32,7 @@ type NavItem = {
 const NAV: Record<Rota, NavItem> = {
   "/painel": { label: "Visão geral", icon: LayoutDashboard },
   "/minhas-avaliacoes": { label: "Minhas avaliações", icon: ClipboardList },
+  "/perfil": { label: "Meu perfil", icon: UserRound },
   "/contestacoes": { label: "Minhas contestações", icon: MessageSquareWarning },
   "/admin": { label: "Visão geral", icon: BarChart3, exact: true },
   "/admin/avaliacoes": { label: "Avaliações", icon: ClipboardCheck },
