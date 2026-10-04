@@ -97,3 +97,11 @@ describe("aba Indicadores", () => {
     expect(itensDoMenu("colaborador", "colaborador")).not.toContain("/admin/indicadores");
   });
 });
+
+describe("aba Processos", () => {
+  it("só o ADM vê, logo depois de Indicadores", () => {
+    const itens = itensDoMenu("adm", "gestao");
+    expect(itens.indexOf("/admin/processos")).toBe(itens.indexOf("/admin/indicadores") + 1);
+    expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/processos");
+  });
+});

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   BarChart3,
+  BookOpen,
   ClipboardCheck,
   ClipboardList,
   Gauge,
@@ -36,6 +37,7 @@ const NAV: Record<Rota, NavItem> = {
   "/admin/contestacoes": { label: "Contestações", icon: MessageSquareWarning },
   "/ranking": { label: "Ranking", icon: Trophy },
   "/admin/indicadores": { label: "Indicadores", icon: Gauge },
+  "/admin/processos": { label: "Processos", icon: BookOpen },
   "/admin/colaboradores": { label: "Colaboradores", icon: Users },
 };
 

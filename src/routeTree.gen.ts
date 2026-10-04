@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminAvaliacoesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_authenticated/admin/colaboradores'
 import { Route as AuthenticatedAdminContestacoesRouteImport } from './routes/_authenticated/admin/contestacoes'
 import { Route as AuthenticatedAdminIndicadoresRouteImport } from './routes/_authenticated/admin/indicadores'
+import { Route as AuthenticatedAdminProcessosRouteImport } from './routes/_authenticated/admin/processos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +94,12 @@ const AuthenticatedAdminIndicadoresRoute =
     path: '/admin/indicadores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminProcessosRoute =
+  AuthenticatedAdminProcessosRouteImport.update({
+    id: '/admin/processos',
+    path: '/admin/processos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -136,6 +145,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/_authenticated/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/_authenticated/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/admin/colaboradores'
     | '/admin/contestacoes'
     | '/admin/indicadores'
+    | '/admin/processos'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/admin/colaboradores'
     | '/admin/contestacoes'
     | '/admin/indicadores'
+    | '/admin/processos'
     | '/admin'
   id:
     | '__root__'
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/colaboradores'
     | '/_authenticated/admin/contestacoes'
     | '/_authenticated/admin/indicadores'
+    | '/_authenticated/admin/processos'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndicadoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/processos': {
+      id: '/_authenticated/admin/processos'
+      path: '/admin/processos'
+      fullPath: '/admin/processos'
+      preLoaderRoute: typeof AuthenticatedAdminProcessosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -296,6 +316,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminColaboradoresRoute: typeof AuthenticatedAdminColaboradoresRoute
   AuthenticatedAdminContestacoesRoute: typeof AuthenticatedAdminContestacoesRoute
   AuthenticatedAdminIndicadoresRoute: typeof AuthenticatedAdminIndicadoresRoute
+  AuthenticatedAdminProcessosRoute: typeof AuthenticatedAdminProcessosRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -308,6 +329,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminColaboradoresRoute: AuthenticatedAdminColaboradoresRoute,
   AuthenticatedAdminContestacoesRoute: AuthenticatedAdminContestacoesRoute,
   AuthenticatedAdminIndicadoresRoute: AuthenticatedAdminIndicadoresRoute,
+  AuthenticatedAdminProcessosRoute: AuthenticatedAdminProcessosRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

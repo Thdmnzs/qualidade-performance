@@ -766,6 +766,141 @@ export type Database = {
           },
         ]
       }
+      processos: {
+        Row: {
+          ativo: boolean
+          base: string
+          categoria: string | null
+          codigo: string | null
+          created_at: string
+          editado_no_notion: string | null
+          id: string
+          notion_page_id: string
+          revisado: boolean
+          sincronizado_em: string | null
+          subcategoria: string | null
+          titulo: string
+          ultima_revisao: string | null
+          url: string
+          versao_atual: number
+        }
+        Insert: {
+          ativo?: boolean
+          base: string
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          editado_no_notion?: string | null
+          id?: string
+          notion_page_id: string
+          revisado?: boolean
+          sincronizado_em?: string | null
+          subcategoria?: string | null
+          titulo: string
+          ultima_revisao?: string | null
+          url: string
+          versao_atual?: number
+        }
+        Update: {
+          ativo?: boolean
+          base?: string
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          editado_no_notion?: string | null
+          id?: string
+          notion_page_id?: string
+          revisado?: boolean
+          sincronizado_em?: string | null
+          subcategoria?: string | null
+          titulo?: string
+          ultima_revisao?: string | null
+          url?: string
+          versao_atual?: number
+        }
+        Relationships: []
+      }
+      processos_sincronizacoes: {
+        Row: {
+          alterados: number
+          concluida_em: string | null
+          erros: Json
+          fila: Json
+          id: string
+          iniciada_em: string
+          iniciada_por: string | null
+          novos: number
+          processados: number
+          resumo: Json | null
+          sem_mudanca: number
+          status: string
+          total: number
+        }
+        Insert: {
+          alterados?: number
+          concluida_em?: string | null
+          erros?: Json
+          fila?: Json
+          id?: string
+          iniciada_em?: string
+          iniciada_por?: string | null
+          novos?: number
+          processados?: number
+          resumo?: Json | null
+          sem_mudanca?: number
+          status?: string
+          total?: number
+        }
+        Update: {
+          alterados?: number
+          concluida_em?: string | null
+          erros?: Json
+          fila?: Json
+          id?: string
+          iniciada_em?: string
+          iniciada_por?: string | null
+          novos?: number
+          processados?: number
+          resumo?: Json | null
+          sem_mudanca?: number
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
+      processos_versoes: {
+        Row: {
+          conteudo: string
+          criado_em: string
+          editado_no_notion: string | null
+          hash: string
+          id: string
+          origem: string
+          processo_id: string
+          versao: number
+        }
+        Insert: {
+          conteudo: string
+          criado_em?: string
+          editado_no_notion?: string | null
+          hash: string
+          id?: string
+          origem: string
+          processo_id: string
+          versao: number
+        }
+        Update: {
+          conteudo?: string
+          criado_em?: string
+          editado_no_notion?: string | null
+          hash?: string
+          id?: string
+          origem?: string
+          processo_id?: string
+          versao?: number
+        }
+        Relationships: []
+      }
       quiz_results: {
         Row: {
           created_at: string
@@ -1038,6 +1173,10 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      desativar_processos_ausentes: {
+        Args: { _bases: string[]; _presentes: string[] }
+        Returns: number
+      }
       descartar_sorteio_contato: {
         Args: { _chamador: string; _motivo: string; _sorteio_id: string }
         Returns: undefined
@@ -1123,6 +1262,23 @@ export type Database = {
       }
       preparar_link_senha: {
         Args: { _chamador: string; _employee_id: string }
+        Returns: string
+      }
+      registrar_versao_processo: {
+        Args: {
+          _base: string
+          _categoria: string
+          _codigo: string
+          _conteudo: string
+          _editado_no_notion: string
+          _notion_page_id: string
+          _origem: string
+          _revisado: boolean
+          _subcategoria: string
+          _titulo: string
+          _ultima_revisao: string
+          _url: string
+        }
         Returns: string
       }
       registrar_sorteio_contato: {
