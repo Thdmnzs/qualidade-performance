@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { FotoDePerfil } from "@/components/foto-de-perfil";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { useCurrentEmployee, usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,12 +111,6 @@ function Perfil() {
   const xpTotal = ganhas.reduce((s, g) => s + g.xp, 0);
   const nv = nivelDe(xpTotal);
   const pct = Math.round(nv.progresso * 100);
-  const iniciais = employee.nome
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
   const nomeDe = (n: number) => catalogo.find((c) => c.numero === n)?.nome ?? `Conquista ${n}`;
 
   function alternar(numero: number) {
@@ -144,9 +139,7 @@ function Perfil() {
 
       <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-5">
-          <div className="flex size-24 items-center justify-center rounded-full border-2 border-primary bg-secondary font-display text-2xl font-bold">
-            {iniciais}
-          </div>
+          <FotoDePerfil employeeId={employee.id} nome={employee.nome} editavel />
           <div className="min-w-0 flex-1">
             <p className="font-display text-xl font-semibold">{employee.nome}</p>
             <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary">

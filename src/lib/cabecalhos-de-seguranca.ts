@@ -11,7 +11,8 @@ export const CSP = [
   // 'unsafe-inline' em scripts: o TanStack Start injeta o estado da página num script embutido.
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // As fotos de perfil chegam do armazenamento do Supabase, por link temporário.
+  `img-src 'self' data: blob: https://${SUPABASE}`,
   "font-src 'self' data:",
   `connect-src 'self' https://${SUPABASE} wss://${SUPABASE}`,
   "frame-ancestors 'none'",

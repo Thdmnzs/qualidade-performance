@@ -179,6 +179,12 @@ export async function excluirColaborador(params: {
   });
   if (error) traduzirErroDoBanco(error, "excluir_colaborador_definitivo");
 
+  // A foto fica no armazenamento, fora do banco: apaga à parte (LGPD, eliminação).
+  const { error: erroFoto } = await supabaseAdmin.storage
+    .from("avatares")
+    .remove([`${params.employeeId}/avatar.webp`]);
+  if (erroFoto) console.error("[acessos] remover foto após exclusão:", params.employeeId, erroFoto);
+
   if (!userId) return;
   const { error: erroAuth } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (erroAuth) {
