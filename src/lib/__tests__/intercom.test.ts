@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assuntoSugerido,
   atendenteEscreveu,
+  atributosDaConversa,
   cruzarAtendentes,
   dataDoContato,
   escolherAleatorio,
@@ -10,6 +11,7 @@ import {
   linkDaConversa,
   linkSeguroDoIntercom,
   montarTranscricao,
+  tagsDaConversa,
 } from "../intercom";
 
 const cadastros = [
@@ -195,5 +197,58 @@ describe("linkSeguroDoIntercom (só o Intercom vira link clicável)", () => {
   it("vazio ou inválido", () => {
     expect(linkSeguroDoIntercom(null)).toBeNull();
     expect(linkSeguroDoIntercom("não é link")).toBeNull();
+  });
+});
+
+describe("classificação do atendimento", () => {
+  const classificada = {
+    id: 1,
+    custom_attributes: {
+      Natureza: "Problema/Reclamação",
+      Assunto: "Aquisição",
+      Detalhe: "Aquisição: Número Virtual",
+      Jornada: "B2B",
+      Conclusão: "Resolvido",
+      "Nota interna": "",
+      Prioridade: 2,
+      Urgente: false,
+      Lista: ["x"],
+    },
+    tags: { tags: [{ name: "portabilidade" }, { name: " vip " }, { name: "" }] },
+  };
+
+  it("os cinco campos principais, na ordem, e depois os outros preenchidos", () => {
+    expect(atributosDaConversa(classificada)).toEqual([
+      { nome: "Natureza", valor: "Problema/Reclamação" },
+      { nome: "Assunto", valor: "Aquisição" },
+      { nome: "Detalhe", valor: "Aquisição: Número Virtual" },
+      { nome: "Jornada", valor: "B2B" },
+      { nome: "Conclusão", valor: "Resolvido" },
+      { nome: "Prioridade", valor: "2" },
+      { nome: "Urgente", valor: "Não" },
+    ]);
+  });
+  it("campo principal vazio aparece como não preenchido (null)", () => {
+    const r = atributosDaConversa({
+      id: 1,
+      custom_attributes: { Natureza: "Dúvida", Detalhe: "  " },
+    });
+    expect(r.map((a) => `${a.nome}=${a.valor}`)).toEqual([
+      "Natureza=Dúvida",
+      "Assunto=null",
+      "Detalhe=null",
+      "Jornada=null",
+      "Conclusão=null",
+    ]);
+    expect(atributosDaConversa({ id: 1 }).every((a) => a.valor === null)).toBe(true);
+  });
+  it("tags sem espaços e sem vazias", () => {
+    expect(tagsDaConversa(classificada)).toEqual(["portabilidade", "vip"]);
+    expect(tagsDaConversa({ id: 1 })).toEqual([]);
+  });
+  it("sem título, o assunto do formulário vem do Detalhe", () => {
+    expect(assuntoSugerido(classificada)).toBe("Aquisição: Número Virtual");
+    expect(assuntoSugerido({ ...classificada, title: "Título" })).toBe("Título");
+    expect(assuntoSugerido({ id: 1, custom_attributes: { Assunto: "Fatura" } })).toBe("Fatura");
   });
 });

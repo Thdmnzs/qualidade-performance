@@ -332,7 +332,9 @@ function Avaliacoes() {
         {/* Lado a lado: o avaliador lê a conversa e marca a ficha ao mesmo tempo.
             Em telas pequenas, um embaixo do outro. */}
         <div className="grid items-start gap-5 lg:grid-cols-2">
-          <div className="lg:sticky lg:top-4">
+          {/* Coluna fixa limitada à altura da tela, rolando por dentro: assim a
+              classificação do atendimento, abaixo da conversa, nunca fica escondida. */}
+          <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
             <ContatoIntercom
               employeeId={employeeId}
               fortnightId={fortnightId}

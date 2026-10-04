@@ -24,6 +24,9 @@ import {
   type ConversaIntercom,
   type Atendente,
   type Mensagem,
+  atributosDaConversa,
+  tagsDaConversa,
+  type Atributo,
 } from "@/lib/intercom";
 
 /** Versão atual da API (2.16, de julho de 2026). */
@@ -198,6 +201,9 @@ export type Contato = {
   canal: string | null;
   atendenteEscreveu: boolean;
   mensagens: Mensagem[];
+  /** Classificação do atendimento (critério 14): os cinco campos principais e outros preenchidos. */
+  atributos: Atributo[];
+  tags: string[];
 };
 
 /** Até quantas páginas de 150 conversas listar por sorteio (1.500 por quinzena é muito acima do normal). */
@@ -284,6 +290,8 @@ function paraContato(
     canal: c.source?.type ?? null,
     atendenteEscreveu: atendenteEscreveu(c, adminId),
     mensagens: montarTranscricao(c),
+    atributos: atributosDaConversa(c),
+    tags: tagsDaConversa(c),
   };
 }
 

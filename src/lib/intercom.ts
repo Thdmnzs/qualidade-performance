@@ -92,6 +92,9 @@ type Parte = {
 };
 export type ConversaIntercom = {
   id: string | number;
+  /** Atributos personalizados (Natureza, Assunto, Detalhe, Jornada, Conclusão...). */
+  custom_attributes?: Record<string, unknown> | null;
+  tags?: { tags?: { name?: string | null }[] | null } | null;
   created_at?: number | null;
   title?: string | null;
   state?: string | null;
@@ -177,9 +180,16 @@ export const dataDoContato = (unix: number) =>
 
 /** Assunto sugerido: o título da conversa ou o assunto do e-mail. O avaliador pode ajustar. */
 export function assuntoSugerido(c: ConversaIntercom): string | null {
-  const t = htmlParaTexto(c.title) || htmlParaTexto(c.source?.subject);
+  const ca = c.custom_attributes ?? {};
+  const t =
+    htmlParaTexto(c.title) ||
+    htmlParaTexto(c.source?.subject) ||
+    valorDoAtributoTexto(ca["Detalhe"]) ||
+    valorDoAtributoTexto(ca["Assunto"]);
   return t ? t.slice(0, 200) : null;
 }
+
+const valorDoAtributoTexto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 /* ======================= Links seguros ======================= */
 
@@ -206,4 +216,48 @@ export function linkSeguroDoIntercom(url: string | null | undefined): string | n
   }
   if (u.protocol !== "https:" || u.username || u.password) return null;
   return HOSTS_DO_INTERCOM.has(u.hostname.toLowerCase()) ? u.toString() : null;
+}
+
+/* ======================= Classificação do atendimento ======================= */
+
+/** Campos de classificação que o time preenche em toda conversa (critério 14 da ficha). */
+export const ATRIBUTOS_PRINCIPAIS = [
+  "Natureza",
+  "Assunto",
+  "Detalhe",
+  "Jornada",
+  "Conclusão",
+] as const;
+
+export type Atributo = { nome: string; valor: string | null };
+
+const valorDoAtributo = (v: unknown): string | null => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "boolean") return v ? "Sim" : "Não";
+  if (typeof v === "number") return String(v);
+  if (typeof v === "string") return v.trim() || null;
+  return null; // objetos e listas não são classificação
+};
+
+/**
+ * Os cinco campos principais sempre aparecem, na ordem do Intercom, com null
+ * quando não foram preenchidos (é isso que o avaliador precisa enxergar).
+ * Outros atributos preenchidos vêm depois, em ordem alfabética.
+ */
+export function atributosDaConversa(c: ConversaIntercom): Atributo[] {
+  const ca = c.custom_attributes ?? {};
+  const principais: Atributo[] = ATRIBUTOS_PRINCIPAIS.map((nome) => ({
+    nome,
+    valor: valorDoAtributo(ca[nome]),
+  }));
+  const outros = Object.keys(ca)
+    .filter((k) => !(ATRIBUTOS_PRINCIPAIS as readonly string[]).includes(k))
+    .map((nome) => ({ nome, valor: valorDoAtributo(ca[nome]) }))
+    .filter((a) => a.valor !== null)
+    .sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR"));
+  return [...principais, ...outros];
+}
+
+export function tagsDaConversa(c: ConversaIntercom): string[] {
+  return (c.tags?.tags ?? []).map((t) => t.name?.trim() ?? "").filter(Boolean);
 }
