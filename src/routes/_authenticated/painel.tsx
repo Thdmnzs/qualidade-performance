@@ -21,6 +21,7 @@ import {
   textoDaSituacao,
   variacao,
   type Variacao,
+  O_QUE_MEDE,
 } from "@/lib/indicadores";
 import {
   fetchElegibilidade,
@@ -292,6 +293,7 @@ function Painel() {
                 situacao={c.naMeta === null ? "aguardando" : c.naMeta ? "ok" : "fora"}
                 textoDaSituacao={`${textoDaSituacao(c.naMeta, c.sentido)}${c.nivel ? ` · ${c.nivel}` : ""}`}
                 meta={c.meta}
+                descricao={O_QUE_MEDE[c.chave as keyof typeof O_QUE_MEDE]}
               />
             ))}
           </div>

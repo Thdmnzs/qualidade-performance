@@ -427,3 +427,10 @@ html.dark .raridade-texto {
     border-color: rgb(255 255 255 / 15%);
   }
 }
+
+/* A descrição do indicador nos cartões (06/10/2026). */
+@layer components {
+  .cartao-ind .descricao { font-size: 12px; line-height: 1.4; color: #1a1d1a; }
+  .cartao-ind.escuro .descricao { color: #ff9b9b; }
+  html.dark .cartao-ind.claro .descricao { color: #a3b2a8; }
+}

@@ -1,5 +1,20 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/** Retorno das funções de indicadores por período (aba Indicadores do colaborador). */
+type RetornoIndicadoresPeriodo = {
+  ate: string;
+  avaliacoes: number;
+  csat_meu: number | null;
+  csat_time: number | null;
+  de: string;
+  dias_com_dados: number;
+  horas_semanais: number | null;
+  produtividade: number | null;
+  qualidade: number | null;
+  sla_chat_s: number | null;
+  sla_email_s: number | null;
+};
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -1316,6 +1331,14 @@ export type Database = {
           sla_chat: number | null;
           sla_email: number | null;
         }[];
+      };
+      meus_indicadores: {
+        Args: { _ate: string; _de: string };
+        Returns: RetornoIndicadoresPeriodo[];
+      };
+      meus_indicadores_recentes: {
+        Args: { _dias: number };
+        Returns: RetornoIndicadoresPeriodo[];
       };
       podio_da_quinzena: {
         Args: { _fortnight_id: string };

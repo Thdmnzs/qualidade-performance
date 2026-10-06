@@ -82,6 +82,7 @@ describe("área do colaborador", () => {
       "/painel",
       "/minhas-avaliacoes",
       "/contestacoes",
+      "/indicadores",
       "/ranking",
       "/perfil",
     ]);

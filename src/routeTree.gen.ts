@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
 import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authenticated/contestacoes'
+import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
 import { Route as AuthenticatedMinhasAvaliacoesRouteImport } from './routes/_authenticated/minhas-avaliacoes'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -49,6 +50,12 @@ const AuthenticatedContestacoesRoute =
   AuthenticatedContestacoesRouteImport.update({
     id: '/contestacoes',
     path: '/contestacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedIndicadoresRoute =
+  AuthenticatedIndicadoresRouteImport.update({
+    id: '/indicadores',
+    path: '/indicadores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMinhasAvaliacoesRoute =
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -136,6 +144,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -155,6 +164,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/_authenticated/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
   '/_authenticated/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/indicadores'
     | '/minhas-avaliacoes'
     | '/painel'
     | '/perfil'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/indicadores'
     | '/minhas-avaliacoes'
     | '/painel'
     | '/perfil'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/_authenticated/contestacoes'
+    | '/_authenticated/indicadores'
     | '/_authenticated/minhas-avaliacoes'
     | '/_authenticated/painel'
     | '/_authenticated/perfil'
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/contestacoes'
       fullPath: '/contestacoes'
       preLoaderRoute: typeof AuthenticatedContestacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/indicadores': {
+      id: '/_authenticated/indicadores'
+      path: '/indicadores'
+      fullPath: '/indicadores'
+      preLoaderRoute: typeof AuthenticatedIndicadoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/minhas-avaliacoes': {
@@ -348,6 +368,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedContestacoesRoute: typeof AuthenticatedContestacoesRoute
+  AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
   AuthenticatedMinhasAvaliacoesRoute: typeof AuthenticatedMinhasAvaliacoesRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
@@ -363,6 +384,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContestacoesRoute: AuthenticatedContestacoesRoute,
+  AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
   AuthenticatedMinhasAvaliacoesRoute: AuthenticatedMinhasAvaliacoesRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,

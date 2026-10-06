@@ -15,6 +15,7 @@ export function CartaoIndicador({
   situacao,
   textoDaSituacao,
   meta,
+  descricao,
   children,
 }: {
   rotulo: string;
@@ -28,6 +29,8 @@ export function CartaoIndicador({
   textoDaSituacao: string;
   /** Texto da meta, mostrado ao passar o mouse sobre a pílula. */
   meta?: string;
+  /** O que o indicador mede, em linguagem simples. */
+  descricao?: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -54,6 +57,7 @@ export function CartaoIndicador({
           </span>
         )}
       </div>
+      {descricao && <p className="descricao">{descricao}</p>}
       {children}
       <div className="mt-auto flex items-center justify-between gap-2">
         <span className="anterior">

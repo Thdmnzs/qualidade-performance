@@ -186,3 +186,13 @@ export function textoDaSituacao(naMeta: boolean | null, sentido: "minimo" | "max
   if (naMeta) return "dentro da meta";
   return sentido === "minimo" ? "abaixo da meta" : "acima da meta";
 }
+
+/** O que cada indicador mede, em linguagem simples (sem fórmula), para os cartões. */
+export const O_QUE_MEDE: Record<ChaveIndicador | "qualidade", string> = {
+  qualidade: "A nota das suas avaliações de qualidade, pela ficha de atendimento.",
+  produtividade: "Quantas conversas você atende por hora de trabalho ativo.",
+  sla_chat: "Quanto tempo o cliente espera pela sua resposta no chat.",
+  sla_email: "Quanto tempo o cliente espera pela sua resposta por e-mail.",
+  csat: "A satisfação dos clientes com o atendimento do time.",
+  horas_online: "Quanto tempo, por semana, você fica disponível para atendimento.",
+};
