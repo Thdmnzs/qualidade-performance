@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/processos")({
   component: Processos,
 });
 
-type Bases = Record<string, { processos: number; revisados: number }>;
+type Bases = Record<string, { processos: number; revisados: number } | { erro: string }>;
 type Progresso = {
   id: string;
   status: string;
@@ -161,13 +161,22 @@ function Processos() {
             </Button>
           </div>
           {bases && (
-            <ul className="mt-4 grid grid-cols-3 gap-3 text-sm">
+            <ul className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
               {Object.entries(bases).map(([base, b]) => (
                 <li key={base}>
                   <p className="text-xs text-muted-foreground">{base}</p>
-                  <p className="font-display text-xl">{b.processos}</p>
-                  {base !== "Guia" && (
-                    <p className="text-xs text-muted-foreground">{b.revisados} revisados</p>
+                  {"erro" in b ? (
+                    <>
+                      <p className="font-display text-xl text-destructive">sem acesso</p>
+                      <p className="text-xs text-muted-foreground">{b.erro}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-display text-xl">{b.processos}</p>
+                      {(base === "B2C" || base === "B2B") && (
+                        <p className="text-xs text-muted-foreground">{b.revisados} revisados</p>
+                      )}
+                    </>
                   )}
                 </li>
               ))}

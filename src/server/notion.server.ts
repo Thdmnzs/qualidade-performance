@@ -20,14 +20,36 @@ import {
 /** Versão da API do Notion (consulta de bases pelo endpoint /databases). */
 const VERSAO_API = "2022-06-28";
 
-/** As três fontes: os dois Índices Mestres (com a base dentro) e o Guia. */
+/** As fontes: os dois Índices Mestres (com a base dentro) e as páginas de referência. */
 const FONTES = {
   indices: [
-    { base: "B2C" as const, pagina: "3a7cc47b1d7c81f39b8becc0579cebf7" },
-    { base: "B2B" as const, pagina: "3eacc47b1d7c8185a800c87a24fd0b7f" },
+    { base: "B2C" as const, nome: "Índice Mestre B2C", pagina: "3a7cc47b1d7c81f39b8becc0579cebf7" },
+    { base: "B2B" as const, nome: "Índice Mestre B2B", pagina: "3eacc47b1d7c8185a800c87a24fd0b7f" },
   ],
-  guia: { pagina: "299cc47b1d7c80fbb2c8d2c48a9de99e" },
+  // Páginas avulsas, fora das Flukepédias: cada uma precisa de acesso próprio na conexão.
+  referencias: [
+    {
+      chave: "Guia",
+      nome: "Guia de Clientes Atritados",
+      pagina: "299cc47b1d7c80fbb2c8d2c48a9de99e",
+    },
+    { chave: "Dicionário", nome: "Dicionário de Tags", pagina: "3d3cc47b1d7c8083b9b2eada252f65c3" },
+  ],
 };
+
+/** Mensagem clara quando a conexão não enxerga uma página: diz QUAL é. */
+async function naFonte<T>(nome: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (erro) {
+    if (erro instanceof ErroDoNotion && /não tem acesso/.test(erro.message)) {
+      throw new ErroDoNotion(
+        `A conexão do Notion não tem acesso à página "${nome}". Inclua essa página na aba "Acesso" da conexão interna.`,
+      );
+    }
+    throw erro;
+  }
+}
 
 /** Tempo de trabalho por lote (a função da Vercel tem limite de duração). */
 const TEMPO_POR_LOTE_MS = 40_000;
@@ -170,7 +192,9 @@ async function montarFila(): Promise<{
   const fila: ItemDaFila[] = [];
   const porBase: Record<string, { processos: number; revisados: number }> = {};
   for (const indice of FONTES.indices) {
-    const linhas = await linhasDaBase(await baseDentroDe(indice.pagina));
+    const linhas = await naFonte(indice.nome, async () =>
+      linhasDaBase(await baseDentroDe(indice.pagina)),
+    );
     const itens = linhas
       .map((l) => itemDoIndice(l, indice.base))
       .filter((x): x is ItemDaFila => !!x);
@@ -180,19 +204,21 @@ async function montarFila(): Promise<{
     };
     fila.push(...itens);
   }
-  const guia = await chamar<Pagina>(`/pages/${FONTES.guia.pagina}`);
-  fila.push({
-    pageId: idSemHifens(guia.id),
-    base: "Guia",
-    codigo: null,
-    titulo: tituloDaPagina(guia),
-    categoria: null,
-    subcategoria: null,
-    revisado: false,
-    ultimaRevisao: null,
-    url: `https://www.notion.so/${idSemHifens(guia.id)}`,
-  });
-  porBase["Guia"] = { processos: 1, revisados: 0 };
+  for (const ref of FONTES.referencias) {
+    const pagina = await naFonte(ref.nome, () => chamar<Pagina>(`/pages/${ref.pagina}`));
+    fila.push({
+      pageId: idSemHifens(pagina.id),
+      base: "Guia",
+      codigo: null,
+      titulo: tituloDaPagina(pagina),
+      categoria: null,
+      subcategoria: null,
+      revisado: false,
+      ultimaRevisao: null,
+      url: `https://www.notion.so/${idSemHifens(pagina.id)}`,
+    });
+    porBase[ref.chave] = { processos: 1, revisados: 0 };
+  }
   // Sem repetidos (o mesmo processo listado duas vezes no Índice).
   const vistos = new Set<string>();
   return {
@@ -215,7 +241,34 @@ export type Progresso = {
 /** Teste de conexão: confere o token e conta os processos de cada Índice, sem baixar conteúdo. */
 export async function testarNotion(chamadorId: string) {
   await exigirAdmin(chamadorId);
-  const { porBase } = await montarFila();
+  // Cada fonte à parte: uma sem acesso não esconde o resultado das outras.
+  const porBase: Record<string, { processos: number; revisados: number } | { erro: string }> = {};
+  for (const indice of FONTES.indices) {
+    try {
+      const linhas = await naFonte(indice.nome, async () =>
+        linhasDaBase(await baseDentroDe(indice.pagina)),
+      );
+      const itens = linhas
+        .map((l) => itemDoIndice(l, indice.base))
+        .filter((x): x is ItemDaFila => !!x);
+      porBase[indice.base] = {
+        processos: itens.length,
+        revisados: itens.filter((i) => i.revisado).length,
+      };
+    } catch (erro) {
+      if (erro instanceof ErroDoNotion && /token/.test(erro.message)) throw erro;
+      porBase[indice.base] = { erro: erro instanceof Error ? erro.message : "Erro ao ler." };
+    }
+  }
+  for (const ref of FONTES.referencias) {
+    try {
+      await naFonte(ref.nome, () => chamar<Pagina>(`/pages/${ref.pagina}`));
+      porBase[ref.chave] = { processos: 1, revisados: 0 };
+    } catch (erro) {
+      if (erro instanceof ErroDoNotion && /token/.test(erro.message)) throw erro;
+      porBase[ref.chave] = { erro: erro instanceof Error ? erro.message : "Erro ao ler." };
+    }
+  }
   await supabaseAdmin.from("processos_sincronizacoes").insert({
     iniciada_por: chamadorId,
     status: "concluida",
