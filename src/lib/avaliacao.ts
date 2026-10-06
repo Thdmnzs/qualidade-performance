@@ -65,6 +65,11 @@ export type AvaliacaoDaGestao = {
   created_at: string;
   avaliado_por: string;
   pode_excluir: boolean;
+  /** Nota antes de uma contestação aceita (null quando não houve). */
+  nota_original?: number | null;
+  /** Processo da Flukepédia usado na avaliação, com a versão. */
+  processo_codigo?: string | null;
+  processo_versao?: number | null;
 };
 
 export type BlocoDoColaborador<T extends AvaliacaoDaGestao = AvaliacaoDaGestao> = {

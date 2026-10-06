@@ -203,6 +203,17 @@ function BlocoColaborador({
                     </span>
                   </button>
                   <div className="flex items-center gap-2">
+                    {a.nota_original != null && Number(a.nota_original) !== Number(a.nota) && (
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                        Contestação aceita ({numeroBR(Number(a.nota_original))} →{" "}
+                        {numeroBR(Number(a.nota))})
+                      </span>
+                    )}
+                    {a.processo_codigo && (
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                        Processo {a.processo_codigo} (v{a.processo_versao})
+                      </span>
+                    )}
                     <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
                       Avaliado por: {a.avaliado_por}
                     </span>

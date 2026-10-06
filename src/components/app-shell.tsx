@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Gauge,
+  History,
   LayoutDashboard,
   LogOut,
   MessageSquareWarning,
@@ -40,6 +41,7 @@ const NAV: Record<Rota, NavItem> = {
   "/ranking": { label: "Ranking", icon: Trophy },
   "/admin/indicadores": { label: "Indicadores", icon: Gauge },
   "/admin/processos": { label: "Processos", icon: BookOpen },
+  "/admin/historico": { label: "Histórico", icon: History },
   "/admin/colaboradores": { label: "Colaboradores", icon: Users },
 };
 

@@ -114,3 +114,11 @@ describe("Meu perfil", () => {
     expect(itensDoMenu("adm", "gestao")).not.toContain("/perfil");
   });
 });
+
+describe("aba Histórico", () => {
+  it("só o ADM vê, logo depois de Processos", () => {
+    const itens = itensDoMenu("adm", "gestao");
+    expect(itens.indexOf("/admin/historico")).toBe(itens.indexOf("/admin/processos") + 1);
+    expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/historico");
+  });
+});

@@ -1319,7 +1319,10 @@ export type Database = {
           id: string
           link_conversa: string
           nota: number
+          nota_original: number | null
           pode_excluir: boolean
+          processo_codigo: string | null
+          processo_versao: number | null
           tipo: Database["public"]["Enums"]["evaluation_type"]
         }[]
       }

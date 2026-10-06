@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAvaliacoesRouteImport } from './routes/_authenticated/admin/avaliacoes'
 import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_authenticated/admin/colaboradores'
 import { Route as AuthenticatedAdminContestacoesRouteImport } from './routes/_authenticated/admin/contestacoes'
+import { Route as AuthenticatedAdminHistoricoRouteImport } from './routes/_authenticated/admin/historico'
 import { Route as AuthenticatedAdminIndicadoresRouteImport } from './routes/_authenticated/admin/indicadores'
 import { Route as AuthenticatedAdminProcessosRouteImport } from './routes/_authenticated/admin/processos'
 
@@ -94,6 +95,12 @@ const AuthenticatedAdminContestacoesRoute =
     path: '/admin/contestacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminHistoricoRoute =
+  AuthenticatedAdminHistoricoRouteImport.update({
+    id: '/admin/historico',
+    path: '/admin/historico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminIndicadoresRoute =
   AuthenticatedAdminIndicadoresRouteImport.update({
     id: '/admin/indicadores',
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -153,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/_authenticated/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
+  '/_authenticated/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/_authenticated/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/_authenticated/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
+    | '/admin/historico'
     | '/admin/indicadores'
     | '/admin/processos'
     | '/admin/'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
+    | '/admin/historico'
     | '/admin/indicadores'
     | '/admin/processos'
     | '/admin'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/avaliacoes'
     | '/_authenticated/admin/colaboradores'
     | '/_authenticated/admin/contestacoes'
+    | '/_authenticated/admin/historico'
     | '/_authenticated/admin/indicadores'
     | '/_authenticated/admin/processos'
     | '/_authenticated/admin/'
@@ -309,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContestacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/historico': {
+      id: '/_authenticated/admin/historico'
+      path: '/admin/historico'
+      fullPath: '/admin/historico'
+      preLoaderRoute: typeof AuthenticatedAdminHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/indicadores': {
       id: '/_authenticated/admin/indicadores'
       path: '/admin/indicadores'
@@ -335,6 +355,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAvaliacoesRoute: typeof AuthenticatedAdminAvaliacoesRoute
   AuthenticatedAdminColaboradoresRoute: typeof AuthenticatedAdminColaboradoresRoute
   AuthenticatedAdminContestacoesRoute: typeof AuthenticatedAdminContestacoesRoute
+  AuthenticatedAdminHistoricoRoute: typeof AuthenticatedAdminHistoricoRoute
   AuthenticatedAdminIndicadoresRoute: typeof AuthenticatedAdminIndicadoresRoute
   AuthenticatedAdminProcessosRoute: typeof AuthenticatedAdminProcessosRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -349,6 +370,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAvaliacoesRoute: AuthenticatedAdminAvaliacoesRoute,
   AuthenticatedAdminColaboradoresRoute: AuthenticatedAdminColaboradoresRoute,
   AuthenticatedAdminContestacoesRoute: AuthenticatedAdminContestacoesRoute,
+  AuthenticatedAdminHistoricoRoute: AuthenticatedAdminHistoricoRoute,
   AuthenticatedAdminIndicadoresRoute: AuthenticatedAdminIndicadoresRoute,
   AuthenticatedAdminProcessosRoute: AuthenticatedAdminProcessosRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
