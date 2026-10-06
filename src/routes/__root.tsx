@@ -12,6 +12,7 @@ import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
+import { SCRIPT_DO_TEMA, useTema } from "../lib/tema";
 
 function NotFoundComponent() {
   return (
@@ -109,8 +110,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        {/* Aplica o modo escuro ANTES de a página aparecer (sem o "clarão" branco). */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DO_TEMA }} />
         <HeadContent />
       </head>
       <body>
@@ -123,13 +126,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const tema = useTema();
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       {/* Desenha os avisos de toast() de TODAS as páginas. Sem ele, toast() não mostra nada. */}
-      <Toaster theme="light" position="top-right" closeButton />
+      <Toaster theme={tema === "escuro" ? "dark" : "light"} position="top-right" closeButton />
     </QueryClientProvider>
   );
 }

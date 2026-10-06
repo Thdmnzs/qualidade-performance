@@ -310,7 +310,10 @@ function Perfil() {
                       {meu ? "" : "🔒 "}
                       {c.nome}
                     </span>
-                    <span className="shrink-0 text-[11px] font-semibold" style={{ color: r.texto }}>
+                    <span
+                      className="raridade-texto shrink-0 text-[11px] font-semibold"
+                      style={{ "--rt": r.texto, "--rc": r.cor } as React.CSSProperties}
+                    >
                       {r.nome} · {c.xp} XP
                     </span>
                   </span>

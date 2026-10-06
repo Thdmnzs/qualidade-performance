@@ -2,7 +2,6 @@
 @source "../src";
 @import "tw-animate-css";
 
-
 @custom-variant dark (&:is(.dark *));
 
 /* Quicksand, a fonte padrão da Fluke (licença OFL, em /fonts/OFL-Quicksand.txt).
@@ -30,7 +29,8 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --font-display: "Quicksand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:
+    "Quicksand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-sans: "Quicksand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -135,8 +135,53 @@
   --msg-nota: #ffb224;
 }
 
-.dark {
-  color-scheme: light;
+/* Modo escuro (05/10/2026): a identidade escura em verde que a dash usava antes,
+   com o contraste já conferido. A classe "dark" vai no <html> (ver src/lib/tema.ts). */
+html.dark {
+  color-scheme: dark;
+  --background: #0a130e;
+  --foreground: #e6f0ea;
+  --surface: #112019;
+  --surface-2: #16281f;
+  --card: #112019;
+  --card-foreground: #e6f0ea;
+  --popover: #112019;
+  --popover-foreground: #e6f0ea;
+  --primary: #3ee07a;
+  --primary-foreground: #06210f;
+  --secondary: #172a20;
+  --secondary-foreground: #e6f0ea;
+  --muted: #15261d;
+  --muted-foreground: #8fa497;
+  --accent: #1a3326;
+  --accent-foreground: #d6f5e1;
+  --destructive: #f05252;
+  --destructive-foreground: #1f0707;
+  --success: #3ee07a;
+  --success-foreground: #06210f;
+  --warning: #f2c14e;
+  --warning-foreground: #2a1f05;
+  --podium: #3ee07a;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: rgb(62 224 122 / 60%);
+  --chart-1: #3ee07a;
+  --chart-2: #4cc3d9;
+  --chart-3: #f2c14e;
+  --chart-4: #f05252;
+  --chart-5: #a78bfa;
+  --sidebar: #0d1912;
+  --sidebar-foreground: #dce9e1;
+  --sidebar-primary: #3ee07a;
+  --sidebar-primary-foreground: #06210f;
+  --sidebar-accent: rgb(62 224 122 / 12%);
+  --sidebar-accent-foreground: #5cf08f;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: rgb(62 224 122 / 60%);
+  /* Nomes nas bolhas: os tons claros originais, legíveis no fundo escuro. */
+  --msg-cliente-texto: #748cea;
+  --msg-colaborador-texto: #8e9fbd;
+  --msg-nota-texto: #ffb224;
 }
 
 @layer base {
@@ -199,10 +244,18 @@
     background: color-mix(in srgb, var(--muted-foreground) 8%, transparent);
     border-left: 3px solid var(--border);
   }
-  .msg-autor-cliente { color: var(--msg-cliente-texto); }
-  .msg-autor-colaborador { color: var(--msg-colaborador-texto); }
-  .msg-autor-nota { color: var(--msg-nota-texto); }
-  .msg-autor-bot { color: var(--muted-foreground); }
+  .msg-autor-cliente {
+    color: var(--msg-cliente-texto);
+  }
+  .msg-autor-colaborador {
+    color: var(--msg-colaborador-texto);
+  }
+  .msg-autor-nota {
+    color: var(--msg-nota-texto);
+  }
+  .msg-autor-bot {
+    color: var(--muted-foreground);
+  }
 }
 
 /* Cartões de indicador (05/10/2026). A cor segue a SITUAÇÃO do indicador:
@@ -210,26 +263,165 @@
    fora da meta: cartão preto, resultado e informações em vermelho;
    aguardando: cartão branco, em cinza. Contraste acima de 4,5:1 em todos. */
 @layer components {
-  .cartao-ind { border-radius: 16px; padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 132px; }
-  .cartao-ind.claro { background: #ffffff; border: 1px solid #e4e7e4; color: #111311; box-shadow: 0 1px 3px rgb(0 0 0 / 4%); }
-  .cartao-ind.escuro { background: #0d0f0d; border: 1px solid #0d0f0d; color: #ffffff; }
-  .cartao-ind .rotulo { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5e635e; }
-  .cartao-ind.escuro .rotulo { color: #b9beb9; }
-  .cartao-ind .etiqueta { font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 3px 9px; white-space: nowrap; }
-  .cartao-ind .etiqueta.individual { background: #e6eefc; color: #2b5fc9; }
-  .cartao-ind .etiqueta.time { background: #f6e6c8; color: #7a4f12; }
-  .cartao-ind .valor { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
-  .cartao-ind .valor.aguardando { font-size: 16px; font-weight: 600; color: #5e635e; }
-  .cartao-ind.escuro .valor { color: #ff6b6b; }
-  .cartao-ind .delta { font-size: 13px; font-weight: 700; white-space: nowrap; color: #157a3a; }
-  .cartao-ind.escuro .delta { color: #ff6b6b; }
-  .cartao-ind.aguardando .delta { color: #5e635e; }
-  .cartao-ind .anterior { font-size: 12px; color: #5e635e; }
-  .cartao-ind .anterior b { color: #111311; }
-  .cartao-ind.escuro .anterior { color: #ff9b9b; }
-  .cartao-ind.escuro .anterior b { color: #ff6b6b; }
-  .cartao-ind .pilula { font-size: 12px; font-weight: 700; border-radius: 9999px; padding: 3px 10px; border: 1px solid; white-space: nowrap; }
-  .cartao-ind .pilula.ok { background: #eaf7ee; border-color: #cdebd6; color: #157a3a; }
-  .cartao-ind .pilula.fora { background: #3a1515; border-color: #5a2222; color: #ff6b6b; }
-  .cartao-ind .pilula.aguardando { background: transparent; border-color: #c9cdc9; color: #5e635e; }
+  .cartao-ind {
+    border-radius: 16px;
+    padding: 18px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 132px;
+  }
+  .cartao-ind.claro {
+    background: #ffffff;
+    border: 1px solid #e4e7e4;
+    color: #111311;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+  }
+  .cartao-ind.escuro {
+    background: #0d0f0d;
+    border: 1px solid #0d0f0d;
+    color: #ffffff;
+  }
+  .cartao-ind .rotulo {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5e635e;
+  }
+  .cartao-ind.escuro .rotulo {
+    color: #b9beb9;
+  }
+  .cartao-ind .etiqueta {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+  .cartao-ind .etiqueta.individual {
+    background: #e6eefc;
+    color: #2b5fc9;
+  }
+  .cartao-ind .etiqueta.time {
+    background: #f6e6c8;
+    color: #7a4f12;
+  }
+  .cartao-ind .valor {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .cartao-ind .valor.aguardando {
+    font-size: 16px;
+    font-weight: 600;
+    color: #5e635e;
+  }
+  .cartao-ind.escuro .valor {
+    color: #ff6b6b;
+  }
+  .cartao-ind .delta {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #157a3a;
+  }
+  .cartao-ind.escuro .delta {
+    color: #ff6b6b;
+  }
+  .cartao-ind.aguardando .delta {
+    color: #5e635e;
+  }
+  .cartao-ind .anterior {
+    font-size: 12px;
+    color: #5e635e;
+  }
+  .cartao-ind .anterior b {
+    color: #111311;
+  }
+  .cartao-ind.escuro .anterior {
+    color: #ff9b9b;
+  }
+  .cartao-ind.escuro .anterior b {
+    color: #ff6b6b;
+  }
+  .cartao-ind .pilula {
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 3px 10px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .cartao-ind .pilula.ok {
+    background: #eaf7ee;
+    border-color: #cdebd6;
+    color: #157a3a;
+  }
+  .cartao-ind .pilula.fora {
+    background: #3a1515;
+    border-color: #5a2222;
+    color: #ff6b6b;
+  }
+  .cartao-ind .pilula.aguardando {
+    background: transparent;
+    border-color: #c9cdc9;
+    color: #5e635e;
+  }
+}
+
+/* Rótulo de raridade: tom escuro no claro, a cor original no escuro. */
+.raridade-texto {
+  color: var(--rt);
+}
+html.dark .raridade-texto {
+  color: var(--rc);
+}
+
+/* Cartões no modo escuro (05/10/2026). Dentro da meta: o cinza-escuro da dash,
+   resultado branco, informações em verde. Fora da meta: AVERMELHADO, porque no
+   fundo escuro um cartão preto não seria alerta. */
+@layer components {
+  html.dark .cartao-ind.claro {
+    background: #112019;
+    border-color: rgb(255 255 255 / 9%);
+    color: #e6f0ea;
+    box-shadow: none;
+  }
+  html.dark .cartao-ind.claro .rotulo {
+    color: #a9b8ae;
+  }
+  html.dark .cartao-ind.claro .delta {
+    color: #3ee07a;
+  }
+  html.dark .cartao-ind.claro .anterior {
+    color: #a3b2a8;
+  }
+  html.dark .cartao-ind.claro .anterior b {
+    color: #e6f0ea;
+  }
+  html.dark .cartao-ind .pilula.ok {
+    background: rgb(62 224 122 / 12%);
+    border-color: rgb(62 224 122 / 30%);
+    color: #3ee07a;
+  }
+  html.dark .cartao-ind.escuro {
+    background: #2a1214;
+    border-color: #6b2a2a;
+  }
+  html.dark .cartao-ind .etiqueta.individual {
+    background: rgb(91 120 230 / 18%);
+    color: #a9bcf5;
+  }
+  html.dark .cartao-ind .etiqueta.time {
+    background: rgb(255 178 36 / 16%);
+    color: #f5cc7f;
+  }
+  html.dark .cartao-ind.aguardando .valor.aguardando,
+  html.dark .cartao-ind.aguardando .delta,
+  html.dark .cartao-ind .pilula.aguardando {
+    color: #8fa497;
+    border-color: rgb(255 255 255 / 15%);
+  }
 }

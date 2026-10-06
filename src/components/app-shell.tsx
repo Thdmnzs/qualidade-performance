@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
+import { BotaoTema } from "@/components/botao-tema";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
 import { areaDoEndereco, itensDoMenu, trocaDeArea, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
@@ -78,7 +79,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Fixo ao rolar a página: ocupa a altura da tela e, se os itens não couberem, rola por dentro. */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar p-4 md:flex">
         <div className="px-2 py-4">
-          <img src="/logo-fluke.png" alt="fluke" width={120} height={32} className="h-8 w-auto" />
+          {/* Logo colorida no claro; branca no escuro. */}
+          <img
+            src="/logo-fluke.png"
+            alt="fluke"
+            width={120}
+            height={32}
+            className="h-8 w-auto dark:hidden"
+          />
+          <img
+            src="/logo-fluke-branca.png"
+            alt="fluke"
+            width={120}
+            height={32}
+            className="hidden h-8 w-auto dark:block"
+          />
           <p className="mt-2 text-xs text-muted-foreground">QualityHUB</p>
         </div>
         <nav className="mt-4 flex flex-1 flex-col gap-1">
@@ -103,6 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Barra fixa no topo (computador): o menu do usuário fica à direita. */}
         <header className="sticky top-0 z-20 hidden h-14 items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur md:flex">
+          <BotaoTema />
           {menuDoUsuario}
         </header>
         <header className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar px-4 py-3 md:hidden">
@@ -111,7 +127,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             alt="fluke"
             width={68}
             height={18}
-            className="mr-2 h-5 w-auto shrink-0"
+            className="mr-2 h-5 w-auto shrink-0 dark:hidden"
+          />
+          <img
+            src="/logo-fluke-branca.png"
+            alt="fluke"
+            width={68}
+            height={18}
+            className="mr-2 hidden h-5 w-auto shrink-0 dark:block"
           />
           {itens.map((item) => (
             <Link
@@ -122,7 +145,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
-          <div className="ml-auto shrink-0">{menuDoUsuario}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <BotaoTema />
+            {menuDoUsuario}
+          </div>
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
       </div>
