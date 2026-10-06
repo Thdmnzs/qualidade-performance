@@ -1,0 +1,196 @@
+/**
+ * Auditoria na tela: cada registro técnico vira uma frase clara.
+ *
+ * A frase sai EM PEDAÇOS (texto e negrito), e não como HTML: o que alguém
+ * escreveu (um motivo, uma resposta) entra na tela sempre como texto.
+ */
+export type Registro = {
+  acao: string;
+  quem: string;
+  alvo: string | null;
+  valor_anterior: Record<string, unknown> | null;
+  valor_novo: Record<string, unknown> | null;
+};
+export type Pedaco = { texto: string; negrito?: boolean };
+export type Detalhe = { rotulo: string; antes: string | null; depois: string };
+
+export const CATEGORIAS: Record<string, string[]> = {
+  Avaliações: ["registrar_avaliacao", "excluir_avaliacao", "registrar_quiz"],
+  Contestações: ["abrir_contestacao", "aceitar_contestacao", "recusar_contestacao"],
+  Quinzenas: [
+    "quinzena_criar",
+    "quinzena_publicar",
+    "quinzena_fechar",
+    "quinzena_reabrir",
+    "quinzena_ajuste_prazo",
+  ],
+  Sorteios: ["sortear_contato", "descartar_contato"],
+  "Acessos e cadastros": [
+    "criar_acesso",
+    "gerar_link_senha",
+    "inativar_colaborador",
+    "reativar_colaborador",
+    "excluir_colaborador",
+    "definir_perfil",
+  ],
+};
+
+export function categoriaDe(acao: string): string {
+  for (const [categoria, acoes] of Object.entries(CATEGORIAS))
+    if (acoes.includes(acao)) return categoria;
+  return "Outras";
+}
+
+const STATUS: Record<string, string> = {
+  aberta: "aberta",
+  em_analise: "em análise",
+  em_contestacao: "em contestação",
+  pronta_para_fechamento: "pronta para fechamento",
+  fechada: "fechada",
+};
+const TIPO: Record<string, string> = { interacao: "Interação", ticket_n2: "Ticket N2" };
+const PERFIL: Record<string, string> = {
+  adm: "ADM",
+  avaliador: "Avaliador",
+  colaborador: "Colaborador",
+};
+
+const txt = (v: unknown): string | null => {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "boolean") return v ? "sim" : "não";
+  if (typeof v === "number") return String(v).replace(".", ",");
+  if (typeof v === "string") return STATUS[v] ?? v;
+  return null;
+};
+const dataBR = (v: unknown) =>
+  typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)
+    ? v.slice(0, 10).split("-").reverse().join("/")
+    : txt(v);
+
+/** A frase do registro, em pedaços. Ações desconhecidas ganham uma frase genérica. */
+export function fraseDoRegistro(r: Registro): Pedaco[] {
+  const n = r.valor_novo ?? {};
+  const alvo = r.alvo ?? (txt(n["colaborador"]) || "um colaborador");
+  const q = (s: string) => ({ texto: s });
+  const b = (s: string) => ({ texto: s, negrito: true });
+  const nota = txt(n["nota"]);
+  switch (r.acao) {
+    case "registrar_avaliacao":
+      return [
+        q("registrou uma avaliação de "),
+        b(alvo),
+        q(` · ${TIPO[String(n["tipo"])] ?? "avaliação"}`),
+        ...(txt(n["assunto"]) ? [q(` · ${txt(n["assunto"])}`)] : []),
+        ...(nota ? [q(` · nota ${nota}`)] : []),
+      ];
+    case "excluir_avaliacao":
+      return [q("excluiu uma avaliação de "), b(alvo)];
+    case "registrar_quiz":
+      return [
+        q("registrou o quiz de "),
+        b(alvo),
+        q(`: ${n["entregue"] ? "entregue" : "não entregue"}`),
+      ];
+    case "abrir_contestacao":
+      return [
+        q("abriu uma contestação"),
+        ...(r.alvo ? [q(" da avaliação de "), b(r.alvo)] : []),
+        ...(nota ? [q(` · nota ${nota}`)] : []),
+      ];
+    case "aceitar_contestacao":
+      return [
+        q("aceitou a contestação de "),
+        b(alvo),
+        ...(nota ? [q(` · nova nota ${nota}`)] : []),
+      ];
+    case "recusar_contestacao":
+      return [q("recusou a contestação de "), b(alvo)];
+    case "quinzena_criar":
+      return [q("criou a "), b(r.alvo ?? "quinzena")];
+    case "quinzena_publicar":
+      return [q("publicou a "), b(r.alvo ?? "quinzena"), q(" para contestação")];
+    case "quinzena_fechar":
+      return [q("fechou a "), b(r.alvo ?? "quinzena")];
+    case "quinzena_reabrir":
+      return [q("reabriu a "), b(r.alvo ?? "quinzena")];
+    case "quinzena_ajuste_prazo":
+      return [q("ajustou o prazo de contestação da "), b(r.alvo ?? "quinzena")];
+    case "sortear_contato":
+      return [
+        q("sorteou um contato de "),
+        b(alvo),
+        q(` · ${TIPO[String(n["tipo"])] ?? "Interação"}`),
+      ];
+    case "descartar_contato":
+      return [q("descartou um contato sorteado de "), b(alvo)];
+    case "criar_acesso":
+      return [
+        q("criou o acesso de "),
+        b(txt(n["email"]) ?? alvo),
+        ...(n["perfil"] ? [q(` · ${PERFIL[String(n["perfil"])] ?? n["perfil"]}`)] : []),
+      ];
+    case "gerar_link_senha":
+      return [q("gerou um link de definição de senha para "), b(r.alvo ?? "um colaborador")];
+    case "inativar_colaborador":
+      return [q("inativou o cadastro de "), b(r.alvo ?? "um colaborador")];
+    case "reativar_colaborador":
+      return [q("reativou o cadastro de "), b(r.alvo ?? "um colaborador")];
+    case "excluir_colaborador":
+      return [q("excluiu definitivamente um cadastro inativo")];
+    case "definir_perfil":
+      return [
+        q("mudou o perfil de "),
+        b(r.alvo ?? "um colaborador"),
+        ...(txt(n["perfil"]) ? [q(` para ${PERFIL[String(n["perfil"])] ?? n["perfil"]}`)] : []),
+      ];
+    default:
+      return [q(`registrou a ação "${r.acao}"`), ...(r.alvo ? [q(" sobre "), b(r.alvo)] : [])];
+  }
+}
+
+/** O que mostrar em "ver detalhes": antes e depois, e o motivo quando houver. */
+export function detalhesDoRegistro(r: Registro): Detalhe[] {
+  const n = r.valor_novo ?? {};
+  const a = r.valor_anterior ?? {};
+  const lista: Detalhe[] = [];
+  const mudanca = (rotulo: string, chave: string, formatar = txt) => {
+    const depois = formatar(n[chave]);
+    const antes = formatar(a[chave]);
+    if (depois !== null && antes !== depois) lista.push({ rotulo, antes, depois });
+  };
+  mudanca("Situação", "status");
+  mudanca("Prazo de contestação", "prazo_contestacao_ate", dataBR);
+  if (r.acao === "registrar_quiz") {
+    const antes = a["entregue"] === undefined ? null : a["entregue"] ? "entregue" : "não entregue";
+    lista.push({ rotulo: "Quiz", antes, depois: n["entregue"] ? "entregue" : "não entregue" });
+  }
+  if (r.acao === "registrar_avaliacao") {
+    if (n["data_contato"])
+      lista.push({ rotulo: "Data do contato", antes: null, depois: dataBR(n["data_contato"])! });
+    if (n["processo"])
+      lista.push({
+        rotulo: "Processo",
+        antes: null,
+        depois: `${n["processo"]} (versão ${n["processo_versao"]})`,
+      });
+  }
+  if (r.acao === "aceitar_contestacao" && txt(a["nota"]) && txt(n["nota"])) {
+    lista.push({ rotulo: "Nota", antes: txt(a["nota"]), depois: txt(n["nota"])! });
+  }
+  for (const [chave, rotulo] of [
+    ["motivo", "Motivo"],
+    ["resposta", "Resposta"],
+  ] as const) {
+    const v = txt(n[chave]);
+    if (v) lista.push({ rotulo, antes: null, depois: v });
+  }
+  const apagados = n["registros_apagados"];
+  if (apagados && typeof apagados === "object") {
+    const partes = Object.entries(apagados as Record<string, unknown>)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`);
+    if (partes.length)
+      lista.push({ rotulo: "Registros apagados", antes: null, depois: partes.join(", ") });
+  }
+  return lista;
+}
