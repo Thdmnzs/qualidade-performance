@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { CartaoIndicador } from "@/components/cartao-indicador";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Label } from "@/components/ui/label";
 import { useCurrentEmployee, usePermissoes } from "@/hooks/useAuth";
@@ -17,6 +18,9 @@ import {
   QUALIDADE_MINIMA,
   textoDaMeta,
   type ChaveIndicador,
+  textoDaSituacao,
+  variacao,
+  type Variacao,
 } from "@/lib/indicadores";
 import {
   fetchElegibilidade,
@@ -41,13 +45,18 @@ type Linha = { rotulo: string; valor: string };
 type Cartao = {
   chave: string;
   titulo: string;
+  etiqueta: "individual" | "do time";
   /** Valor principal já formatado, ou null enquanto não há resultado. */
   valor: string | null;
-  selo?: string;
   /** true = na meta; false = fora da meta; null = aguardando. */
   naMeta: boolean | null;
+  sentido: "minimo" | "maximo";
   meta: string;
-  linhas: Linha[];
+  /** Nível de qualidade (5G, 4G...), mostrado na pílula. */
+  nivel?: string;
+  variacao: Variacao | null;
+  /** Valor da quinzena anterior, já formatado. */
+  anterior: string | null;
 };
 
 function Painel() {
@@ -62,6 +71,9 @@ function Painel() {
     if (!fortnightId && publicadas[0]) setFortnightId(publicadas[0].id);
   }, [publicadas, fortnightId]);
   const quinzena = publicadas.find((q) => q.id === fortnightId);
+  // A quinzena publicada anterior, para a variação ("quinz. ant.").
+  const quinzenaAnterior = publicadas[publicadas.findIndex((q) => q.id === fortnightId) + 1];
+  const anteriorId = quinzenaAnterior?.id ?? "";
   const employeeId = employee?.id;
 
   const { data: metas = {} } = useQuery({ queryKey: ["metas-indicadores"], queryFn: fetchMetas });
@@ -81,6 +93,27 @@ function Painel() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("qualidade_da_quinzena", {
         _fortnight_id: fortnightId,
+      });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+  const { data: resultadosAnt = [] } = useQuery({
+    queryKey: ["resultados", anteriorId, employeeId],
+    queryFn: () => fetchResultados(anteriorId, employeeId!),
+    enabled: !!anteriorId && !!employeeId,
+  });
+  const { data: mediasAnt = [] } = useQuery({
+    queryKey: ["medias", anteriorId],
+    queryFn: () => fetchMediasTime(anteriorId),
+    enabled: !!anteriorId,
+  });
+  const { data: qualidadeAnt } = useQuery({
+    queryKey: ["qualidade", anteriorId, employeeId],
+    enabled: !!anteriorId && !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("qualidade_da_quinzena", {
+        _fortnight_id: anteriorId,
       });
       if (error) throw error;
       return data?.[0] ?? null;
@@ -112,85 +145,65 @@ function Painel() {
     );
   }
 
-  const valorDe = (chave: ChaveIndicador) => {
-    const r = resultados.find((x) => x.indicador === chave);
-    return r?.valor === null || r?.valor === undefined ? null : Number(r.valor);
-  };
-  const mediaDe = (chave: ChaveIndicador) => {
-    const m = medias.find((x) => x.indicador === chave);
-    return m?.media === null || m?.media === undefined ? null : Number(m.media);
-  };
+  const numero = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  const valorDe = (chave: ChaveIndicador, lista = resultados) =>
+    numero(lista.find((x) => x.indicador === chave)?.valor);
+  const mediaDe = (chave: ChaveIndicador, lista = medias) =>
+    numero(lista.find((x) => x.indicador === chave)?.media);
 
   const cartoes: Cartao[] = [];
 
   // Qualidade: vem das avaliações (nota da quinzena = média das notas).
-  const nota =
-    qualidade?.minha_nota === null || qualidade?.minha_nota === undefined
-      ? null
-      : Number(qualidade.minha_nota);
+  const nota = numero(qualidade?.minha_nota);
+  const notaAnt = numero(qualidadeAnt?.minha_nota);
   cartoes.push({
     chave: "qualidade",
     titulo: "Qualidade",
+    etiqueta: "individual",
     valor: nota === null ? null : formatarValor("qualidade", nota),
-    // O selo só existe quando há nota (o campo é omitido, e não "undefined").
-    ...(nota === null ? {} : { selo: nivelQualidade(nota) }),
     naMeta: nota === null ? null : nota >= QUALIDADE_MINIMA,
+    sentido: "minimo",
     meta: `mínimo ${QUALIDADE_MINIMA} (nível 4G)`,
-    linhas: [
-      { rotulo: "Avaliações na quinzena", valor: String(qualidade?.minhas_avaliacoes ?? 0) },
-      {
-        rotulo: "Média do time",
-        valor:
-          qualidade?.media_time === null || qualidade?.media_time === undefined
-            ? "—"
-            : formatarValor("qualidade", Number(qualidade.media_time)),
-      },
-    ],
+    ...(nota === null ? {} : { nivel: nivelQualidade(nota) }),
+    variacao: variacao("qualidade", nota, notaAnt, "minimo"),
+    anterior: notaAnt === null ? null : formatarValor("qualidade", notaAnt),
   });
 
   for (const ind of INDICADORES) {
     const meta = metas[ind.chave];
     if (!meta) continue;
-    const media = mediaDe(ind.chave);
-
-    if (ind.chave === "csat") {
-      // CSAT é do time: o valor é a média do time, igual para todos.
-      cartoes.push({
-        chave: ind.chave,
-        titulo: ind.titulo,
-        valor: media === null ? null : formatarValor("csat", media),
-        naMeta: media === null ? null : atingiuMeta(meta, media),
-        meta: textoDaMeta(meta),
-        linhas: [],
-      });
-      continue;
-    }
-
-    const valor = valorDe(ind.chave);
+    const doTime = ind.chave === "csat"; // CSAT é do time: o mesmo valor para todos
+    const atual = doTime ? mediaDe(ind.chave) : valorDe(ind.chave);
+    const ant = doTime ? mediaDe(ind.chave, mediasAnt) : valorDe(ind.chave, resultadosAnt);
+    let medidoNaMeta = atual;
     if (ind.chave === "horas_online") {
-      // O cartão mostra só as horas logadas e a meta; o selo segue a regra
-      // registrada (média semanal da quinzena >= meta).
-      const semanal = valor === null || !quinzena ? null : mediaSemanal(valor, quinzena);
+      // A regra da meta usa a média semanal da quinzena; a variação também.
+      medidoNaMeta = atual === null || !quinzena ? null : mediaSemanal(atual, quinzena);
+      const antSemanal =
+        ant === null || !quinzenaAnterior ? null : mediaSemanal(ant, quinzenaAnterior);
       cartoes.push({
         chave: ind.chave,
         titulo: ind.titulo,
-        valor: valor === null ? null : formatarValor("horas_online", valor),
-        naMeta: semanal === null ? null : atingiuMeta(meta, semanal),
+        etiqueta: "individual",
+        valor: atual === null ? null : formatarValor("horas_online", atual),
+        naMeta: medidoNaMeta === null ? null : atingiuMeta(meta, medidoNaMeta),
+        sentido: meta.sentido,
         meta: `${meta.meta}h/semana`,
-        linhas: [],
+        variacao: variacao("horas_online", medidoNaMeta, antSemanal, meta.sentido),
+        anterior: ant === null ? null : formatarValor("horas_online", ant),
       });
       continue;
     }
-
     cartoes.push({
       chave: ind.chave,
       titulo: ind.titulo,
-      valor: valor === null ? null : formatarValor(ind.chave, valor),
-      naMeta: valor === null ? null : atingiuMeta(meta, valor),
+      etiqueta: doTime ? "do time" : "individual",
+      valor: atual === null ? null : formatarValor(ind.chave, atual),
+      naMeta: medidoNaMeta === null ? null : atingiuMeta(meta, medidoNaMeta),
+      sentido: meta.sentido,
       meta: textoDaMeta(meta),
-      linhas: [
-        { rotulo: "Média do time", valor: media === null ? "—" : formatarValor(ind.chave, media) },
-      ],
+      variacao: variacao(ind.chave, atual, ant, meta.sentido),
+      anterior: ant === null ? null : formatarValor(ind.chave, ant),
     });
   }
 
@@ -267,55 +280,23 @@ function Painel() {
 
           <h2 className="mb-3 font-display text-lg font-semibold">Meus indicadores</h2>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {cartoes.map((c) => (
-              <CartaoIndicador key={c.chave} cartao={c} />
+            {cartoes.map((c, i) => (
+              <CartaoIndicador
+                key={c.chave}
+                rotulo={c.titulo}
+                etiqueta={c.etiqueta}
+                valor={c.valor}
+                variacao={c.variacao}
+                // Sem quinzena anterior, o rodapé não mostra "quinz. ant.".
+                {...(quinzenaAnterior ? { anterior: c.anterior } : {})}
+                situacao={c.naMeta === null ? "aguardando" : c.naMeta ? "ok" : "fora"}
+                textoDaSituacao={`${textoDaSituacao(c.naMeta, c.sentido)}${c.nivel ? ` · ${c.nivel}` : ""}`}
+                meta={c.meta}
+                escuro={i % 2 === 1}
+              />
             ))}
           </div>
         </>
-      )}
-    </div>
-  );
-}
-
-function CartaoIndicador({ cartao: c }: { cartao: Cartao }) {
-  const borda =
-    c.naMeta === null ? "border-border" : c.naMeta ? "border-primary/40" : "border-destructive/40";
-  return (
-    <div className={`flex flex-col rounded-2xl border bg-card p-5 ${borda}`}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-muted-foreground">{c.titulo}</p>
-        {c.naMeta === null ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="size-3.5" /> Aguardando
-          </span>
-        ) : c.naMeta ? (
-          <span className="flex items-center gap-1 text-xs font-medium text-primary">
-            <CheckCircle2 className="size-3.5" /> Na meta
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-xs font-medium text-destructive">
-            <AlertTriangle className="size-3.5" /> Fora da meta
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 font-display text-3xl font-bold">
-        {c.valor ?? (
-          <span className="text-xl font-normal text-muted-foreground">Aguardando o resultado</span>
-        )}
-        {c.selo && <span className="ml-2 text-lg font-semibold text-primary">— {c.selo}</span>}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">Meta: {c.meta}</p>
-
-      {c.linhas.length > 0 && (
-        <dl className="mt-4 space-y-1 border-t border-border pt-3 text-sm">
-          {c.linhas.map((l) => (
-            <div key={l.rotulo} className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">{l.rotulo}</dt>
-              <dd className="text-right">{l.valor}</dd>
-            </div>
-          ))}
-        </dl>
       )}
     </div>
   );

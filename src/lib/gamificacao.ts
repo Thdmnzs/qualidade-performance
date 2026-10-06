@@ -24,12 +24,13 @@ export const MOTIVO_EM_BREVE: Record<Dimensao, string> = {
 };
 
 /** Raridade pela escala do PDF (150 e 250 XP, do Ranking, ficam na faixa de baixo). */
-export function raridade(xp: number): { nome: string; cor: string } {
-  if (xp >= 500) return { nome: "Mítica", cor: "#ff6fb5" };
-  if (xp >= 350) return { nome: "Lendária", cor: "#ffb224" };
-  if (xp >= 200) return { nome: "Épica", cor: "#a78bfa" };
-  if (xp >= 100) return { nome: "Rara", cor: "#5b78e6" };
-  return { nome: "Comum", cor: "#8e9fbd" };
+export function raridade(xp: number): { nome: string; cor: string; texto: string } {
+  // "cor": borda e fundo; "texto": o rótulo, num tom escuro legível sobre o branco.
+  if (xp >= 500) return { nome: "Mítica", cor: "#ff6fb5", texto: "#b0236a" };
+  if (xp >= 350) return { nome: "Lendária", cor: "#ffb224", texto: "#8a5300" };
+  if (xp >= 200) return { nome: "Épica", cor: "#a78bfa", texto: "#6b3fcc" };
+  if (xp >= 100) return { nome: "Rara", cor: "#5b78e6", texto: "#3450c2" };
+  return { nome: "Comum", cor: "#8e9fbd", texto: "#56657f" };
 }
 
 /**

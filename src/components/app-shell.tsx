@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="px-2 py-4">
           {/* Versão da logo com letras brancas, para o tema escuro. */}
           <img
-            src="/logo-fluke-branca.png"
+            src="/logo-fluke.png"
             alt="fluke"
             width={120}
             height={32}
@@ -121,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar px-4 py-3 md:hidden">
           <img
-            src="/logo-fluke-branca.png"
+            src="/logo-fluke.png"
             alt="fluke"
             width={68}
             height={18}

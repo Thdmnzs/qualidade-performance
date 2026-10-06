@@ -10,6 +10,9 @@ import {
   QUALIDADE_MINIMA,
   textoDaMeta,
   type Meta,
+  minutosESegundos,
+  variacao,
+  textoDaSituacao,
 } from "../indicadores";
 
 const produtividade: Meta = {
@@ -91,9 +94,51 @@ describe("mediaSemanal", () => {
 describe("formatarValor", () => {
   it("usa a unidade de cada indicador, no padrão brasileiro", () => {
     expect(formatarValor("produtividade", 6.4)).toBe("6,4 tickets/h");
-    expect(formatarValor("sla_chat", 4.5)).toBe("4,5 min");
+    expect(formatarValor("sla_chat", 4.5)).toBe("4m 30s");
     expect(formatarValor("csat", 96.8)).toBe("96,8%");
     expect(formatarValor("horas_online", 42.5)).toBe("42h30");
     expect(formatarValor("qualidade", 95.333)).toBe("95,33");
+  });
+});
+
+describe("minutosESegundos (formato do painel de referência)", () => {
+  it("minutos com fração viram minutos e segundos", () => {
+    expect(minutosESegundos(8 + 19 / 60)).toBe("8m 19s");
+    expect(minutosESegundos(10.7333)).toBe("10m 44s");
+    expect(minutosESegundos(0.5)).toBe("0m 30s");
+    expect(minutosESegundos(5)).toBe("5m 00s");
+  });
+  it("arredonda para o segundo mais próximo, sem virar '60s'", () => {
+    expect(minutosESegundos(1.9999)).toBe("2m 00s");
+  });
+});
+
+describe("variacao (seta pela direção, cor pelo sentido da meta)", () => {
+  it("SLA (meta máxima): descer é bom, subir é ruim", () => {
+    expect(variacao("sla_chat", 8 + 19 / 60, 9 + 31 / 60, "maximo")).toEqual({
+      texto: "▼ −1m 12s",
+      bom: true,
+    });
+    expect(variacao("sla_email", 14 + 22 / 60, 11 + 4 / 60, "maximo")).toEqual({
+      texto: "▲ +3m 18s",
+      bom: false,
+    });
+  });
+  it("Qualidade e produtividade (meta mínima): subir é bom", () => {
+    expect(variacao("qualidade", 96.4, 94.3, "minimo")).toEqual({ texto: "▲ +2,1", bom: true });
+    expect(variacao("produtividade", 5.4, 6.2, "minimo")).toEqual({ texto: "▼ −0,8", bom: false });
+  });
+  it("sem a quinzena anterior, não há variação; igual, nem bom nem ruim", () => {
+    expect(variacao("csat", 97, null, "minimo")).toBeNull();
+    expect(variacao("csat", 97, 97, "minimo")).toEqual({ texto: "= 0", bom: null });
+  });
+});
+
+describe("textoDaSituacao", () => {
+  it("o texto acompanha o sentido de cada indicador", () => {
+    expect(textoDaSituacao(true, "maximo")).toBe("dentro da meta");
+    expect(textoDaSituacao(false, "maximo")).toBe("acima da meta");
+    expect(textoDaSituacao(false, "minimo")).toBe("abaixo da meta");
+    expect(textoDaSituacao(null, "minimo")).toBe("aguardando o resultado");
   });
 });

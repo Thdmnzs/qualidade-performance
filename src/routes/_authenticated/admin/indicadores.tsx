@@ -4,6 +4,7 @@ import { FileUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { EmptyState, PageHeader } from "@/components/page-header";
+import { CartaoIndicador } from "@/components/cartao-indicador";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePermissoes } from "@/hooks/useAuth";
@@ -95,42 +96,40 @@ function Indicadores() {
         <p className="text-sm text-muted-foreground">Carregando metas...</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {INDICADORES.map((ind) => {
+          {INDICADORES.map((ind, i) => {
             const meta = metas?.[ind.chave];
+            const escuro = i % 2 === 1;
             return (
-              <div
+              // Formato dos cartões de indicador; aqui o valor grande é a META.
+              <CartaoIndicador
                 key={ind.chave}
-                className="flex flex-col rounded-2xl border border-border bg-card p-5"
+                rotulo={ind.titulo}
+                etiqueta={meta?.escopo === "time" ? "do time" : "individual"}
+                valor={meta ? textoDaMeta(meta) : null}
+                situacao={meta ? "ok" : "aguardando"}
+                textoDaSituacao={meta ? "meta vigente" : "meta não configurada"}
+                escuro={escuro}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-display text-lg font-semibold">{ind.titulo}</h2>
-                  {meta && (
-                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-                      {meta.escopo === "time" ? "Do time" : "Individual"}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 font-display text-2xl text-primary">
-                  {meta ? textoDaMeta(meta) : "Meta não configurada"}
-                </p>
                 {ind.chave === "horas_online" && meta && quinzena && (
-                  <p className="mt-1 text-sm">
+                  <p className="text-sm">
                     Nesta quinzena:{" "}
                     <strong>{horasEMinutos(horasExigidas(quinzena, meta.meta))}</strong> em{" "}
                     {diasDaQuinzena(quinzena)} dias
                   </p>
                 )}
-                <p className="mt-3 text-sm text-muted-foreground">{ind.explicacao}</p>
-                <div className="mt-auto pt-4">
-                  {/* O envio depende do formato de cada relatório, que está sendo levantado com os gestores. */}
-                  <Button variant="outline" className="w-full" disabled>
-                    <FileUp className="size-4" /> Enviar relatório
-                  </Button>
-                  <p className="mt-2 text-center text-xs text-muted-foreground">
-                    Disponível assim que o modelo do arquivo for definido.
-                  </p>
-                </div>
-              </div>
+                <p className={`text-sm ${escuro ? "text-[#b9beb9]" : "text-muted-foreground"}`}>
+                  {ind.explicacao}
+                </p>
+                {/* O envio depende do formato de cada relatório, que está sendo levantado com os gestores. */}
+                <Button variant={escuro ? "secondary" : "outline"} className="mt-2 w-full" disabled>
+                  <FileUp className="size-4" /> Enviar relatório
+                </Button>
+                <p
+                  className={`text-center text-xs ${escuro ? "text-[#a3a8a3]" : "text-muted-foreground"}`}
+                >
+                  Disponível assim que o modelo do arquivo for definido.
+                </p>
+              </CartaoIndicador>
             );
           })}
         </div>

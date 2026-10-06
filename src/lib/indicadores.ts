@@ -124,7 +124,7 @@ export function formatarValor(chave: ChaveIndicador | "qualidade", valor: number
       return `${decimal(valor)} tickets/h`;
     case "sla_chat":
     case "sla_email":
-      return `${decimal(valor)} min`;
+      return minutosESegundos(valor);
     case "csat":
       return `${decimal(valor)}%`;
     case "horas_online":
@@ -132,4 +132,57 @@ export function formatarValor(chave: ChaveIndicador | "qualidade", valor: number
     case "qualidade":
       return decimal(valor, 2);
   }
+}
+
+/** Minutos (com fração) em "8m 19s", como no painel de referência. */
+export function minutosESegundos(minutos: number): string {
+  const total = Math.round(Math.abs(minutos) * 60);
+  const m = Math.floor(total / 60);
+  const seg = total % 60;
+  return `${m}m ${String(seg).padStart(2, "0")}s`;
+}
+
+/** Diferença já formatada, sem o sinal (o sinal vem à parte). */
+function formatarDiferenca(chave: ChaveIndicador | "qualidade", d: number): string {
+  switch (chave) {
+    case "sla_chat":
+    case "sla_email":
+      return minutosESegundos(d);
+    case "horas_online":
+      return horasEMinutos(d);
+    case "qualidade":
+      return decimal(d, 1);
+    default:
+      return decimal(d);
+  }
+}
+
+export type Variacao = { texto: string; bom: boolean | null };
+
+/**
+ * Variação em relação à quinzena anterior. A SETA mostra a direção (subiu ou
+ * desceu); "bom" diz se isso foi positivo, conforme o sentido da meta: no SLA
+ * (meta máxima), descer é bom; nos demais (meta mínima), subir é bom.
+ */
+export function variacao(
+  chave: ChaveIndicador | "qualidade",
+  atual: number | null,
+  anterior: number | null,
+  sentido: "minimo" | "maximo",
+): Variacao | null {
+  if (atual === null || anterior === null) return null;
+  const d = atual - anterior;
+  if (Math.abs(d) < 1e-9) return { texto: "= 0", bom: null };
+  const subiu = d > 0;
+  return {
+    texto: `${subiu ? "▲ +" : "▼ −"}${formatarDiferenca(chave, Math.abs(d))}`,
+    bom: sentido === "minimo" ? subiu : !subiu,
+  };
+}
+
+/** Texto da pílula: "dentro da meta", ou "abaixo"/"acima" conforme o sentido. */
+export function textoDaSituacao(naMeta: boolean | null, sentido: "minimo" | "maximo"): string {
+  if (naMeta === null) return "aguardando o resultado";
+  if (naMeta) return "dentro da meta";
+  return sentido === "minimo" ? "abaixo da meta" : "acima da meta";
 }

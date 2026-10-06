@@ -310,7 +310,7 @@ function Perfil() {
                       {meu ? "" : "🔒 "}
                       {c.nome}
                     </span>
-                    <span className="shrink-0 text-[11px] font-semibold" style={{ color: r.cor }}>
+                    <span className="shrink-0 text-[11px] font-semibold" style={{ color: r.texto }}>
                       {r.nome} · {c.xp} XP
                     </span>
                   </span>
