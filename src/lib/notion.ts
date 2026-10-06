@@ -188,3 +188,22 @@ export function montarProcesso(item: ItemDaFila, corpo: string): string {
   if (!item.revisado && item.base !== "Guia") cab.push("status: ainda não revisado pela Qualidade");
   return `${cab.join("\n")}\n\n${corpo}`.trim();
 }
+
+/** Endereços oficiais do Notion. */
+const HOSTS_DO_NOTION = new Set(["notion.so", "www.notion.so", "app.notion.com"]);
+
+/**
+ * Só aceita links que apontam DE FATO para o Notion (https, sem usuário antes
+ * do @). Qualquer outro endereço volta null, e a tela não mostra o botão.
+ */
+export function linkSeguroDoNotion(url: string | null | undefined): string | null {
+  if (!url) return null;
+  let u: URL;
+  try {
+    u = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" || u.username || u.password) return null;
+  return HOSTS_DO_NOTION.has(u.hostname.toLowerCase()) ? u.toString() : null;
+}

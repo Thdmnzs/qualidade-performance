@@ -13,6 +13,7 @@ import { usePermissoes } from "@/hooks/useAuth";
 import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/queries";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
 import { ContatoIntercom } from "@/components/contato-intercom";
+import { ProcessoRelacionado, type ProcessoEscolhido } from "@/components/processo-relacionado";
 import { linkSeguroDoIntercom } from "@/lib/intercom";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
@@ -55,6 +56,9 @@ function Avaliacoes() {
   const [link, setLink] = useState("");
   // Muda a cada avaliação registrada, para o painel do contato recomeçar.
   const [rodada, setRodada] = useState(0);
+  // Processo da Flukepédia usado (opcional) e o texto do contato para sugerir.
+  const [processo, setProcesso] = useState<ProcessoEscolhido | null>(null);
+  const [textoDoContato, setTextoDoContato] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
@@ -159,6 +163,7 @@ function Avaliacoes() {
         _data_contato: dataContato,
         _link_conversa: link,
         _comentarios: comentarios,
+        _processo_id: processo?.id ?? null,
         _respostas: ficha.map((c) => ({
           criterio_id: c.id,
           resposta: respostas[c.id],
@@ -179,6 +184,8 @@ function Avaliacoes() {
       setObservacoes({});
       setAssunto("");
       setRodada((r) => r + 1);
+      setProcesso(null);
+      setTextoDoContato("");
       setDataContato("");
       setLink("");
       setComentarios("");
@@ -339,7 +346,15 @@ function Avaliacoes() {
                 setLink(c.link);
                 if (c.dataContato) setDataContato(c.dataContato);
                 if (c.assunto) setAssunto(c.assunto);
+                // Contato novo: sugestões novas, e nenhum processo marcado.
+                setTextoDoContato(c.textoDoContato);
+                setProcesso(null);
               }}
+            />
+            <ProcessoRelacionado
+              consulta={textoDoContato || assunto}
+              escolhido={processo}
+              onEscolher={setProcesso}
             />
           </div>
           <div className="space-y-5">

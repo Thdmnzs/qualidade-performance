@@ -1250,6 +1250,18 @@ export type Database = {
         Args: { _descricao: string; _evaluation_id: string }
         Returns: string
       }
+      buscar_processos: {
+        Args: { _limite?: number; _texto: string }
+        Returns: {
+          base: string
+          codigo: string | null
+          id: string
+          revisado: boolean
+          titulo: string
+          url: string
+          versao: number
+        }[]
+      }
       criar_proxima_quinzena: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       definir_perfil: {
@@ -1409,6 +1421,7 @@ export type Database = {
           _employee_id: string
           _fortnight_id: string
           _link_conversa: string
+          _processo_id?: string | null
           _respostas: Json
           _tipo: Database["public"]["Enums"]["evaluation_type"]
         }

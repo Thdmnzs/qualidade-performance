@@ -11,6 +11,7 @@ import {
   linkDaConversa,
   linkSeguroDoIntercom,
   montarTranscricao,
+  textoParaSugerirProcesso,
 } from "../intercom";
 
 const cadastros = [
@@ -249,5 +250,28 @@ describe("classificação do atendimento", () => {
     expect(assuntoSugerido(classificada)).toBe("Aquisição: Número Virtual");
     expect(assuntoSugerido({ ...classificada, title: "Título" })).toBe("Título");
     expect(assuntoSugerido({ id: 1, custom_attributes: { Assunto: "Fatura" } })).toBe("Fatura");
+  });
+});
+
+describe("textoParaSugerirProcesso", () => {
+  it("junta o assunto, a classificação e a primeira mensagem do cliente", () => {
+    expect(
+      textoParaSugerirProcesso({
+        assunto: "Internet",
+        atributos: [
+          { nome: "Natureza", valor: "Problema" },
+          { nome: "Assunto", valor: "Conectividade" },
+          { nome: "Detalhe", valor: "Internet lenta" },
+        ],
+        mensagens: [
+          { autor: "bot", nome: "Fin", quando: 1, texto: "Olá!" },
+          { autor: "cliente", nome: "Marina", quando: 2, texto: "minha internet está lenta" },
+          { autor: "cliente", nome: "Marina", quando: 3, texto: "segunda mensagem" },
+        ],
+      }),
+    ).toBe("Internet · Conectividade · Internet lenta · minha internet está lenta");
+  });
+  it("sem nada, texto vazio", () => {
+    expect(textoParaSugerirProcesso({ assunto: null, atributos: [], mensagens: [] })).toBe("");
   });
 });

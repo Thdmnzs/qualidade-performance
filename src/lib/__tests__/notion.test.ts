@@ -7,6 +7,7 @@ import {
   montarProcesso,
   type Bloco,
   type LinhaDoIndice,
+  linkSeguroDoNotion,
 } from "../notion";
 
 const rt = (t: string) => [{ plain_text: t }];
@@ -140,5 +141,24 @@ describe("montarProcesso", () => {
     expect(montarProcesso({ ...item, revisado: false }, "corpo")).toContain(
       "ainda não revisado pela Qualidade",
     );
+  });
+});
+
+describe("linkSeguroDoNotion", () => {
+  it("aceita os endereços oficiais do Notion", () => {
+    expect(
+      linkSeguroDoNotion("https://www.notion.so/368cc47b1d7c812a8344f343fe872a20"),
+    ).not.toBeNull();
+    expect(
+      linkSeguroDoNotion("https://app.notion.com/p/368cc47b1d7c812a8344f343fe872a20"),
+    ).not.toBeNull();
+  });
+  it("recusa os disfarces mais comuns", () => {
+    expect(linkSeguroDoNotion("https://www.notion.so.golpe.io/x")).toBeNull();
+    expect(linkSeguroDoNotion("https://golpe.io/www.notion.so/x")).toBeNull();
+    expect(linkSeguroDoNotion("https://www.notion.so@golpe.io/x")).toBeNull();
+    expect(linkSeguroDoNotion("http://www.notion.so/x")).toBeNull();
+    expect(linkSeguroDoNotion("javascript:alert(1)")).toBeNull();
+    expect(linkSeguroDoNotion(null)).toBeNull();
   });
 });

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { dataBR, dataHoraBR } from "@/lib/format";
-import { linkSeguroDoIntercom } from "@/lib/intercom";
+import { linkSeguroDoIntercom, textoParaSugerirProcesso } from "@/lib/intercom";
 import { buscarContatoFn, descartarContatoFn, sortearContatoFn } from "@/lib/intercom.functions";
 import type { Contato } from "@/server/intercom.server";
 
@@ -52,7 +52,12 @@ export function ContatoIntercom({
   tipo: "interacao" | "ticket_n2";
   /** Muda depois de registrar a avaliação, para o painel recomeçar. */
   limparQuando: number;
-  onContato: (c: { assunto: string | null; dataContato: string | null; link: string }) => void;
+  onContato: (c: {
+    assunto: string | null;
+    dataContato: string | null;
+    link: string;
+    textoDoContato: string;
+  }) => void;
 }) {
   const sortear = useServerFn(sortearContatoFn);
   const buscar = useServerFn(buscarContatoFn);
@@ -70,7 +75,12 @@ export function ContatoIntercom({
 
   const usar = (c: Contato) => {
     setContato(c);
-    onContato({ assunto: c.assunto, dataContato: c.dataContato, link: c.link });
+    onContato({
+      assunto: c.assunto,
+      dataContato: c.dataContato,
+      link: c.link,
+      textoDoContato: textoParaSugerirProcesso(c),
+    });
   };
 
   const sorteio = useMutation({

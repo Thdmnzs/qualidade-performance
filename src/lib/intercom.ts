@@ -248,3 +248,24 @@ export function atributosDaConversa(c: ConversaIntercom): Atributo[] {
   const ca = c.custom_attributes ?? {};
   return ATRIBUTOS_PRINCIPAIS.map((nome) => ({ nome, valor: valorDoAtributo(ca[nome]) }));
 }
+
+/**
+ * Texto usado para sugerir o processo da Flukepédia: o assunto, os campos
+ * Assunto e Detalhe da classificação e a primeira mensagem do cliente.
+ */
+export function textoParaSugerirProcesso(c: {
+  assunto: string | null;
+  atributos: Atributo[];
+  mensagens: Mensagem[];
+}): string {
+  const atributo = (nome: string) => c.atributos.find((a) => a.nome === nome)?.valor ?? "";
+  const primeiraDoCliente = c.mensagens.find((m) => m.autor === "cliente")?.texto ?? "";
+  return [
+    c.assunto ?? "",
+    atributo("Assunto"),
+    atributo("Detalhe"),
+    primeiraDoCliente.slice(0, 300),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
