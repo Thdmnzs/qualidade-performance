@@ -75,7 +75,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar p-4 md:flex">
+      {/* Fixo ao rolar a página: ocupa a altura da tela e, se os itens não couberem, rola por dentro. */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar p-4 md:flex">
         <div className="px-2 py-4">
           <img src="/logo-fluke.png" alt="fluke" width={120} height={32} className="h-8 w-auto" />
           <p className="mt-2 text-xs text-muted-foreground">QualityHUB</p>
