@@ -280,7 +280,7 @@ function Painel() {
 
           <h2 className="mb-3 font-display text-lg font-semibold">Meus indicadores</h2>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {cartoes.map((c, i) => (
+            {cartoes.map((c) => (
               <CartaoIndicador
                 key={c.chave}
                 rotulo={c.titulo}
@@ -292,7 +292,6 @@ function Painel() {
                 situacao={c.naMeta === null ? "aguardando" : c.naMeta ? "ok" : "fora"}
                 textoDaSituacao={`${textoDaSituacao(c.naMeta, c.sentido)}${c.nivel ? ` · ${c.nivel}` : ""}`}
                 meta={c.meta}
-                escuro={i % 2 === 1}
               />
             ))}
           </div>

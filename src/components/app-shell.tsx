@@ -1,7 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeftRight,
   BarChart3,
   BookOpen,
   ClipboardCheck,
@@ -9,7 +8,6 @@ import {
   Gauge,
   History,
   LayoutDashboard,
-  LogOut,
   MessageSquareWarning,
   Trophy,
   UserRound,
@@ -18,7 +16,8 @@ import {
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { usePermissoes } from "@/hooks/useAuth";
+import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
+import { MenuDoUsuario } from "@/components/menu-do-usuario";
 import { areaDoEndereco, itensDoMenu, trocaDeArea, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
 
@@ -49,6 +48,7 @@ const ROTULO_AREA = { colaborador: "Área do colaborador", gestao: "Área de ava
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { employee, perfil } = usePermissoes();
+  const { data: usuario } = useSessionUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const area = areaDoEndereco(pathname);
   const troca = trocaDeArea(perfil, area);
@@ -63,19 +63,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const itens = itensDoMenu(perfil, area).map((to) => ({ to, ...NAV[to] }));
+  const menuDoUsuario = (
+    <MenuDoUsuario
+      nome={employee?.nome ?? "Usuário"}
+      email={usuario?.email ?? null}
+      perfil={`${perfil ? rotuloPerfil[perfil] : "—"}${perfil === "avaliador" ? ` · ${ROTULO_AREA[area]}` : ""}`}
+      troca={troca}
+      onSair={sair}
+    />
+  );
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar p-4 md:flex">
         <div className="px-2 py-4">
-          {/* Versão da logo com letras brancas, para o tema escuro. */}
-          <img
-            src="/logo-fluke.png"
-            alt="fluke"
-            width={120}
-            height={32}
-            className="h-8 w-auto"
-          />
+          <img src="/logo-fluke.png" alt="fluke" width={120} height={32} className="h-8 w-auto" />
           <p className="mt-2 text-xs text-muted-foreground">QualityHUB</p>
         </div>
         <nav className="mt-4 flex flex-1 flex-col gap-1">
@@ -84,7 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               activeOptions={{ exact: item.exact ?? false }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
               activeProps={{ className: "bg-primary/15 text-primary" }}
               inactiveProps={{
                 className: "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -95,30 +97,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="mt-4 rounded-lg border border-border p-3">
-          <p className="truncate text-sm font-medium">{employee?.nome ?? "Usuário"}</p>
-          <p className="text-xs text-muted-foreground">
-            {perfil ? rotuloPerfil[perfil] : "—"}
-            {perfil === "avaliador" && ` · ${ROTULO_AREA[area]}`}
-          </p>
-          {troca && (
-            <Link
-              to={troca.para}
-              className="mt-3 flex items-center gap-2 text-xs text-primary hover:underline"
-            >
-              <ArrowLeftRight className="size-3.5" /> {troca.rotulo}
-            </Link>
-          )}
-          <button
-            onClick={sair}
-            className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-destructive"
-          >
-            <LogOut className="size-3.5" /> Sair
-          </button>
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Barra fixa no topo (computador): o menu do usuário fica à direita. */}
+        <header className="sticky top-0 z-20 hidden h-14 items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur md:flex">
+          {menuDoUsuario}
+        </header>
         <header className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar px-4 py-3 md:hidden">
           <img
             src="/logo-fluke.png"
@@ -136,14 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
-          {troca && (
-            <Link to={troca.para} className="whitespace-nowrap text-xs text-primary">
-              {troca.rotulo}
-            </Link>
-          )}
-          <button onClick={sair} className="ml-auto text-xs text-muted-foreground">
-            Sair
-          </button>
+          <div className="ml-auto shrink-0">{menuDoUsuario}</div>
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
       </div>

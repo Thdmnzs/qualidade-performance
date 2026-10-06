@@ -1,15 +1,25 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-/* Inter instalada com o site (sem depender do Google Fonts, e dentro da CSP). */
-@import "@fontsource-variable/inter";
+
 
 @custom-variant dark (&:is(.dark *));
+
+/* Quicksand, a fonte padrão da Fluke (licença OFL, em /fonts/OFL-Quicksand.txt).
+   Versão variável: um arquivo só cobre os pesos de 300 a 700. Hospedada com o
+   site (dentro da CSP, sem depender de outro serviço). */
+@font-face {
+  font-family: "Quicksand";
+  src: url("/fonts/quicksand-variable.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 /*
  * QualityHUB — design system
  * Tema claro (05/10/2026): fundo branco, cartões de indicador claros e escuros
- * alternados, verde fluke como destaque. Fonte Inter.
+ * preto só fora da meta, verde fluke como destaque. Fonte Quicksand.
  */
 
 @theme inline {
@@ -20,8 +30,8 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --font-display: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Quicksand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -195,37 +205,31 @@
   .msg-autor-bot { color: var(--muted-foreground); }
 }
 
-/* Cartões de indicador, no formato do painel de referência (05/10/2026).
-   Claros e escuros alternados. No claro, os verdes e vermelhos de TEXTO são um
-   tom mais escuros que os do painel de referência, para passar de 4,5:1. */
+/* Cartões de indicador (05/10/2026). A cor segue a SITUAÇÃO do indicador:
+   dentro da meta: cartão branco, resultado preto, informações em verde;
+   fora da meta: cartão preto, resultado e informações em vermelho;
+   aguardando: cartão branco, em cinza. Contraste acima de 4,5:1 em todos. */
 @layer components {
   .cartao-ind { border-radius: 16px; padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 132px; }
-  .cartao-ind.claro { background: #f4f5f4; border: 1px solid #e4e7e4; color: #111311; }
+  .cartao-ind.claro { background: #ffffff; border: 1px solid #e4e7e4; color: #111311; box-shadow: 0 1px 3px rgb(0 0 0 / 4%); }
   .cartao-ind.escuro { background: #0d0f0d; border: 1px solid #0d0f0d; color: #ffffff; }
   .cartao-ind .rotulo { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5e635e; }
   .cartao-ind.escuro .rotulo { color: #b9beb9; }
   .cartao-ind .etiqueta { font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 3px 9px; white-space: nowrap; }
   .cartao-ind .etiqueta.individual { background: #e6eefc; color: #2b5fc9; }
   .cartao-ind .etiqueta.time { background: #f6e6c8; color: #7a4f12; }
-  .cartao-ind .valor { font-size: 30px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
-  .cartao-ind .valor.aguardando { font-size: 16px; font-weight: 500; color: #5e635e; }
-  .cartao-ind.escuro .valor.aguardando { color: #a3a8a3; }
-  .cartao-ind.fora .valor { color: #e5484d; }
-  .cartao-ind.escuro.fora .valor { color: #ff6b6b; }
-  .cartao-ind .delta { font-size: 13px; font-weight: 700; white-space: nowrap; }
-  .cartao-ind .delta.bom { color: #157a3a; }
-  .cartao-ind .delta.mau { color: #b42318; }
-  .cartao-ind .delta.igual { color: #5e635e; }
-  .cartao-ind.escuro .delta.bom { color: #3ddc84; }
-  .cartao-ind.escuro .delta.mau { color: #ff6b6b; }
-  .cartao-ind.escuro .delta.igual { color: #a3a8a3; }
+  .cartao-ind .valor { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
+  .cartao-ind .valor.aguardando { font-size: 16px; font-weight: 600; color: #5e635e; }
+  .cartao-ind.escuro .valor { color: #ff6b6b; }
+  .cartao-ind .delta { font-size: 13px; font-weight: 700; white-space: nowrap; color: #157a3a; }
+  .cartao-ind.escuro .delta { color: #ff6b6b; }
+  .cartao-ind.aguardando .delta { color: #5e635e; }
   .cartao-ind .anterior { font-size: 12px; color: #5e635e; }
-  .cartao-ind.escuro .anterior { color: #a3a8a3; }
-  .cartao-ind .pilula { font-size: 12px; font-weight: 600; border-radius: 9999px; padding: 3px 10px; border: 1px solid; white-space: nowrap; }
-  .cartao-ind.claro .pilula.ok { background: #eaf7ee; border-color: #cdebd6; color: #157a3a; }
-  .cartao-ind.escuro .pilula.ok { background: #18231b; border-color: #2c4a35; color: #3ddc84; }
-  .cartao-ind.claro .pilula.fora { background: #fdecec; border-color: #f6caca; color: #b42318; }
-  .cartao-ind.escuro .pilula.fora { background: #3a1515; border-color: #5a2222; color: #ff6b6b; }
+  .cartao-ind .anterior b { color: #111311; }
+  .cartao-ind.escuro .anterior { color: #ff9b9b; }
+  .cartao-ind.escuro .anterior b { color: #ff6b6b; }
+  .cartao-ind .pilula { font-size: 12px; font-weight: 700; border-radius: 9999px; padding: 3px 10px; border: 1px solid; white-space: nowrap; }
+  .cartao-ind .pilula.ok { background: #eaf7ee; border-color: #cdebd6; color: #157a3a; }
+  .cartao-ind .pilula.fora { background: #3a1515; border-color: #5a2222; color: #ff6b6b; }
   .cartao-ind .pilula.aguardando { background: transparent; border-color: #c9cdc9; color: #5e635e; }
-  .cartao-ind.escuro .pilula.aguardando { border-color: #4a4f4a; color: #a3a8a3; }
 }

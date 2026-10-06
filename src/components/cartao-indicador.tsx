@@ -3,7 +3,8 @@ import type { Variacao } from "@/lib/indicadores";
 /**
  * Cartão de indicador no formato do painel de referência: rótulo e etiqueta,
  * valor com a variação, e no rodapé o valor anterior e a pílula da situação.
- * As cores ficam em styles.css (.cartao-ind); aqui só se escolhem as variantes.
+ * As cores ficam em styles.css (.cartao-ind) e seguem a situação: preto e
+ * vermelho fora da meta; branco, preto e verde dentro da meta.
  */
 export function CartaoIndicador({
   rotulo,
@@ -14,7 +15,6 @@ export function CartaoIndicador({
   situacao,
   textoDaSituacao,
   meta,
-  escuro = false,
   children,
 }: {
   rotulo: string;
@@ -28,13 +28,11 @@ export function CartaoIndicador({
   textoDaSituacao: string;
   /** Texto da meta, mostrado ao passar o mouse sobre a pílula. */
   meta?: string;
-  escuro?: boolean;
   children?: React.ReactNode;
 }) {
   return (
-    <div
-      className={`cartao-ind ${escuro ? "escuro" : "claro"} ${situacao === "fora" ? "fora" : ""}`}
-    >
+    // Preto só quando o indicador está FORA da meta: o cartão escuro é um alerta.
+    <div className={`cartao-ind ${situacao === "fora" ? "escuro" : "claro"} ${situacao}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="rotulo">{rotulo}</span>
         <span className={`etiqueta ${etiqueta === "do time" ? "time" : "individual"}`}>
@@ -49,7 +47,7 @@ export function CartaoIndicador({
         )}
         {variacao && (
           <span
-            className={`delta ${variacao.bom === null ? "igual" : variacao.bom ? "bom" : "mau"}`}
+            className="delta"
             aria-label={`Em relação à quinzena anterior: ${variacao.texto}${variacao.bom === null ? "" : variacao.bom ? ", melhorou" : ", piorou"}`}
           >
             {variacao.texto}
@@ -59,7 +57,11 @@ export function CartaoIndicador({
       {children}
       <div className="mt-auto flex items-center justify-between gap-2">
         <span className="anterior">
-          {anterior !== undefined ? `quinz. ant.: ${anterior ?? "—"}` : ""}
+          {anterior !== undefined && (
+            <>
+              quinz. ant.: <b>{anterior ?? "—"}</b>
+            </>
+          )}
         </span>
         <span className={`pilula ${situacao}`} title={meta ? `Meta: ${meta}` : undefined}>
           {textoDaSituacao}

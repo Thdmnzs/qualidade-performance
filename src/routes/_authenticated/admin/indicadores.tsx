@@ -96,9 +96,8 @@ function Indicadores() {
         <p className="text-sm text-muted-foreground">Carregando metas...</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {INDICADORES.map((ind, i) => {
+          {INDICADORES.map((ind) => {
             const meta = metas?.[ind.chave];
-            const escuro = i % 2 === 1;
             return (
               // Formato dos cartões de indicador; aqui o valor grande é a META.
               <CartaoIndicador
@@ -108,7 +107,6 @@ function Indicadores() {
                 valor={meta ? textoDaMeta(meta) : null}
                 situacao={meta ? "ok" : "aguardando"}
                 textoDaSituacao={meta ? "meta vigente" : "meta não configurada"}
-                escuro={escuro}
               >
                 {ind.chave === "horas_online" && meta && quinzena && (
                   <p className="text-sm">
@@ -117,16 +115,12 @@ function Indicadores() {
                     {diasDaQuinzena(quinzena)} dias
                   </p>
                 )}
-                <p className={`text-sm ${escuro ? "text-[#b9beb9]" : "text-muted-foreground"}`}>
-                  {ind.explicacao}
-                </p>
+                <p className="text-sm text-muted-foreground">{ind.explicacao}</p>
                 {/* O envio depende do formato de cada relatório, que está sendo levantado com os gestores. */}
-                <Button variant={escuro ? "secondary" : "outline"} className="mt-2 w-full" disabled>
+                <Button variant="outline" className="mt-2 w-full font-bold" disabled>
                   <FileUp className="size-4" /> Enviar relatório
                 </Button>
-                <p
-                  className={`text-center text-xs ${escuro ? "text-[#a3a8a3]" : "text-muted-foreground"}`}
-                >
+                <p className="text-center text-xs text-muted-foreground">
                   Disponível assim que o modelo do arquivo for definido.
                 </p>
               </CartaoIndicador>
