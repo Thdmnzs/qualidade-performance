@@ -77,10 +77,11 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
     ];
   }
   if (perfil === "avaliador" && area === "gestao") {
-    return ["/admin/avaliacoes", "/admin/contestacoes"];
+    // Desde 06/10/2026, o avaliador vê o ranking completo (e o colaborador, só o pódio).
+    return ["/admin/avaliacoes", "/admin/contestacoes", "/ranking"];
   }
   // Colaborador, e avaliador na área de colaborador.
-  return ["/painel", "/minhas-avaliacoes", "/contestacoes", "/perfil"];
+  return ["/painel", "/minhas-avaliacoes", "/contestacoes", "/ranking", "/perfil"];
 }
 
 /** Atalho para trocar de área sem sair (só o avaliador tem as duas). */

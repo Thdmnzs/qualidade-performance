@@ -1300,6 +1300,33 @@ export type Database = {
           perfil: Database["public"]["Enums"]["app_role"];
         }[];
       };
+      classificacao_da_quinzena: {
+        Args: { _fortnight_id: string };
+        Returns: {
+          elegivel: boolean;
+          employee_id: string;
+          horas_semanais: number | null;
+          motivos: string[];
+          nome: string;
+          oficial: boolean;
+          posicao: number | null;
+          produtividade: number | null;
+          qualidade: number | null;
+          quiz_entregue: boolean;
+          sla_chat: number | null;
+          sla_email: number | null;
+        }[];
+      };
+      podio_da_quinzena: {
+        Args: { _fortnight_id: string };
+        Returns: {
+          destaques: number[];
+          employee_id: string;
+          nome: string;
+          oficial: boolean;
+          posicao: number;
+        }[];
+      };
       listar_auditoria: {
         Args: {
           _acoes?: string[] | null;

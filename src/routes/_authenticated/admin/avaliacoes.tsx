@@ -382,7 +382,7 @@ function Avaliacoes() {
                 <div key={c.id} className="p-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">
+                      <p className="text-sm font-bold">
                         {c.ordem}. {c.descricao}
                         {c.gravidade === "gravissimo" && (
                           <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">

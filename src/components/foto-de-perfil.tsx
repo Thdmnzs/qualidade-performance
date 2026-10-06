@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_DAS_FOTOS, caminhoDaFoto, iniciais, prepararFoto } from "@/lib/foto";
 
 /** Link temporário da foto (o espaço é privado), ou null quando não há foto. */
-async function linkDaFoto(employeeId: string): Promise<string | null> {
+export async function linkDaFoto(employeeId: string): Promise<string | null> {
   const armazenamento = supabase.storage.from(BUCKET_DAS_FOTOS);
   // Conferir antes evita pedir link de um arquivo que não existe.
   const { data: arquivos, error } = await armazenamento.list(employeeId, {

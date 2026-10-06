@@ -97,7 +97,8 @@
   --secondary: #f1f3f1;
   --secondary-foreground: #111311;
   --muted: #f4f5f4;
-  --muted-foreground: #5e635e;
+  /* Preto também no texto secundário (06/10/2026): a hierarquia vem do tamanho e do peso. */
+  --muted-foreground: #1a1d1a;
   --accent: #edfff0;
   --accent-foreground: #00700a;
   --destructive: #b42318;
@@ -197,6 +198,7 @@ html.dark {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-weight: 500;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -287,7 +289,7 @@ html.dark {
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #5e635e;
+    color: #1a1d1a;
   }
   .cartao-ind.escuro .rotulo {
     color: #b9beb9;
@@ -316,7 +318,7 @@ html.dark {
   .cartao-ind .valor.aguardando {
     font-size: 16px;
     font-weight: 600;
-    color: #5e635e;
+    color: #1a1d1a;
   }
   .cartao-ind.escuro .valor {
     color: #ff6b6b;
@@ -331,11 +333,11 @@ html.dark {
     color: #ff6b6b;
   }
   .cartao-ind.aguardando .delta {
-    color: #5e635e;
+    color: #1a1d1a;
   }
   .cartao-ind .anterior {
     font-size: 12px;
-    color: #5e635e;
+    color: #1a1d1a;
   }
   .cartao-ind .anterior b {
     color: #111311;
@@ -367,7 +369,7 @@ html.dark {
   .cartao-ind .pilula.aguardando {
     background: transparent;
     border-color: #c9cdc9;
-    color: #5e635e;
+    color: #1a1d1a;
   }
 }
 

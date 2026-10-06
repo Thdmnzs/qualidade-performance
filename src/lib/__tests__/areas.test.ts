@@ -41,10 +41,12 @@ describe("areaDoEndereco", () => {
 });
 
 describe("itensDoMenu", () => {
-  it("avaliador na gestão vê só avaliações e contestações (nunca ranking)", () => {
-    const itens = itensDoMenu("avaliador", "gestao");
-    expect(itens).toEqual(["/admin/avaliacoes", "/admin/contestacoes"]);
-    expect(itens).not.toContain("/ranking");
+  it("avaliador na gestão vê avaliações, contestações e o ranking (desde 06/10/2026)", () => {
+    expect(itensDoMenu("avaliador", "gestao")).toEqual([
+      "/admin/avaliacoes",
+      "/admin/contestacoes",
+      "/ranking",
+    ]);
   });
 
   it("avaliador na área de colaborador vê o mesmo que um colaborador", () => {
@@ -55,9 +57,7 @@ describe("itensDoMenu", () => {
 
   it("colaborador nunca vê itens de gestão, em nenhuma área", () => {
     for (const area of ["colaborador", "gestao"] as const) {
-      expect(
-        itensDoMenu("colaborador", area).some((r) => r.startsWith("/admin") || r === "/ranking"),
-      ).toBe(false);
+      expect(itensDoMenu("colaborador", area).some((r) => r.startsWith("/admin"))).toBe(false);
     }
   });
 
@@ -77,11 +77,12 @@ describe("trocaDeArea", () => {
 });
 
 describe("área do colaborador", () => {
-  it("tem Visão geral, Minhas avaliações, Minhas contestações e Meu perfil, nesta ordem", () => {
+  it("tem Visão geral, Minhas avaliações, Minhas contestações, Ranking (só o pódio) e Meu perfil, nesta ordem", () => {
     expect(itensDoMenu("colaborador", "colaborador")).toEqual([
       "/painel",
       "/minhas-avaliacoes",
       "/contestacoes",
+      "/ranking",
       "/perfil",
     ]);
   });

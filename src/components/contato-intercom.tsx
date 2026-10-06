@@ -240,7 +240,7 @@ export function ContatoIntercom({
                   key={i}
                   className={`rounded-lg px-3 py-2 text-sm ${ESTILO[m.autor]?.bolha ?? ""} ${ESTILO[m.autor]?.lado ?? ""}`}
                 >
-                  <p className={`mb-0.5 text-xs font-medium ${ESTILO[m.autor]?.autor ?? ""}`}>
+                  <p className={`mb-0.5 text-xs font-bold ${ESTILO[m.autor]?.autor ?? ""}`}>
                     {ROTULO[m.autor]}
                     {m.nome && ` · ${m.nome}`}
                     {m.quando && ` · ${dataHoraBR(new Date(m.quando * 1000).toISOString())}`}
