@@ -89,7 +89,7 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
     ];
   }
   if (perfil === "avaliador" && area === "gestao") {
-    // Desde 06/10/2026, o avaliador vê o ranking completo (e o colaborador, só o pódio).
+    // O Ranking: desde 07/10/2026, o avaliador vê só o pódio publicado, como o colaborador.
     return ["/admin/avaliacoes", "/admin/contestacoes", "/ranking"];
   }
   // Colaborador, e avaliador na área de colaborador.

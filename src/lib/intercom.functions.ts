@@ -50,6 +50,23 @@ export const sortearContatoFn = createServerFn({ method: "POST" })
     }),
   );
 
+/** O contato sorteado em aberto (ou null), para o cartão mostrar ao abrir. */
+export const contatoEmAbertoFn = createServerFn({ method: "POST" })
+  .middleware([...autenticado])
+  .validator(
+    z.object({
+      employeeId: z.string().uuid(),
+      fortnightId: z.string().uuid(),
+      tipo: z.enum(["interacao", "ticket_n2"]).optional(),
+    }),
+  )
+  .handler(async ({ data, context }) =>
+    deErroDoIntercom(async () => {
+      const { contatoEmAberto } = await import("@/server/intercom.server");
+      return contatoEmAberto({ ...data, chamadorId: context.userId });
+    }),
+  );
+
 export const buscarContatoFn = createServerFn({ method: "POST" })
   .middleware([...autenticado])
   .validator(
@@ -57,6 +74,7 @@ export const buscarContatoFn = createServerFn({ method: "POST" })
       employeeId: z.string().uuid(),
       referencia: z.string().min(1).max(500),
       tipo: z.enum(["interacao", "ticket_n2"]).optional(),
+      fortnightId: z.string().uuid().optional(),
     }),
   )
   .handler(async ({ data, context }) =>

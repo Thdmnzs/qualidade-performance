@@ -27,9 +27,10 @@ export const Route = createFileRoute("/_authenticated/ranking")({
 const MEDALHA: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function Ranking() {
-  const { isAdmin, perfil, isLoading } = usePermissoes();
-  // ADM e avaliadores veem tudo (e antes da publicação); os demais, só o pódio publicado.
-  const veTudo = isAdmin || perfil === "avaliador";
+  const { isAdmin, isLoading } = usePermissoes();
+  // Desde 07/10/2026, só o ADM vê tudo (e antes da publicação); os demais, inclusive o
+  // avaliador, só o pódio publicado. O banco confere de qualquer forma.
+  const veTudo = isAdmin;
   const { data: quinzenas = [] } = useQuery({ queryKey: ["quinzenas"], queryFn: fetchQuinzenas });
   const opcoes = useMemo(
     () => (veTudo ? quinzenas : quinzenasPublicadas(quinzenas)),

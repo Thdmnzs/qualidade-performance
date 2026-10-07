@@ -96,7 +96,8 @@ export function AjusteDaAvaliacao({
         _respostas: ficha.map((c) => ({
           criterio_id: c.id,
           resposta: respostas[c.id],
-          observacao: respostas[c.id] === "nao" ? (observacoes[c.id] ?? "") : null,
+          // Qualquer resposta guarda a observação (no Sim, é uma dica); só o Não a exige.
+          observacao: observacoes[c.id]?.trim() ? observacoes[c.id] : null,
         })),
       });
       if (error) throw new Error(error.message);
@@ -169,12 +170,18 @@ export function AjusteDaAvaliacao({
                   ))}
                 </div>
               </div>
-              {respostas[c.id] === "nao" && (
+              {respostas[c.id] && (
                 <Textarea
                   rows={2}
                   className="mt-2 text-xs"
-                  aria-label={`Justificativa do critério ${c.ordem}`}
-                  placeholder="Justificativa do “Não” (obrigatória)"
+                  aria-label={`Observação do critério ${c.ordem}`}
+                  placeholder={
+                    respostas[c.id] === "nao"
+                      ? "Justificativa do “Não” (obrigatória)"
+                      : respostas[c.id] === "medio"
+                        ? "O que faltou para ser “Sim” (opcional)"
+                        : "Uma dica para o colaborador (opcional)"
+                  }
                   value={observacoes[c.id] ?? ""}
                   onChange={(e) => setObservacoes((o) => ({ ...o, [c.id]: e.target.value }))}
                 />

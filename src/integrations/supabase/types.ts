@@ -630,6 +630,8 @@ export type Database = {
           motivo_anulacao: string | null;
           nota: number | null;
           nota_original: number | null;
+          processo_id: string | null;
+          processo_versao: number | null;
           ticket: string | null;
           tipo: Database["public"]["Enums"]["evaluation_type"];
           updated_at: string;
@@ -651,6 +653,8 @@ export type Database = {
           motivo_anulacao?: string | null;
           nota?: number | null;
           nota_original?: number | null;
+          processo_id?: string | null;
+          processo_versao?: number | null;
           ticket?: string | null;
           tipo: Database["public"]["Enums"]["evaluation_type"];
           updated_at?: string;
@@ -672,6 +676,8 @@ export type Database = {
           motivo_anulacao?: string | null;
           nota?: number | null;
           nota_original?: number | null;
+          processo_id?: string | null;
+          processo_versao?: number | null;
           ticket?: string | null;
           tipo?: Database["public"]["Enums"]["evaluation_type"];
           updated_at?: string;
@@ -1300,6 +1306,17 @@ export type Database = {
       descartar_sorteio_contato: {
         Args: { _chamador: string; _motivo: string; _sorteio_id: string };
         Returns: undefined;
+      };
+      editar_avaliacao: {
+        Args: {
+          _assunto: string;
+          _comentarios: string | null;
+          _data_contato: string;
+          _evaluation_id: string;
+          _processo_id?: string | null;
+          _respostas: Json;
+        };
+        Returns: number;
       };
       excluir_avaliacao: {
         Args: { _evaluation_id: string; _motivo: string };

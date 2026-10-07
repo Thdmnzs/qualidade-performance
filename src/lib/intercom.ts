@@ -97,7 +97,8 @@ export type ConversaIntercom = {
   created_at?: number | null;
   title?: string | null;
   state?: string | null;
-  source?: (Parte & { subject?: string | null; type?: string | null }) | null;
+  /** A origem: o tipo (conversation, email, whatsapp...) e, no chat do site, a página onde começou. */
+  source?: (Parte & { subject?: string | null; type?: string | null; url?: string | null }) | null;
   conversation_parts?: { conversation_parts?: Parte[] | null } | null;
 };
 

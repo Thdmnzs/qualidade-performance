@@ -40,6 +40,8 @@ import {
   type TicketIntercom,
   type TipoDeTicket,
 } from "@/lib/tickets";
+import { canalDaConversa, type Canal } from "@/lib/canal";
+import { limiteAtingido } from "@/lib/avaliacao";
 
 /** Versão atual da API (2.16, de julho de 2026). */
 const VERSAO_API = "2.16";
@@ -210,7 +212,8 @@ export type Contato = {
   link: string;
   assunto: string | null;
   dataContato: string | null;
-  canal: string | null;
+  /** Por onde o cliente falou (app Android ou iOS, WhatsApp, e-mail ou site). */
+  canal: Canal | null;
   atendenteEscreveu: boolean;
   mensagens: Mensagem[];
   /** Classificação do atendimento (critério 14): só os cinco campos. Num ticket, os campos do ticket. */
@@ -309,13 +312,13 @@ async function obterConversa(id: string): Promise<ConversaIntercom> {
   );
 }
 
-function paraContato(
+async function paraContato(
   c: ConversaIntercom,
   appId: string,
   adminId: string,
   sorteioId: string | null,
   jaEmAberto: boolean,
-): Contato {
+): Promise<Contato> {
   const id = String(c.id);
   return {
     sorteioId,
@@ -324,7 +327,7 @@ function paraContato(
     link: linkDaConversa(appId, id),
     assunto: assuntoSugerido(c),
     dataContato: c.created_at ? dataDoContato(c.created_at) : null,
-    canal: c.source?.type ?? null,
+    canal: canalDaConversa(c.source),
     atendenteEscreveu: atendenteEscreveu(c, adminId),
     mensagens: montarTranscricao(c),
     atributos: atributosDaConversa(c),
@@ -453,7 +456,7 @@ function paraContatoDoTicket(
     link: linkDaConversa(appId, id),
     assunto: assuntoDoTicket(t),
     dataContato: t.created_at ? dataDoContato(t.created_at) : null,
-    canal: "ticket de back-office",
+    canal: { tipo: "ticket", rotulo: "Ticket de back-office" },
     // Num ticket, "o colaborador participou" quer dizer: foi ele quem criou.
     atendenteEscreveu: criador?.id === String(adminId),
     mensagens: mensagensDoTicket(t),
@@ -476,6 +479,80 @@ const limitesDaQuinzena = (inicio: string, fim: string) => ({
   fim: Math.floor(Date.parse(`${fim}T23:59:59-03:00`) / 1000),
 });
 
+/**
+ * O sorteio em aberto do avaliador para o colaborador, na quinzena e no tipo
+ * (sorteado, não descartado e ainda não avaliado), e as avaliações válidas.
+ * É a regra única usada pelo sorteio, pela busca pelo link e pela abertura do cartão.
+ */
+async function situacaoDoSorteio(
+  chamadorId: string,
+  employeeId: string,
+  fortnightId: string,
+  tipo: TipoDoContato,
+) {
+  const { data: sorteios, error: erroSorteios } = await supabaseAdmin
+    .from("sorteios_contato")
+    .select("id, conversa_id, link, descartado_em, sorteado_por, tipo")
+    .eq("employee_id", employeeId)
+    .eq("fortnight_id", fortnightId);
+  erroDoBanco(erroSorteios);
+  const { data: avaliadas, error: erroAvaliadas } = await supabaseAdmin
+    .from("evaluations")
+    .select("link_conversa")
+    .eq("employee_id", employeeId)
+    .eq("fortnight_id", fortnightId)
+    .eq("anulada", false);
+  erroDoBanco(erroAvaliadas);
+  const linksAvaliados = new Set((avaliadas ?? []).map((e) => e.link_conversa).filter(Boolean));
+  // Um sorteio em aberto POR TIPO: uma conversa aberta não volta quando se sorteia um ticket.
+  const emAberto =
+    (sorteios ?? []).find(
+      (s) =>
+        s.sorteado_por === chamadorId &&
+        s.tipo === tipo &&
+        !s.descartado_em &&
+        !linksAvaliados.has(s.link),
+    ) ?? null;
+  return {
+    sorteios: sorteios ?? [],
+    linksAvaliados,
+    totalAvaliadas: (avaliadas ?? []).length,
+    emAberto,
+  };
+}
+
+/** O contato do sorteio em aberto, para o cartão mostrar ao abrir (ou null). */
+export async function contatoEmAberto(p: {
+  chamadorId: string;
+  employeeId: string;
+  fortnightId: string;
+  tipo?: TipoDoContato | undefined;
+}): Promise<Contato | null> {
+  const tipo = p.tipo ?? "interacao";
+  await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
+  const { emAberto } = await situacaoDoSorteio(p.chamadorId, p.employeeId, p.fortnightId, tipo);
+  if (!emAberto) return null;
+  const [appId, atendente] = await Promise.all([
+    appIdDoWorkspace(),
+    atendenteDoColaborador(p.employeeId),
+  ]);
+  return tipo === "ticket_n2"
+    ? paraContatoDoTicket(
+        await obterTicket(emAberto.conversa_id),
+        appId,
+        atendente.id,
+        emAberto.id,
+        true,
+      )
+    : await paraContato(
+        await obterConversa(emAberto.conversa_id),
+        appId,
+        atendente.id,
+        emAberto.id,
+        true,
+      );
+}
+
 export async function sortearContato(p: {
   chamadorId: string;
   employeeId: string;
@@ -488,28 +565,15 @@ export async function sortearContato(p: {
   const atendente = await atendenteDoColaborador(p.employeeId);
 
   // Já há um contato em aberto deste avaliador? Mostra o mesmo (não é um sorteio novo).
-  const { data: sorteios, error: erroSorteios } = await supabaseAdmin
-    .from("sorteios_contato")
-    .select("id, conversa_id, link, descartado_em, sorteado_por, tipo")
-    .eq("employee_id", p.employeeId)
-    .eq("fortnight_id", p.fortnightId);
-  erroDoBanco(erroSorteios);
-  const { data: avaliadas, error: erroAvaliadas } = await supabaseAdmin
-    .from("evaluations")
-    .select("link_conversa")
-    .eq("employee_id", p.employeeId)
-    .eq("fortnight_id", p.fortnightId)
-    .eq("anulada", false);
-  erroDoBanco(erroAvaliadas);
-  const linksAvaliados = new Set((avaliadas ?? []).map((e) => e.link_conversa).filter(Boolean));
-  // Um sorteio em aberto POR TIPO: uma conversa aberta não volta quando se sorteia um ticket.
-  const emAberto = (sorteios ?? []).find(
-    (s) =>
-      s.sorteado_por === p.chamadorId &&
-      s.tipo === tipo &&
-      !s.descartado_em &&
-      !linksAvaliados.has(s.link),
+  const { sorteios, linksAvaliados, totalAvaliadas, emAberto } = await situacaoDoSorteio(
+    p.chamadorId,
+    p.employeeId,
+    p.fortnightId,
+    tipo,
   );
+  // O limite de 10: sem vaga, não há o que sortear (nem um sorteio em aberto serviria).
+  const limite = limiteAtingido(totalAvaliadas);
+  if (limite) throw new ErroDoIntercom(limite);
   if (emAberto && tipo === "ticket_n2") {
     return paraContatoDoTicket(
       await obterTicket(emAberto.conversa_id),
@@ -620,6 +684,8 @@ export async function buscarContato(p: {
   employeeId: string;
   referencia: string;
   tipo?: TipoDoContato | undefined;
+  /** Com a quinzena, a busca respeita o sorteio em aberto (a tela sempre manda). */
+  fortnightId?: string | undefined;
 }): Promise<Contato> {
   await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
   const id = extrairIdDaConversa(p.referencia);
@@ -627,6 +693,20 @@ export async function buscarContato(p: {
     throw new ErroDoIntercom(
       "Não reconheci o link. Cole o link da conversa do Intercom, ou só o número dela.",
     );
+  // Com um contato sorteado em aberto, outro só entra depois do descarte (com o motivo).
+  if (p.fortnightId) {
+    const { emAberto } = await situacaoDoSorteio(
+      p.chamadorId,
+      p.employeeId,
+      p.fortnightId,
+      p.tipo ?? "interacao",
+    );
+    if (emAberto && emAberto.conversa_id !== id) {
+      throw new ErroDoIntercom(
+        "Você tem um contato sorteado em aberto para este colaborador. Para avaliar outro pelo link, use “Inserir link”: o sorteado é descartado, com o motivo.",
+      );
+    }
+  }
   const [appId, atendente] = await Promise.all([
     appIdDoWorkspace(),
     atendenteDoColaborador(p.employeeId),
@@ -643,7 +723,7 @@ export async function buscarContato(p: {
     }
     contato = paraContatoDoTicket(ticket, appId, atendente.id, null, false);
   } else {
-    contato = paraContato(await obterConversa(id), appId, atendente.id, null, false);
+    contato = await paraContato(await obterConversa(id), appId, atendente.id, null, false);
   }
   await registrarAbertura(p.chamadorId, p.employeeId, contato.conversaId);
   return contato;

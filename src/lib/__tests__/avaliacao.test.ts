@@ -5,7 +5,7 @@ import {
   agruparPorPessoa,
   avaliacaoApontada,
   avaliadoresDe,
-  avisoDeQuantidade,
+  limiteAtingido,
   calcularNota,
   contarPorTipo,
   contestacaoEmAndamento,
@@ -62,14 +62,15 @@ describe("calcularNota (mesmos casos dos testes de SQL)", () => {
   });
 });
 
-describe("avisoDeQuantidade (avisar, mas permitir)", () => {
-  it("não avisa abaixo do previsto", () => {
-    expect(avisoDeQuantidade("interacao", 5)).toBeNull();
-    expect(avisoDeQuantidade("ticket_n2", 3)).toBeNull();
+describe("limiteAtingido (10 no total, de qualquer tipo)", () => {
+  it("até 9, livre", () => {
+    expect(limiteAtingido(0)).toBeNull();
+    expect(limiteAtingido(9)).toBeNull();
   });
-  it("avisa ao atingir o previsto", () => {
-    expect(avisoDeQuantidade("interacao", 6)).toContain("já tem 6 avaliações de Interação");
-    expect(avisoDeQuantidade("ticket_n2", 4)).toContain("o previsto são 4");
+  it("em 10, a mensagem do limite", () => {
+    expect(limiteAtingido(10)).toBe(
+      "Este colaborador já tem 10 avaliações nesta quinzena, o limite. Para registrar outra, exclua uma das existentes.",
+    );
   });
 });
 

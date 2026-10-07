@@ -16,7 +16,11 @@ export type CriterioDaFicha = {
   permite_medio: boolean;
 };
 
-/** Quantidade prevista por quinzena (especificação, seção 11): 6 interações e 4 tickets de back-office (no banco, `ticket_n2`). */
+/**
+ * Referência por quinzena (especificação, seção 11): 6 interações e 4 tickets de
+ * back-office (no banco, `ticket_n2`). Desde 07/10/2026, só a referência: vale
+ * qualquer combinação, até o LIMITE_DE_AVALIACOES no total.
+ */
 export const AVALIACOES_PREVISTAS = { interacao: 6, ticket_n2: 4 } as const;
 export type TipoAvaliacao = keyof typeof AVALIACOES_PREVISTAS;
 
@@ -40,17 +44,13 @@ export function calcularNota(
   return Math.max(0, 100 - descontos);
 }
 
-/**
- * Aviso (não bloqueio) quando o colaborador já atingiu o previsto para o tipo.
- * Regra de negócio (30/09/2026): avisar, mas permitir.
- */
-export function avisoDeQuantidade(tipo: TipoAvaliacao, jaRegistradas: number): string | null {
-  const previsto = AVALIACOES_PREVISTAS[tipo];
-  if (jaRegistradas < previsto) return null;
-  return (
-    `Este colaborador já tem ${jaRegistradas} avaliações de ${ROTULO_TIPO[tipo]} nesta quinzena ` +
-    `(o previsto são ${previsto}).`
-  );
+/** O limite de avaliações (válidas) por colaborador por quinzena, de qualquer tipo (07/10/2026). */
+export const LIMITE_DE_AVALIACOES = 10;
+
+/** A mensagem quando o limite foi atingido, ou null. O banco recusa de qualquer forma. */
+export function limiteAtingido(total: number): string | null {
+  if (total < LIMITE_DE_AVALIACOES) return null;
+  return `Este colaborador já tem ${total} avaliações nesta quinzena, o limite. Para registrar outra, exclua uma das existentes.`;
 }
 
 export type AvaliacaoDaGestao = {
@@ -61,6 +61,8 @@ export type AvaliacaoDaGestao = {
   tipo: TipoAvaliacao;
   assunto: string | null;
   data_contato: string | null;
+  /** O link do contato no Intercom (a função do banco já devolve). */
+  link_conversa?: string | null;
   nota: number | null;
   created_at: string;
   avaliado_por: string;

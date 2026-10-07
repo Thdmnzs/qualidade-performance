@@ -26,10 +26,11 @@ import {
   type StatusQuinzena,
 } from "@/lib/quinzena";
 import {
-  AVALIACOES_PREVISTAS,
-  avisoDeQuantidade,
   calcularNota,
+  LIMITE_DE_AVALIACOES,
+  limiteAtingido,
   ROTULO_TIPO,
+  type AvaliacaoDaGestao,
   type Resposta,
 } from "@/lib/avaliacao";
 
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/_authenticated/admin/avaliacoes")({
 });
 
 function Avaliacoes() {
-  const { podeAvaliar } = usePermissoes();
+  const { podeAvaliar, isAdmin } = usePermissoes();
   const qc = useQueryClient();
 
   const [employeeId, setEmployeeId] = useState("");
@@ -63,6 +64,10 @@ function Avaliacoes() {
   const [textoDoContato, setTextoDoContato] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
+  // Editando uma avaliação registrada (07/10/2026): a ficha carrega a avaliação.
+  const [editando, setEditando] = useState<AvaliacaoDaGestao | null>(null);
+  // Os critérios "Sim" com o campo da dica aberto.
+  const [dicas, setDicas] = useState<Record<string, boolean>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
   // Pré-avaliação pela IA: o estado, e o que ela marcou (para os selos).
   const [pre, setPre] = useState<{
@@ -221,11 +226,8 @@ function Avaliacoes() {
         _respostas: ficha.map((c) => ({
           criterio_id: c.id,
           resposta: respostas[c.id],
-          // Médio e Não guardam a observação; ela é obrigatória só no Não.
-          observacao:
-            respostas[c.id] === "nao" || respostas[c.id] === "medio"
-              ? (observacoes[c.id] ?? "")
-              : null,
+          // Qualquer resposta guarda a observação (no Sim, é uma dica); só o Não a exige.
+          observacao: observacoes[c.id]?.trim() ? observacoes[c.id] : null,
         })),
       });
       if (error) throw new Error(error.message);
@@ -249,6 +251,100 @@ function Avaliacoes() {
       setComentarios("");
       pedidoDaPre.current++;
       setPre({ estado: "nenhum", sugeridos: [] });
+      qc.invalidateQueries({ queryKey: ["avaliacoes-gestao"] });
+      qc.invalidateQueries({ queryKey: ["avaliacoes-totais"] });
+    },
+    onError: (e: Error) => toast.error(`Não foi possível salvar: ${e.message}`),
+  });
+
+  function limparFicha() {
+    setRespostas({});
+    setObservacoes({});
+    setDicas({});
+    setAssunto("");
+    setRodada((r) => r + 1);
+    setProcesso(null);
+    setTextoDoContato("");
+    setDataContato("");
+    setLink("");
+    setComentarios("");
+    pedidoDaPre.current++;
+    setPre({ estado: "nenhum", sugeridos: [] });
+  }
+
+  /** Carrega uma avaliação registrada na ficha, para editar. */
+  async function iniciarEdicao(a: AvaliacaoDaGestao) {
+    const [{ data: ev, error: e1 }, { data: itens, error: e2 }] = await Promise.all([
+      supabase
+        .from("evaluations")
+        .select("comentarios, processo_id, processo_versao")
+        .eq("id", a.id)
+        .single(),
+      supabase
+        .from("evaluation_items")
+        .select("criterion_id, resposta, observacao")
+        .eq("evaluation_id", a.id),
+    ]);
+    if (e1 || e2 || !ev) {
+      toast.error("Não foi possível abrir a avaliação para editar.");
+      return;
+    }
+    let proc: ProcessoEscolhido | null = null;
+    if (ev.processo_id) {
+      const { data: p } = await supabase
+        .from("processos")
+        .select("id, codigo, titulo")
+        .eq("id", ev.processo_id)
+        .maybeSingle();
+      if (p)
+        proc = { id: p.id, codigo: p.codigo, titulo: p.titulo, versao: ev.processo_versao ?? 0 };
+    }
+    pedidoDaPre.current++; // uma pré-avaliação em andamento não preenche a edição
+    setPre({ estado: "nenhum", sugeridos: [] });
+    setEmployeeId(a.employee_id);
+    setFortnightId(a.fortnight_id);
+    setTipo(a.tipo);
+    setAssunto(a.assunto ?? "");
+    setDataContato(a.data_contato ?? "");
+    setLink(a.link_conversa ?? "");
+    setComentarios(ev.comentarios ?? "");
+    setProcesso(proc);
+    setRespostas(
+      Object.fromEntries((itens ?? []).map((i) => [i.criterion_id, i.resposta as Resposta])),
+    );
+    setObservacoes(
+      Object.fromEntries(
+        (itens ?? []).filter((i) => i.observacao).map((i) => [i.criterion_id, i.observacao!]),
+      ),
+    );
+    setDicas({});
+    setEditando(a);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const salvarEdicao = useMutation({
+    // O banco confere quem pode editar (quem fez, ou o ADM) e se a quinzena está aberta.
+    mutationFn: async () => {
+      if (!editando) throw new Error("Nenhuma avaliação em edição.");
+      const { data, error } = await supabase.rpc("editar_avaliacao", {
+        _evaluation_id: editando.id,
+        _assunto: assunto,
+        _data_contato: dataContato,
+        _comentarios: comentarios,
+        _processo_id: processo?.id ?? null,
+        _respostas: ficha.map((c) => ({
+          criterio_id: c.id,
+          resposta: respostas[c.id],
+          observacao: observacoes[c.id]?.trim() ? observacoes[c.id] : null,
+        })),
+      });
+      if (error) throw new Error(error.message);
+      return Number(data);
+    },
+    onSuccess: (novaNota) => {
+      toast.success(`Alterações salvas. Nota: ${numeroBR(novaNota)}.`);
+      setEditando(null);
+      limparFicha();
       qc.invalidateQueries({ queryKey: ["avaliacoes-gestao"] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-totais"] });
     },
@@ -304,18 +400,38 @@ function Avaliacoes() {
             );
             return;
           }
-          // Avisar, mas permitir (regra de negócio): acima do previsto, pede confirmação.
-          const aviso = totais ? avisoDeQuantidade(tipo, totais[tipo]) : null;
-          if (aviso && !confirm(`${aviso}\n\nRegistrar mesmo assim?`)) return;
+          if (editando) {
+            salvarEdicao.mutate();
+            return;
+          }
+          // O limite de 10 (o banco recusa de qualquer forma).
+          const limite = totais ? limiteAtingido(totais.interacao + totais.ticket_n2) : null;
+          if (limite) {
+            toast.error(limite);
+            return;
+          }
           salvar.mutate();
         }}
         className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5"
       >
+        {editando && (
+          <p className="rounded-xl bg-secondary px-4 py-3 text-sm" role="status">
+            <b>
+              Editando a avaliação de {editando.colaborador}
+              {editando.data_contato
+                ? `, do contato de ${editando.data_contato.split("-").reverse().join("/")}`
+                : ""}
+            </b>{" "}
+            ({ROTULO_TIPO[editando.tipo]}). O colaborador, a quinzena, o tipo e o link do contato
+            não mudam; a nota é recalculada, e a auditoria registra o antes e o depois.
+          </p>
+        )}
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="q">Quinzena</Label>
             <select
               id="q"
+              disabled={!!editando}
               required
               className={select}
               value={fortnightId}
@@ -336,6 +452,7 @@ function Avaliacoes() {
             <Label htmlFor="c">Colaborador</Label>
             <select
               id="c"
+              disabled={!!editando}
               required
               className={select}
               value={employeeId}
@@ -354,6 +471,7 @@ function Avaliacoes() {
             <Label htmlFor="t">Tipo</Label>
             <select
               id="t"
+              disabled={!!editando}
               className={select}
               value={tipo}
               onChange={(e) => setTipo(e.target.value as typeof tipo)}
@@ -396,22 +514,40 @@ function Avaliacoes() {
           {/* Coluna fixa limitada à altura da tela, rolando por dentro: assim a
               classificação do atendimento, abaixo da conversa, nunca fica escondida. */}
           <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
-            <ContatoIntercom
-              employeeId={employeeId}
-              fortnightId={fortnightId}
-              tipo={tipo}
-              limparQuando={rodada}
-              onContato={(c) => {
-                // Preenche o que veio do Intercom; o avaliador pode ajustar o assunto.
-                setLink(c.link);
-                if (c.dataContato) setDataContato(c.dataContato);
-                if (c.assunto) setAssunto(c.assunto);
-                // Contato novo: sugestões novas, e nenhum processo marcado.
-                setTextoDoContato(c.textoDoContato);
-                setProcesso(null);
-                pedirPreAvaliacao(c.link);
-              }}
-            />
+            {editando ? (
+              <div className="rounded-2xl border border-border bg-card p-4 text-sm">
+                <p className="text-xs font-bold uppercase tracking-wide">Contato desta avaliação</p>
+                {linkSeguroDoIntercom(link) ? (
+                  <a
+                    href={linkSeguroDoIntercom(link)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block font-bold text-primary hover:underline"
+                  >
+                    Abrir no Intercom
+                  </a>
+                ) : (
+                  <p className="mt-2">Sem link do Intercom.</p>
+                )}
+              </div>
+            ) : (
+              <ContatoIntercom
+                employeeId={employeeId}
+                fortnightId={fortnightId}
+                tipo={tipo}
+                limparQuando={rodada}
+                onContato={(c) => {
+                  // Preenche o que veio do Intercom; o avaliador pode ajustar o assunto.
+                  setLink(c.link);
+                  if (c.dataContato) setDataContato(c.dataContato);
+                  if (c.assunto) setAssunto(c.assunto);
+                  // Contato novo: sugestões novas, e nenhum processo marcado.
+                  setTextoDoContato(c.textoDoContato);
+                  setProcesso(null);
+                  pedirPreAvaliacao(c.link);
+                }}
+              />
+            )}
             <ProcessoRelacionado
               consulta={textoDoContato || assunto}
               escolhido={processo}
@@ -422,19 +558,25 @@ function Avaliacoes() {
             {totais && (
               <p className="text-sm text-muted-foreground" aria-live="polite">
                 Nesta quinzena:{" "}
-                {(
-                  Object.keys(AVALIACOES_PREVISTAS) as Array<keyof typeof AVALIACOES_PREVISTAS>
-                ).map((t, i) => {
-                  const acima = totais[t] >= AVALIACOES_PREVISTAS[t];
-                  return (
-                    <span key={t}>
-                      {i > 0 && " · "}
-                      <span className={acima ? "font-medium text-warning" : "text-foreground"}>
-                        {ROTULO_TIPO[t]} {totais[t]}/{AVALIACOES_PREVISTAS[t]}
-                      </span>
-                    </span>
-                  );
-                })}
+                <span
+                  className={
+                    totais.interacao + totais.ticket_n2 >= LIMITE_DE_AVALIACOES
+                      ? "font-bold text-destructive"
+                      : "font-medium text-foreground"
+                  }
+                >
+                  {totais.interacao + totais.ticket_n2}/{LIMITE_DE_AVALIACOES} avaliações
+                </span>{" "}
+                ({totais.interacao} de {ROTULO_TIPO.interacao.toLowerCase()} · {totais.ticket_n2} de{" "}
+                {ROTULO_TIPO.ticket_n2.toLowerCase()})
+              </p>
+            )}
+            {!editando && totais && limiteAtingido(totais.interacao + totais.ticket_n2) && (
+              <p
+                className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+                role="alert"
+              >
+                {limiteAtingido(totais.interacao + totais.ticket_n2)}
               </p>
             )}
 
@@ -515,8 +657,10 @@ function Avaliacoes() {
                             key={r}
                             type="button"
                             onClick={() => {
+                              const antes = respostas[c.id];
                               setRespostas({ ...respostas, [c.id]: r });
-                              if (r === "sim") {
+                              // A justificativa de um Não/Médio não vira dica de um Sim.
+                              if (r === "sim" && antes && antes !== "sim") {
                                 const { [c.id]: _removida, ...resto } = observacoes;
                                 setObservacoes(resto);
                               }
@@ -542,6 +686,29 @@ function Avaliacoes() {
                         {pre.sugestoes.criterios[c.id]!.motivo}
                       </p>
                     )}
+                  {respostas[c.id] === "sim" && !dicas[c.id] && !observacoes[c.id] && (
+                    <button
+                      type="button"
+                      onClick={() => setDicas({ ...dicas, [c.id]: true })}
+                      className="mt-2 text-xs font-medium text-primary hover:underline"
+                    >
+                      + Adicionar dica
+                    </button>
+                  )}
+                  {respostas[c.id] === "sim" && (dicas[c.id] || !!observacoes[c.id]) && (
+                    <div className="mt-3 space-y-1.5 rounded-lg border border-border p-3">
+                      <Label htmlFor={`obs-${c.id}`} className="text-xs">
+                        Dica para o colaborador (opcional)
+                      </Label>
+                      <Textarea
+                        id={`obs-${c.id}`}
+                        rows={2}
+                        placeholder="Uma dica, mesmo com o critério atendido…"
+                        value={observacoes[c.id] ?? ""}
+                        onChange={(e) => setObservacoes({ ...observacoes, [c.id]: e.target.value })}
+                      />
+                    </div>
+                  )}
                   {(respostas[c.id] === "nao" || respostas[c.id] === "medio") && (
                     <div
                       className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
@@ -588,15 +755,41 @@ function Avaliacoes() {
                 </span>
                 {numeroBR(nota)}
               </p>
-              <Button type="submit" disabled={salvar.isPending}>
-                {salvar.isPending ? "Registrando..." : "Registrar avaliação"}
-              </Button>
+              {editando ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={salvarEdicao.isPending}
+                    onClick={() => {
+                      setEditando(null);
+                      limparFicha();
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={salvarEdicao.isPending}>
+                    {salvarEdicao.isPending ? "Salvando..." : "Salvar alterações"}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={
+                    salvar.isPending ||
+                    (!!totais && !!limiteAtingido(totais.interacao + totais.ticket_n2))
+                  }
+                >
+                  {salvar.isPending ? "Registrando..." : "Registrar avaliação"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </form>
 
-      {fortnightId && (
+      {/* Desde 07/10/2026, só o ADM registra o quiz (o banco também confere). */}
+      {fortnightId && isAdmin && (
         <>
           <h2 className="mb-3 font-display text-lg font-semibold">Quiz da quinzena</h2>
           <div className="mb-8 grid gap-2 md:grid-cols-2">
@@ -638,6 +831,7 @@ function Avaliacoes() {
         colaborador segue vendo as dele em "Minhas avaliações".
       </p>
       <AvaliacoesPorColaborador
+        onEditar={(a) => void iniciarEdicao(a)}
         avaliacoes={avaliacoesEmAndamento}
         quinzenas={emAndamento}
         quinzenaPadrao={

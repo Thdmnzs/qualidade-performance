@@ -1,6 +1,17 @@
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Dices, ExternalLink, Link2, RefreshCw } from "lucide-react";
+import {
+  CircleHelp,
+  Dices,
+  ExternalLink,
+  Link2,
+  Mail,
+  MessageCircle,
+  Monitor,
+  RefreshCw,
+  Smartphone,
+  Ticket,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +29,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { dataBR, dataHoraBR } from "@/lib/format";
 import { linkSeguroDoIntercom, textoParaSugerirProcesso } from "@/lib/intercom";
-import { buscarContatoFn, descartarContatoFn, sortearContatoFn } from "@/lib/intercom.functions";
+import {
+  buscarContatoFn,
+  contatoEmAbertoFn,
+  descartarContatoFn,
+  sortearContatoFn,
+} from "@/lib/intercom.functions";
 import type { Contato } from "@/server/intercom.server";
 
 const ROTULO: Record<string, string> = {
@@ -62,17 +78,12 @@ export function ContatoIntercom({
   const sortear = useServerFn(sortearContatoFn);
   const buscar = useServerFn(buscarContatoFn);
   const descartar = useServerFn(descartarContatoFn);
+  const emAberto = useServerFn(contatoEmAbertoFn);
   const [contato, setContato] = useState<Contato | null>(null);
   const [referencia, setReferencia] = useState("");
   // O descarte (com motivo) vale para os dois caminhos; muda só o que vem depois.
   const [descartando, setDescartando] = useState<false | "sortear" | "link">(false);
   const [motivo, setMotivo] = useState("");
-
-  // Trocar de colaborador ou quinzena, ou registrar a avaliação, recomeça o painel.
-  useEffect(() => {
-    setContato(null);
-    setReferencia("");
-  }, [employeeId, fortnightId, tipo, limparQuando]);
 
   const usar = (c: Contato) => {
     setContato(c);
@@ -83,6 +94,31 @@ export function ContatoIntercom({
       textoDoContato: textoParaSugerirProcesso(c),
     });
   };
+
+  // Trocar de colaborador ou quinzena, ou registrar a avaliação, recomeça o painel.
+  // E um contato sorteado em aberto (não descartado nem avaliado) VOLTA para a tela:
+  // recarregar a página não é um jeito de trocar de contato sem o descarte.
+  useEffect(() => {
+    setContato(null);
+    setReferencia("");
+    if (!employeeId || !fortnightId) return;
+    let valendo = true; // trocou de colaborador antes da resposta? Ela não aparece aqui.
+    emAberto({ data: { employeeId, fortnightId, tipo } })
+      .then((c) => {
+        if (!valendo || !c) return;
+        usar(c);
+        toast.info(
+          "Este é o contato que você já tinha sorteado. Para trocar, descarte-o com o motivo.",
+        );
+      })
+      .catch(() => {
+        // Sem a resposta, o cartão começa vazio, como antes; o servidor confere de qualquer forma.
+      });
+    return () => {
+      valendo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recomeça só nestas mudanças
+  }, [employeeId, fortnightId, tipo, limparQuando]);
 
   const sorteio = useMutation({
     mutationFn: () => sortear({ data: { employeeId, fortnightId, tipo } }),
@@ -99,7 +135,7 @@ export function ContatoIntercom({
     onError: (e: Error) => toast.error(e.message),
   });
   const busca = useMutation({
-    mutationFn: () => buscar({ data: { employeeId, referencia, tipo } }),
+    mutationFn: () => buscar({ data: { employeeId, referencia, tipo, fortnightId } }),
     onSuccess: (c) => {
       usar(c);
       if (!c.atendenteEscreveu)
@@ -174,7 +210,12 @@ export function ContatoIntercom({
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p>
                 {contato.dataContato ? dataBR(contato.dataContato) : "—"}
-                {contato.canal && <span className="text-muted-foreground"> · {contato.canal}</span>}
+                {contato.canal && (
+                  <>
+                    {" · "}
+                    <SeloDoCanal canal={contato.canal} />
+                  </>
+                )}
                 {contato.sorteioId && <span className="text-muted-foreground"> · sorteado</span>}
               </p>
               <div className="flex items-center gap-3">
@@ -420,5 +461,37 @@ function ResumoDoTicket({
       )}
       <p className="text-sm font-bold">Notas e comentários</p>
     </div>
+  );
+}
+
+/** O canal, como os ícones do Intercom: o app, o WhatsApp, o e-mail ou o site. */
+const ICONE_DO_CANAL: Record<NonNullable<Contato["canal"]>["tipo"], typeof Smartphone> = {
+  app: Smartphone,
+  whatsapp: MessageCircle,
+  email: Mail,
+  site: Monitor,
+  ticket: Ticket,
+  outro: CircleHelp,
+};
+// Uma cor por canal (o texto em preto ou branco, pelo contraste com a cor).
+const COR_DO_CANAL: Record<NonNullable<Contato["canal"]>["tipo"], string> = {
+  app: "bg-[#0bd400] text-[#0d0f0d]", // o verde-claro da Fluke
+  whatsapp: "bg-[#0b6b33] text-white", // verde-escuro
+  email: "bg-[#f5c400] text-[#0d0f0d]", // amarelo
+  site: "bg-[#2b5fc9] text-white", // azul
+  ticket: "bg-[#f5c400] text-[#0d0f0d]", // amarelo (o ícone o diferencia do e-mail)
+  outro: "bg-secondary text-foreground",
+};
+
+function SeloDoCanal({ canal }: { canal: NonNullable<Contato["canal"]> }) {
+  const Icone = ICONE_DO_CANAL[canal.tipo];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${COR_DO_CANAL[canal.tipo]}`}
+      title="Canal de atendimento do cliente"
+    >
+      <Icone className="size-3.5" aria-hidden="true" />
+      {canal.rotulo}
+    </span>
   );
 }

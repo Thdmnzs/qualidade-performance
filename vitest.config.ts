@@ -5,7 +5,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
-    include: ["src/**/*.test.ts"],
+    // Os testes de componentes (.test.tsx) escolhem o ambiente do navegador no próprio arquivo.
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     environment: "node",
   },
 });

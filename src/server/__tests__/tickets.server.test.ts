@@ -79,7 +79,7 @@ vi.stubGlobal(
 );
 process.env["INTERCOM_ACCESS_TOKEN"] = "token-de-teste";
 
-const { sortearContato, buscarContato } = await import("../intercom.server");
+const { sortearContato, buscarContato, contatoEmAberto } = await import("../intercom.server");
 const ids = { chamadorId: "aval-1", employeeId: "emp-rubia", fortnightId: "q-1" };
 
 beforeEach(() => {
@@ -206,5 +206,56 @@ describe("colar o link de um ticket", () => {
         tipo: "ticket_n2",
       }),
     ).rejects.toThrow("Este ticket foi criado por Outra Pessoa, e não por Rubia.");
+  });
+});
+
+describe("o sorteio em aberto (a brecha do recarregar)", () => {
+  const link = (id: string) => `https://app.intercom.com/a/inbox/x/inbox/conversation/${id}`;
+  beforeEach(() => {
+    tickets = [ticket("1", [parte(RUBIA, 10)]), ticket("4", [parte(RUBIA, 10)])];
+    sorteios = [
+      {
+        id: "s1",
+        conversa_id: "4",
+        link: "z",
+        descartado_em: null,
+        sorteado_por: "aval-1",
+        tipo: "ticket_n2",
+      },
+    ];
+  });
+  it("ao abrir o cartão, o contato em aberto volta", async () => {
+    expect(await contatoEmAberto({ ...ids, tipo: "ticket_n2" })).toMatchObject({
+      conversaId: "4",
+      sorteioId: "s1",
+      jaEmAberto: true,
+    });
+  });
+  it("sem sorteio em aberto (ou só de outro tipo), nada volta", async () => {
+    expect(await contatoEmAberto({ ...ids, tipo: "interacao" })).toBeNull();
+    sorteios = [];
+    expect(await contatoEmAberto({ ...ids, tipo: "ticket_n2" })).toBeNull();
+  });
+  it("a busca de OUTRO link é recusada enquanto houver o sorteio em aberto", async () => {
+    await expect(
+      buscarContato({ ...ids, referencia: link("1"), tipo: "ticket_n2" }),
+    ).rejects.toThrow(/sorteado em aberto.*Inserir link/);
+  });
+  it("o próprio contato sorteado pode ser buscado pelo link", async () => {
+    expect(await buscarContato({ ...ids, referencia: link("4"), tipo: "ticket_n2" })).toMatchObject(
+      { conversaId: "4" },
+    );
+  });
+  it("descartado o sorteio, outro link é aceito", async () => {
+    sorteios = [{ ...sorteios[0]!, descartado_em: "2026-10-07" }];
+    expect(await buscarContato({ ...ids, referencia: link("1"), tipo: "ticket_n2" })).toMatchObject(
+      { conversaId: "1" },
+    );
+  });
+  it("sem a quinzena (a pré-avaliação, por dentro), a busca não confere o sorteio", async () => {
+    const { fortnightId: _semQuinzena, ...semQuinzena } = ids;
+    expect(
+      await buscarContato({ ...semQuinzena, referencia: link("1"), tipo: "ticket_n2" }),
+    ).toMatchObject({ conversaId: "1" });
   });
 });

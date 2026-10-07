@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -51,11 +51,14 @@ export function AvaliacoesPorColaborador({
   avaliacoes,
   quinzenas,
   quinzenaPadrao,
+  onEditar,
 }: {
   avaliacoes: AvaliacaoDaGestao[];
   quinzenas: Quinzena[];
   /** Quinzena que os blocos mostram ao abrir (a escolhida no formulário, ou a mais recente). */
   quinzenaPadrao: string | undefined;
+  /** Editar (as mesmas regras do Excluir). Sem ele (no Histórico), não há botão. */
+  onEditar?: (a: AvaliacaoDaGestao) => void;
 }) {
   const [excluindo, setExcluindo] = useState<AvaliacaoDaGestao | null>(null);
   const blocos = useMemo(() => agruparPorColaborador(avaliacoes), [avaliacoes]);
@@ -78,6 +81,7 @@ export function AvaliacoesPorColaborador({
           quinzenas={quinzenas}
           quinzenaPadrao={quinzenaPadrao}
           onExcluir={setExcluindo}
+          {...(onEditar ? { onEditar } : {})}
         />
       ))}
       <ExcluirAvaliacaoDialog avaliacao={excluindo} onFechar={() => setExcluindo(null)} />
@@ -90,11 +94,13 @@ function BlocoColaborador({
   quinzenas,
   quinzenaPadrao,
   onExcluir,
+  onEditar,
 }: {
   bloco: BlocoDoColaborador;
   quinzenas: Quinzena[];
   quinzenaPadrao: string | undefined;
   onExcluir: (a: AvaliacaoDaGestao) => void;
+  onEditar?: (a: AvaliacaoDaGestao) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [filtro, setFiltro] = useState<string>(quinzenaPadrao ?? TODAS);
@@ -217,6 +223,11 @@ function BlocoColaborador({
                     <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
                       Avaliado por: {a.avaliado_por}
                     </span>
+                    {a.pode_excluir && onEditar && (
+                      <Button size="sm" variant="outline" onClick={() => onEditar(a)}>
+                        <Pencil className="size-3.5" /> Editar
+                      </Button>
+                    )}
                     {a.pode_excluir && (
                       <Button size="sm" variant="outline" onClick={() => onExcluir(a)}>
                         <Trash2 className="size-3.5" /> Excluir
