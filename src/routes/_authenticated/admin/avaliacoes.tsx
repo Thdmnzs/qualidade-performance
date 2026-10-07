@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -14,7 +14,9 @@ import { fetchAvaliacoesGestao, fetchAvaliaveis, fetchQuinzenas } from "@/lib/qu
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
 import { ContatoIntercom } from "@/components/contato-intercom";
 import { ProcessoRelacionado, type ProcessoEscolhido } from "@/components/processo-relacionado";
-import { linkSeguroDoIntercom } from "@/lib/intercom";
+import { extrairIdDaConversa, linkSeguroDoIntercom } from "@/lib/intercom";
+import { aplicarSugestoes, retirarSugestoes, type Sugestoes } from "@/lib/pre-avaliacao";
+import { preAvaliarFn } from "@/lib/pre-avaliacao.functions";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   aceitaAvaliacoes,
@@ -62,6 +64,58 @@ function Avaliacoes() {
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
+  // Pré-avaliação pela IA: o estado, e o que ela marcou (para os selos).
+  const [pre, setPre] = useState<{
+    estado: "nenhum" | "analisando" | "pronta" | "indisponivel" | "falhou";
+    motivo?: string;
+    sugestoes?: Sugestoes;
+    sugeridos: string[];
+  }>({ estado: "nenhum", sugeridos: [] });
+  // O estado mais recente da ficha (a sugestão chega segundos depois e não pode sobrescrever o avaliador).
+  const fichaAtual = useRef({ respostas, observacoes, comentarios });
+  fichaAtual.current = { respostas, observacoes, comentarios };
+  // Cada pedido ganha um número; uma resposta de um contato anterior é ignorada.
+  const pedidoDaPre = useRef(0);
+
+  function pedirPreAvaliacao(linkDaConversa: string) {
+    const conversaId = extrairIdDaConversa(linkDaConversa);
+    if (!conversaId || !employeeId || !fortnightId) return;
+    const numero = ++pedidoDaPre.current;
+    // Contato novo: as sugestões do contato anterior que o avaliador não mexeu saem.
+    if (pre.sugestoes && pre.sugeridos.length) {
+      const limpo = retirarSugestoes(fichaAtual.current, pre.sugestoes, pre.sugeridos);
+      fichaAtual.current = limpo;
+      setRespostas(limpo.respostas);
+      setObservacoes(limpo.observacoes);
+      setComentarios(limpo.comentarios);
+    }
+    setPre({ estado: "analisando", sugeridos: [] });
+    preAvaliarFn({ data: { employeeId, fortnightId, conversaId } })
+      .then((r) => {
+        if (numero !== pedidoDaPre.current) return;
+        if (r.estado !== "pronta") {
+          setPre({
+            estado: r.estado,
+            ...(r.estado === "falhou" ? { motivo: r.motivo } : {}),
+            sugeridos: [],
+          });
+          return;
+        }
+        const aplicado = aplicarSugestoes(fichaAtual.current, r.sugestoes);
+        setRespostas(aplicado.respostas);
+        setObservacoes(aplicado.observacoes);
+        setComentarios(aplicado.comentarios);
+        setPre({ estado: "pronta", sugestoes: r.sugestoes, sugeridos: aplicado.sugeridos });
+      })
+      .catch(() => {
+        if (numero === pedidoDaPre.current)
+          setPre({
+            estado: "falhou",
+            motivo: "Não foi possível pedir a pré-avaliação.",
+            sugeridos: [],
+          });
+      });
+  }
 
   // O banco devolve só quem este usuário pode avaliar: nunca ele mesmo; o
   // avaliador recebe só colaboradores; o ADM, colaboradores e avaliadores.
@@ -167,7 +221,11 @@ function Avaliacoes() {
         _respostas: ficha.map((c) => ({
           criterio_id: c.id,
           resposta: respostas[c.id],
-          observacao: respostas[c.id] === "nao" ? (observacoes[c.id] ?? "") : null,
+          // Médio e Não guardam a observação; ela é obrigatória só no Não.
+          observacao:
+            respostas[c.id] === "nao" || respostas[c.id] === "medio"
+              ? (observacoes[c.id] ?? "")
+              : null,
         })),
       });
       if (error) throw new Error(error.message);
@@ -189,6 +247,8 @@ function Avaliacoes() {
       setDataContato("");
       setLink("");
       setComentarios("");
+      pedidoDaPre.current++;
+      setPre({ estado: "nenhum", sugeridos: [] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-gestao"] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-totais"] });
     },
@@ -349,6 +409,7 @@ function Avaliacoes() {
                 // Contato novo: sugestões novas, e nenhum processo marcado.
                 setTextoDoContato(c.textoDoContato);
                 setProcesso(null);
+                pedirPreAvaliacao(c.link);
               }}
             />
             <ProcessoRelacionado
@@ -377,6 +438,45 @@ function Avaliacoes() {
               </p>
             )}
 
+            {pre.estado !== "nenhum" && (
+              <p
+                className={`rounded-xl px-4 py-3 text-sm ${pre.estado === "pronta" ? "bg-[#eee8ff] text-[#3d2a8a] dark:bg-[#2a2347] dark:text-[#d9cffd]" : "bg-secondary"}`}
+                role="status"
+              >
+                {pre.estado === "analisando" && (
+                  <>
+                    <b>Analisando o atendimento...</b> As sugestões aparecem em alguns segundos.
+                    Você já pode ir preenchendo.
+                  </>
+                )}
+                {pre.estado === "pronta" && (
+                  <>
+                    <b>Pré-avaliação da IA:</b> {pre.sugeridos.length} de {ficha.length} critérios
+                    marcados
+                    {(() => {
+                      const alterados = pre.sugeridos.filter(
+                        (id) => respostas[id] !== pre.sugestoes?.criterios[id]?.resposta,
+                      ).length;
+                      return alterados ? ` · ${alterados} alterado(s) por você` : "";
+                    })()}
+                    . <b>Revise cada critério e os textos antes de registrar:</b> eles vão para o
+                    colaborador como seus.
+                  </>
+                )}
+                {pre.estado === "indisponivel" && (
+                  <>
+                    <b>Pré-avaliação indisponível.</b> Preencha a ficha normalmente.
+                  </>
+                )}
+                {pre.estado === "falhou" && (
+                  <>
+                    <b>A pré-avaliação não funcionou desta vez</b>
+                    {pre.motivo ? ` (${pre.motivo})` : ""}. Preencha a ficha normalmente.
+                  </>
+                )}
+              </p>
+            )}
+
             <div className="divide-y divide-border rounded-xl border border-border">
               {ficha.map((c) => (
                 <div key={c.id} className="p-3">
@@ -384,6 +484,19 @@ function Avaliacoes() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">
                         {c.ordem}. {c.descricao}
+                        {pre.estado === "pronta" && pre.sugeridos.includes(c.id) && (
+                          <span
+                            className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              respostas[c.id] === pre.sugestoes?.criterios[c.id]?.resposta
+                                ? "bg-[#eee8ff] text-[#5b3cc4] dark:bg-[#2a2347] dark:text-[#cbbdfb]"
+                                : "bg-secondary text-foreground"
+                            }`}
+                          >
+                            {respostas[c.id] === pre.sugestoes?.criterios[c.id]?.resposta
+                              ? "sugerido pela IA"
+                              : "alterado por você"}
+                          </span>
+                        )}
                         {c.gravidade === "gravissimo" && (
                           <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">
                             gravíssimo
@@ -403,7 +516,7 @@ function Avaliacoes() {
                             type="button"
                             onClick={() => {
                               setRespostas({ ...respostas, [c.id]: r });
-                              if (r !== "nao") {
+                              if (r === "sim") {
                                 const { [c.id]: _removida, ...resto } = observacoes;
                                 setObservacoes(resto);
                               }
@@ -422,15 +535,33 @@ function Avaliacoes() {
                       )}
                     </div>
                   </div>
-                  {respostas[c.id] === "nao" && (
-                    <div className="mt-3 space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  {pre.estado === "pronta" &&
+                    !respostas[c.id] &&
+                    pre.sugestoes?.criterios[c.id]?.motivo && (
+                      <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs">
+                        {pre.sugestoes.criterios[c.id]!.motivo}
+                      </p>
+                    )}
+                  {(respostas[c.id] === "nao" || respostas[c.id] === "medio") && (
+                    <div
+                      className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
+                        respostas[c.id] === "nao"
+                          ? "border-destructive/30 bg-destructive/5"
+                          : "border-warning/30 bg-warning/5"
+                      }`}
+                    >
                       <Label htmlFor={`obs-${c.id}`} className="text-xs">
-                        Feedback do avaliador (obrigatório)
+                        Feedback do avaliador (
+                        {respostas[c.id] === "nao" ? "obrigatório" : "opcional"})
                       </Label>
                       <Textarea
                         id={`obs-${c.id}`}
                         rows={2}
-                        placeholder="Explique o motivo da marcação “Não” neste item…"
+                        placeholder={
+                          respostas[c.id] === "nao"
+                            ? "Explique o motivo da marcação “Não” neste item…"
+                            : "Explique o que faltou para este item ser “Sim”…"
+                        }
                         value={observacoes[c.id] ?? ""}
                         onChange={(e) => setObservacoes({ ...observacoes, [c.id]: e.target.value })}
                       />

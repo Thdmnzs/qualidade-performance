@@ -1259,6 +1259,15 @@ export type Database = {
         Args: { _descricao: string; _evaluation_id: string };
         Returns: string;
       };
+      buscar_pre_avaliacao: {
+        Args: {
+          _chamador: string;
+          _conversa_id: string;
+          _employee_id: string;
+          _fortnight_id: string;
+        };
+        Returns: Json;
+      };
       buscar_processos: {
         Args: { _limite?: number; _texto: string };
         Returns: {
@@ -1339,6 +1348,33 @@ export type Database = {
       meus_indicadores_recentes: {
         Args: { _dias: number };
         Returns: RetornoIndicadoresPeriodo[];
+      };
+      referencias_para_pre_avaliacao: {
+        Args: { _texto: string };
+        Returns: {
+          codigo: string | null;
+          conteudo: string | null;
+          dicionario: string | null;
+          processo_id: string | null;
+          titulo: string | null;
+          versao: number | null;
+        }[];
+      };
+      registrar_pre_avaliacao: {
+        Args: {
+          _chamador: string;
+          _conversa_id: string;
+          _duracao_ms: number | null;
+          _employee_id: string;
+          _fortnight_id: string;
+          _modelo: string;
+          _processo_id: string | null;
+          _processo_versao: number | null;
+          _sugestoes: Json;
+          _tokens_entrada: number | null;
+          _tokens_saida: number | null;
+        };
+        Returns: Json;
       };
       podio_da_quinzena: {
         Args: { _fortnight_id: string };
