@@ -18,6 +18,7 @@ export const preAvaliarFn = createServerFn({ method: "POST" })
       employeeId: z.string().uuid(),
       fortnightId: z.string().uuid(),
       conversaId: z.string().regex(/^\d{1,30}$/),
+      tipo: z.enum(["interacao", "ticket_n2"]).optional(),
     }),
   )
   .handler(async ({ data, context }) => {

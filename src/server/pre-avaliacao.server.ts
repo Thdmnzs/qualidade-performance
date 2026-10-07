@@ -35,6 +35,7 @@ export async function preAvaliar(p: {
   employeeId: string;
   fortnightId: string;
   conversaId: string;
+  tipo?: "interacao" | "ticket_n2" | undefined;
 }): Promise<ResultadoDaPreAvaliacao> {
   const chave = process.env["ANTHROPIC_API_KEY"];
   if (!chave) return { estado: "indisponivel" };
@@ -56,6 +57,7 @@ export async function preAvaliar(p: {
     chamadorId: p.chamadorId,
     employeeId: p.employeeId,
     referencia: p.conversaId,
+    ...(p.tipo ? { tipo: p.tipo } : {}),
   });
 
   // 3. Mascaramento: os dados sensíveis e os nomes, antes de qualquer envio.
@@ -105,6 +107,7 @@ export async function preAvaliar(p: {
     atributos,
     processo,
     dicionario: ref?.dicionario ?? null,
+    ...(p.tipo ? { tipo: p.tipo } : {}),
   });
   const inicio = Date.now();
   const controle = new AbortController();

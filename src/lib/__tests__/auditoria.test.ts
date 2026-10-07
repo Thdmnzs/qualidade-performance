@@ -41,7 +41,7 @@ describe("fraseDoRegistro", () => {
   it("sem o nome no registro, usa o colaborador guardado no detalhe", () => {
     expect(
       frase(reg("sortear_contato", { valor_novo: { colaborador: "Ana", tipo: "ticket_n2" } })),
-    ).toBe("sorteou um contato de *Ana* · Ticket N2");
+    ).toBe("sorteou um contato de *Ana* · Ticket de back-office");
   });
   it("ação desconhecida ganha uma frase genérica, sem quebrar", () => {
     expect(frase(reg("acao_nova", { alvo: "X" }))).toBe('registrou a ação "acao_nova" sobre *X*');

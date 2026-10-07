@@ -48,7 +48,7 @@ const STATUS: Record<string, string> = {
   pronta_para_fechamento: "pronta para fechamento",
   fechada: "fechada",
 };
-const TIPO: Record<string, string> = { interacao: "Interação", ticket_n2: "Ticket N2" };
+const TIPO: Record<string, string> = { interacao: "Interação", ticket_n2: "Ticket de back-office" };
 const PERFIL: Record<string, string> = {
   adm: "ADM",
   avaliador: "Avaliador",

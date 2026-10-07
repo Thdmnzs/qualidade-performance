@@ -36,7 +36,13 @@ const deErroDoIntercom = async <T>(fn: () => Promise<T>): Promise<T> => {
 
 export const sortearContatoFn = createServerFn({ method: "POST" })
   .middleware([...autenticado])
-  .validator(z.object({ employeeId: z.string().uuid(), fortnightId: z.string().uuid() }))
+  .validator(
+    z.object({
+      employeeId: z.string().uuid(),
+      fortnightId: z.string().uuid(),
+      tipo: z.enum(["interacao", "ticket_n2"]).optional(),
+    }),
+  )
   .handler(async ({ data, context }) =>
     deErroDoIntercom(async () => {
       const { sortearContato } = await import("@/server/intercom.server");
@@ -46,7 +52,13 @@ export const sortearContatoFn = createServerFn({ method: "POST" })
 
 export const buscarContatoFn = createServerFn({ method: "POST" })
   .middleware([...autenticado])
-  .validator(z.object({ employeeId: z.string().uuid(), referencia: z.string().min(1).max(500) }))
+  .validator(
+    z.object({
+      employeeId: z.string().uuid(),
+      referencia: z.string().min(1).max(500),
+      tipo: z.enum(["interacao", "ticket_n2"]).optional(),
+    }),
+  )
   .handler(async ({ data, context }) =>
     deErroDoIntercom(async () => {
       const { buscarContato } = await import("@/server/intercom.server");

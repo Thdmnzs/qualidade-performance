@@ -27,6 +27,19 @@ import {
   atributosDaConversa,
   type Atributo,
 } from "@/lib/intercom";
+import {
+  assuntoDoTicket,
+  camposDoTicket,
+  conversaDeOrigem,
+  criadorDoTicket,
+  estadoDoTicket,
+  historicoDoTicket,
+  mensagensDoTicket,
+  tipoEntraNoSorteio,
+  tituloDoTicket,
+  type TicketIntercom,
+  type TipoDeTicket,
+} from "@/lib/tickets";
 
 /** Versão atual da API (2.16, de julho de 2026). */
 const VERSAO_API = "2.16";
@@ -200,9 +213,21 @@ export type Contato = {
   canal: string | null;
   atendenteEscreveu: boolean;
   mensagens: Mensagem[];
-  /** Classificação do atendimento (critério 14): só os cinco campos. */
+  /** Classificação do atendimento (critério 14): só os cinco campos. Num ticket, os campos do ticket. */
   atributos: Atributo[];
+  /** Só nos tickets de back-office (o tipo `ticket_n2`). */
+  ticket?: {
+    numero: string | null;
+    tipo: string | null;
+    estado: string | null;
+    titulo: string;
+    criador: string | null;
+    historico: { quando: number | null; texto: string }[];
+    conversaDeOrigem: string | null;
+  };
 };
+
+export type TipoDoContato = "interacao" | "ticket_n2";
 
 /** Até quantas páginas de 150 conversas listar por sorteio (1.500 por quinzena é muito acima do normal). */
 const MAX_PAGINAS = 10;
@@ -336,6 +361,115 @@ async function conversasDoPeriodo(adminId: string, inicio: number, fim: number):
   return ids;
 }
 
+// ---------- Tickets de back-office ----------
+
+// Os tipos que entram no sorteio, guardados por 10 minutos (não pergunta ao Intercom a cada sorteio).
+let tiposGuardados: { ids: string[]; ate: number } | null = null;
+async function tiposDoSorteio(): Promise<string[]> {
+  if (tiposGuardados && tiposGuardados.ate > Date.now()) return tiposGuardados.ids;
+  const r = await exigir(
+    await chamar<{ data?: TipoDeTicket[] }>("/ticket_types"),
+    "listar os tipos de ticket",
+  );
+  const ids = (r.data ?? [])
+    .filter((t) => !t.archived && tipoEntraNoSorteio(t.name))
+    .map((t) => String(t.id));
+  tiposGuardados = { ids, ate: Date.now() + 10 * 60_000 };
+  return ids;
+}
+
+async function obterTicket(id: string): Promise<TicketIntercom> {
+  return exigir(
+    await chamar<TicketIntercom>(`/tickets/${encodeURIComponent(id)}`),
+    "abrir o ticket",
+  );
+}
+
+/** Tickets dos tipos do sorteio criados no período (todas as páginas). */
+async function ticketsDoPeriodo(
+  tipos: string[],
+  inicio: number,
+  fim: number,
+): Promise<TicketIntercom[]> {
+  const todos: TicketIntercom[] = [];
+  let cursor: string | undefined;
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const r = await exigir(
+      await chamar<{ tickets?: TicketIntercom[]; pages?: { next?: { starting_after?: string } } }>(
+        "/tickets/search",
+        {
+          query: {
+            operator: "AND",
+            value: [
+              {
+                operator: "OR",
+                value: tipos.map((id) => ({ field: "ticket_type_id", operator: "=", value: id })),
+              },
+              { field: "created_at", operator: ">", value: String(inicio) },
+              { field: "created_at", operator: "<", value: String(fim) },
+            ],
+          },
+          pagination: { per_page: 150, ...(cursor ? { starting_after: cursor } : {}) },
+        },
+      ),
+      "buscar os tickets",
+    );
+    todos.push(...(r.tickets ?? []));
+    cursor = r.pages?.next?.starting_after;
+    if (!cursor) break;
+  }
+  return todos;
+}
+
+/** Garante o histórico de cada ticket (a busca pode não trazê-lo), em lotes de 8, em paralelo. */
+async function comHistorico(tickets: TicketIntercom[]): Promise<TicketIntercom[]> {
+  const prontos: TicketIntercom[] = [];
+  for (let i = 0; i < tickets.length; i += 8) {
+    prontos.push(
+      ...(await Promise.all(
+        tickets
+          .slice(i, i + 8)
+          .map((t) => (t.ticket_parts?.ticket_parts?.length ? t : obterTicket(String(t.id)))),
+      )),
+    );
+  }
+  return prontos;
+}
+
+function paraContatoDoTicket(
+  t: TicketIntercom,
+  appId: string,
+  adminId: string,
+  sorteioId: string | null,
+  jaEmAberto: boolean,
+): Contato {
+  const id = String(t.id);
+  const criador = criadorDoTicket(t);
+  const origem = conversaDeOrigem(t);
+  return {
+    sorteioId,
+    jaEmAberto,
+    conversaId: id,
+    link: linkDaConversa(appId, id),
+    assunto: assuntoDoTicket(t),
+    dataContato: t.created_at ? dataDoContato(t.created_at) : null,
+    canal: "ticket de back-office",
+    // Num ticket, "o colaborador participou" quer dizer: foi ele quem criou.
+    atendenteEscreveu: criador?.id === String(adminId),
+    mensagens: mensagensDoTicket(t),
+    atributos: camposDoTicket(t),
+    ticket: {
+      numero: t.ticket_id != null ? String(t.ticket_id) : null,
+      tipo: t.ticket_type?.name ?? null,
+      estado: estadoDoTicket(t),
+      titulo: tituloDoTicket(t),
+      criador: criador?.nome ?? null,
+      historico: historicoDoTicket(t),
+      conversaDeOrigem: origem ? linkDaConversa(appId, origem) : null,
+    },
+  };
+}
+
 /** Limites da quinzena em segundos, no fuso de Fortaleza (dia inteiro de início e de fim). */
 const limitesDaQuinzena = (inicio: string, fim: string) => ({
   inicio: Math.floor(Date.parse(`${inicio}T00:00:00-03:00`) / 1000),
@@ -346,7 +480,9 @@ export async function sortearContato(p: {
   chamadorId: string;
   employeeId: string;
   fortnightId: string;
+  tipo?: TipoDoContato | undefined;
 }): Promise<Contato> {
+  const tipo = p.tipo ?? "interacao";
   await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
   const appId = await appIdDoWorkspace();
   const atendente = await atendenteDoColaborador(p.employeeId);
@@ -354,7 +490,7 @@ export async function sortearContato(p: {
   // Já há um contato em aberto deste avaliador? Mostra o mesmo (não é um sorteio novo).
   const { data: sorteios, error: erroSorteios } = await supabaseAdmin
     .from("sorteios_contato")
-    .select("id, conversa_id, link, descartado_em, sorteado_por")
+    .select("id, conversa_id, link, descartado_em, sorteado_por, tipo")
     .eq("employee_id", p.employeeId)
     .eq("fortnight_id", p.fortnightId);
   erroDoBanco(erroSorteios);
@@ -366,9 +502,23 @@ export async function sortearContato(p: {
     .eq("anulada", false);
   erroDoBanco(erroAvaliadas);
   const linksAvaliados = new Set((avaliadas ?? []).map((e) => e.link_conversa).filter(Boolean));
+  // Um sorteio em aberto POR TIPO: uma conversa aberta não volta quando se sorteia um ticket.
   const emAberto = (sorteios ?? []).find(
-    (s) => s.sorteado_por === p.chamadorId && !s.descartado_em && !linksAvaliados.has(s.link),
+    (s) =>
+      s.sorteado_por === p.chamadorId &&
+      s.tipo === tipo &&
+      !s.descartado_em &&
+      !linksAvaliados.has(s.link),
   );
+  if (emAberto && tipo === "ticket_n2") {
+    return paraContatoDoTicket(
+      await obterTicket(emAberto.conversa_id),
+      appId,
+      atendente.id,
+      emAberto.id,
+      true,
+    );
+  }
   if (emAberto) {
     return paraContato(
       await obterConversa(emAberto.conversa_id),
@@ -387,13 +537,57 @@ export async function sortearContato(p: {
   if (erroQ || !q) throw new ErroDoIntercom("Quinzena não encontrada.");
   const { inicio, fim } = limitesDaQuinzena(q.data_inicio, q.data_fim);
 
-  const candidatos = await conversasDoPeriodo(atendente.id, inicio, fim);
   const excluir = new Set<string>((sorteios ?? []).map((s) => s.conversa_id));
   for (const l of linksAvaliados) {
     const id = l ? extrairIdDaConversa(l) : null;
     if (id) excluir.add(id);
   }
 
+  if (tipo === "ticket_n2") {
+    const tipos = await tiposDoSorteio();
+    if (!tipos.length) {
+      throw new ErroDoIntercom(
+        "Nenhum tipo de ticket de back-office dos núcleos foi encontrado no Intercom.",
+      );
+    }
+    const tickets = await comHistorico(await ticketsDoPeriodo(tipos, inicio, fim));
+    let semCriador = 0;
+    const dele = tickets.filter((t) => {
+      const criador = criadorDoTicket(t);
+      if (!criador) {
+        semCriador++; // sem um atendente identificado com segurança: fora do sorteio
+        return false;
+      }
+      return criador.id === String(atendente.id) && !excluir.has(String(t.id));
+    });
+    const escolhido = escolherAleatorio(
+      dele.map((t) => String(t.id)),
+      new Set<string>(),
+      () => randomInt(0, 1_000_000) / 1_000_000,
+    );
+    if (!escolhido) {
+      throw new ErroDoIntercom(
+        `Não há tickets de back-office criados por ${atendente.nome} disponíveis para sortear nesta quinzena (criados na quinzena e ainda não avaliados).` +
+          (semCriador
+            ? ` ${semCriador} ticket(s) da quinzena ficaram de fora porque não foi possível identificar quem os criou.`
+            : ""),
+      );
+    }
+    const ticket = dele.find((t) => String(t.id) === escolhido)!;
+    const { data: sorteioId, error } = await supabaseAdmin.rpc("registrar_sorteio_contato", {
+      _chamador: p.chamadorId,
+      _employee_id: p.employeeId,
+      _fortnight_id: p.fortnightId,
+      _tipo: "ticket_n2",
+      _conversa_id: escolhido,
+      _link: linkDaConversa(appId, escolhido),
+    });
+    erroDoBanco(error);
+    return paraContatoDoTicket(ticket, appId, atendente.id, sorteioId as string, false);
+  }
+
+  // Só o sorteio de conversas busca as conversas da quinzena.
+  const candidatos = await conversasDoPeriodo(atendente.id, inicio, fim);
   for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
     // Gerador criptográfico: imprevisível, ninguém consegue "escolher" o resultado.
     const id = escolherAleatorio(candidatos, excluir, () => randomInt(0, 1_000_000) / 1_000_000);
@@ -425,6 +619,7 @@ export async function buscarContato(p: {
   chamadorId: string;
   employeeId: string;
   referencia: string;
+  tipo?: TipoDoContato | undefined;
 }): Promise<Contato> {
   await exigirAvaliadorSobre(p.chamadorId, p.employeeId);
   const id = extrairIdDaConversa(p.referencia);
@@ -436,7 +631,20 @@ export async function buscarContato(p: {
     appIdDoWorkspace(),
     atendenteDoColaborador(p.employeeId),
   ]);
-  const contato = paraContato(await obterConversa(id), appId, atendente.id, null, false);
+  let contato: Contato;
+  if (p.tipo === "ticket_n2") {
+    const ticket = await obterTicket(id);
+    const criador = criadorDoTicket(ticket);
+    // Quem é avaliado é quem criou: um ticket de outra pessoa é recusado.
+    if (criador && criador.id !== String(atendente.id)) {
+      throw new ErroDoIntercom(
+        `Este ticket foi criado por ${criador.nome ?? "outra pessoa"}, e não por ${atendente.nome}.`,
+      );
+    }
+    contato = paraContatoDoTicket(ticket, appId, atendente.id, null, false);
+  } else {
+    contato = paraContato(await obterConversa(id), appId, atendente.id, null, false);
+  }
   await registrarAbertura(p.chamadorId, p.employeeId, contato.conversaId);
   return contato;
 }

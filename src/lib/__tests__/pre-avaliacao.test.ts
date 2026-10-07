@@ -161,6 +161,32 @@ describe("montarPedido", () => {
   });
 });
 
+describe("montarPedido num ticket de back-office", () => {
+  it("explica que é um ticket e que se avalia o encaminhamento", () => {
+    const p = montarPedido({
+      ficha: FICHA,
+      mensagens: [],
+      atributos: [{ nome: "MSISDN", valor: null }],
+      processo: null,
+      dicionario: null,
+      tipo: "ticket_n2",
+    });
+    const texto = p.messages[0]!.content;
+    expect(texto).toContain("<contato>Ticket de back-office enviado a um núcleo");
+    expect(texto).toContain("- MSISDN: não preenchido");
+  });
+  it("numa conversa, nada muda", () => {
+    const p = montarPedido({
+      ficha: FICHA,
+      mensagens: [],
+      atributos: [],
+      processo: null,
+      dicionario: null,
+    });
+    expect(p.messages[0]!.content).not.toContain("<contato>");
+  });
+});
+
 describe("retirarSugestoes: ao trocar de contato", () => {
   const sug = {
     criterios: {

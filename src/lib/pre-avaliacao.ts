@@ -79,6 +79,8 @@ export function montarPedido(p: {
   atributos: Atributo[];
   processo: { codigo: string | null; titulo: string; conteudo: string } | null;
   dicionario: string | null;
+  /** Num ticket de back-office, avalia-se o encaminhamento ao núcleo. */
+  tipo?: "interacao" | "ticket_n2";
 }) {
   const ficha = p.ficha
     .slice()
@@ -94,6 +96,9 @@ export function montarPedido(p: {
   const conversa = p.mensagens.map((m) => `[${ROTULO_AUTOR[m.autor]}] ${m.texto}`).join("\n");
   const partes = [
     `<ficha>\n${ficha}\n</ficha>`,
+    p.tipo === "ticket_n2"
+      ? "<contato>Ticket de back-office enviado a um núcleo (o 'Atendente' é quem criou o ticket). Avalie a qualidade do encaminhamento: o pedido claro, os campos necessários preenchidos, as notas internas e o acompanhamento. A <classificacao> abaixo traz os campos do ticket.</contato>"
+      : "",
     `<classificacao>\n${classificacao || "- sem classificação"}\n</classificacao>`,
     p.processo
       ? `<processo codigo="${p.processo.codigo ?? ""}" titulo="${p.processo.titulo}">\n${cortar(p.processo.conteudo, LIMITE_REFERENCIA)}\n</processo>`

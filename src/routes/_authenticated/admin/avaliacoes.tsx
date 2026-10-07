@@ -90,7 +90,7 @@ function Avaliacoes() {
       setComentarios(limpo.comentarios);
     }
     setPre({ estado: "analisando", sugeridos: [] });
-    preAvaliarFn({ data: { employeeId, fortnightId, conversaId } })
+    preAvaliarFn({ data: { employeeId, fortnightId, conversaId, tipo } })
       .then((r) => {
         if (numero !== pedidoDaPre.current) return;
         if (r.estado !== "pronta") {
@@ -359,7 +359,7 @@ function Avaliacoes() {
               onChange={(e) => setTipo(e.target.value as typeof tipo)}
             >
               <option value="interacao">Interação</option>
-              <option value="ticket_n2">Ticket N2</option>
+              <option value="ticket_n2">Ticket de back-office</option>
             </select>
           </div>
           <div className="space-y-2">

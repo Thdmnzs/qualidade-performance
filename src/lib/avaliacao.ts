@@ -16,13 +16,13 @@ export type CriterioDaFicha = {
   permite_medio: boolean;
 };
 
-/** Quantidade prevista por quinzena (especificação, seção 11): 6 interações e 4 tickets N2. */
+/** Quantidade prevista por quinzena (especificação, seção 11): 6 interações e 4 tickets de back-office (no banco, `ticket_n2`). */
 export const AVALIACOES_PREVISTAS = { interacao: 6, ticket_n2: 4 } as const;
 export type TipoAvaliacao = keyof typeof AVALIACOES_PREVISTAS;
 
 export const ROTULO_TIPO: Record<TipoAvaliacao, string> = {
   interacao: "Interação",
-  ticket_n2: "Ticket N2",
+  ticket_n2: "Ticket de back-office",
 };
 
 export function descontoDe(criterio: CriterioDaFicha, resposta: Resposta | undefined): number {

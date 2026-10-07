@@ -71,7 +71,7 @@ export function ContatoIntercom({
   useEffect(() => {
     setContato(null);
     setReferencia("");
-  }, [employeeId, fortnightId, limparQuando]);
+  }, [employeeId, fortnightId, tipo, limparQuando]);
 
   const usar = (c: Contato) => {
     setContato(c);
@@ -84,21 +84,29 @@ export function ContatoIntercom({
   };
 
   const sorteio = useMutation({
-    mutationFn: () => sortear({ data: { employeeId, fortnightId } }),
+    mutationFn: () => sortear({ data: { employeeId, fortnightId, tipo } }),
     onSuccess: (c) => {
       usar(c);
       toast.success(
-        c.jaEmAberto ? "Este é o contato que você já tinha sorteado." : "Contato sorteado.",
+        c.jaEmAberto
+          ? "Este é o contato que você já tinha sorteado."
+          : c.ticket
+            ? "Ticket sorteado."
+            : "Contato sorteado.",
       );
     },
     onError: (e: Error) => toast.error(e.message),
   });
   const busca = useMutation({
-    mutationFn: () => buscar({ data: { employeeId, referencia } }),
+    mutationFn: () => buscar({ data: { employeeId, referencia, tipo } }),
     onSuccess: (c) => {
       usar(c);
       if (!c.atendenteEscreveu)
-        toast.warning("Atenção: o colaborador não escreveu nesta conversa.");
+        toast.warning(
+          c.ticket
+            ? "Atenção: não foi possível confirmar que o colaborador criou este ticket."
+            : "Atenção: o colaborador não escreveu nesta conversa.",
+        );
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -124,22 +132,13 @@ export function ContatoIntercom({
 
         {!contato ? (
           <div className="mt-3 flex flex-wrap items-end gap-3">
-            <Button
-              type="button"
-              onClick={() => sorteio.mutate()}
-              disabled={!pronto || tipo !== "interacao" || ocupado}
-              title={
-                tipo !== "interacao"
-                  ? "O sorteio de Tickets N2 entra numa próxima etapa"
-                  : undefined
-              }
-            >
+            <Button type="button" onClick={() => sorteio.mutate()} disabled={!pronto || ocupado}>
               <Dices className="size-4" /> {sorteio.isPending ? "Sorteando..." : "Sortear contato"}
             </Button>
             <div className="flex min-w-[260px] flex-1 items-end gap-2">
               <div className="flex-1 space-y-1">
                 <Label htmlFor="ref-intercom" className="text-xs text-muted-foreground">
-                  Ou cole o link da conversa
+                  {tipo === "ticket_n2" ? "Ou cole o link do ticket" : "Ou cole o link da conversa"}
                 </Label>
                 <Input
                   id="ref-intercom"
@@ -160,12 +159,6 @@ export function ContatoIntercom({
             {!pronto && (
               <p className="w-full text-xs text-muted-foreground">
                 Escolha a quinzena e o colaborador primeiro.
-              </p>
-            )}
-            {pronto && tipo !== "interacao" && (
-              <p className="w-full text-xs text-muted-foreground">
-                Para Ticket N2, use o link por enquanto. O sorteio de tickets entra numa próxima
-                etapa.
               </p>
             )}
           </div>
@@ -213,8 +206,13 @@ export function ContatoIntercom({
             </div>
             {!contato.atendenteEscreveu && (
               <p className="mt-2 text-sm text-warning">
-                O colaborador não escreveu nesta conversa. Confira se é o contato certo.
+                {contato.ticket
+                  ? "Não foi possível confirmar que o colaborador criou este ticket. Confira no Intercom."
+                  : "O colaborador não escreveu nesta conversa. Confira se é o contato certo."}
               </p>
+            )}
+            {contato.ticket && (
+              <ResumoDoTicket ticket={contato.ticket} campos={contato.atributos} />
             )}
             {/* Legenda: a cor nunca é a única pista; cada bolha também diz quem escreveu. */}
             <ul
@@ -294,7 +292,7 @@ export function ContatoIntercom({
         </Dialog>
       </section>
 
-      {contato && <ClassificacaoDoAtendimento atributos={contato.atributos} />}
+      {contato && !contato.ticket && <ClassificacaoDoAtendimento atributos={contato.atributos} />}
     </div>
   );
 }
@@ -325,5 +323,74 @@ function ClassificacaoDoAtendimento({ atributos }: { atributos: Contato["atribut
         ))}
       </dl>
     </section>
+  );
+}
+
+/** O ticket de back-office: o resumo, os campos (os vazios em destaque) e o histórico. */
+function ResumoDoTicket({
+  ticket,
+  campos,
+}: {
+  ticket: NonNullable<Contato["ticket"]>;
+  campos: Contato["atributos"];
+}) {
+  return (
+    <div className="mt-3 space-y-4">
+      <div className="rounded-xl bg-secondary p-4">
+        <p className="flex flex-wrap items-center gap-2 text-xs">
+          {ticket.tipo && (
+            <span className="rounded-full bg-card px-2 py-0.5 font-bold">{ticket.tipo}</span>
+          )}
+          {ticket.numero && <span className="font-bold">#{ticket.numero}</span>}
+          {ticket.estado && (
+            <span className="rounded-full bg-card px-2 py-0.5 font-bold">{ticket.estado}</span>
+          )}
+        </p>
+        {/* Texto puro: nada de HTML vindo do Intercom é interpretado aqui. */}
+        <p className="mt-2 whitespace-pre-wrap break-words font-bold">{ticket.titulo}</p>
+        <p className="mt-2 text-sm">
+          <b>Criado por:</b> {ticket.criador ?? "não identificado"}
+        </p>
+        {ticket.conversaDeOrigem && linkSeguroDoIntercom(ticket.conversaDeOrigem) && (
+          <a
+            href={linkSeguroDoIntercom(ticket.conversaDeOrigem)!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+          >
+            Abrir a conversa com o cliente <ExternalLink className="size-3.5" />
+          </a>
+        )}
+      </div>
+      {campos.length > 0 && (
+        <div>
+          <p className="text-sm font-bold">Campos do ticket</p>
+          <dl className="mt-2 grid grid-cols-[minmax(140px,auto)_1fr] gap-x-4 gap-y-1.5 text-sm">
+            {campos.map((campo) => (
+              <div key={campo.nome} className="contents">
+                <dt className="font-bold">{campo.nome}</dt>
+                <dd className={campo.valor ? "break-words" : "font-bold text-warning"}>
+                  {campo.valor ?? "não preenchido"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+      {ticket.historico.length > 0 && (
+        <div>
+          <p className="text-sm font-bold">Histórico do ticket</p>
+          <ul className="mt-2 space-y-1 text-xs">
+            {ticket.historico.map((h, i) => (
+              <li key={i}>
+                {h.quando ? `${dataHoraBR(new Date(h.quando * 1000).toISOString())} · ` : ""}
+                {h.texto}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="text-sm font-bold">Notas e comentários</p>
+    </div>
   );
 }
