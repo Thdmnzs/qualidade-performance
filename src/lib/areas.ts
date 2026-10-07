@@ -42,10 +42,19 @@ export function destinoAposLogin(perfil: Perfil, aba: AbaDeLogin): Destino {
 }
 
 /** A área é derivada do endereço: tudo sob /admin (e o ranking) é gestão. */
-export function areaDoEndereco(pathname: string): Area {
-  return pathname.startsWith("/admin") || pathname.startsWith("/ranking")
-    ? "gestao"
-    : "colaborador";
+/** As páginas que existem nas DUAS áreas (o mesmo endereço nos dois menus). */
+const DAS_DUAS_AREAS = ["/ranking"];
+
+/**
+ * A área pelo endereço. Numa página das duas áreas (o Ranking), vale a área em
+ * que a pessoa JÁ estava: o avaliador que abre o Ranking pela área de colaborador
+ * continua nela (correção de 07/10/2026). Sem área anterior (aberto direto, por
+ * um favorito), vale a gestão, como antes.
+ */
+export function areaDoEndereco(pathname: string, anterior: Area = "gestao"): Area {
+  if (pathname.startsWith("/admin")) return "gestao";
+  if (DAS_DUAS_AREAS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return anterior;
+  return "colaborador";
 }
 
 export type Rota =

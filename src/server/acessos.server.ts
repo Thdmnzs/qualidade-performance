@@ -11,6 +11,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
+import { montarLinkDeAcesso, type TipoDoLink } from "@/lib/link-de-acesso";
 
 type Perfil = Database["public"]["Enums"]["app_role"];
 
@@ -31,6 +32,23 @@ function traduzirErroDoBanco(error: PostgrestError, contexto: string): never {
   if (CODIGOS_DE_REGRA.has(error.code)) throw new ErroDeAcesso(error.message);
   console.error(`[acessos] ${contexto}:`, error);
   throw new ErroDeAcesso("Erro inesperado ao acessar o banco. Tente novamente.");
+}
+
+/**
+ * O link que vai para a pessoa: a página /definir-senha, com o código no
+ * fragmento. O código só é usado quando ela clica em "Continuar" (os robôs de
+ * pré-visualização do Slack e de outros aplicativos não clicam). Sem o código na
+ * resposta do Supabase, volta ao link antigo, para nunca deixar de gerar um link.
+ */
+function linkDeAcesso(
+  propriedades: { action_link: string; hashed_token?: string | null },
+  tipo: TipoDoLink,
+): string {
+  if (!propriedades.hashed_token) {
+    console.error("[acessos] o Supabase não devolveu o código do link; usando o link antigo.");
+    return propriedades.action_link;
+  }
+  return montarLinkDeAcesso(urlDefinirSenha(), propriedades.hashed_token, tipo);
 }
 
 /**
@@ -95,7 +113,7 @@ export async function criarAcesso(params: {
     traduzirErroDoBanco(erroVinculo, "vincular_acesso");
   }
 
-  return { link: convite.properties.action_link };
+  return { link: linkDeAcesso(convite.properties, "invite") };
 }
 
 export async function gerarLinkDeSenha(params: {
@@ -117,7 +135,7 @@ export async function gerarLinkDeSenha(params: {
     console.error("[acessos] generateLink(recovery):", erroLink);
     throw new ErroDeAcesso("Não foi possível gerar o link de senha. Tente novamente.");
   }
-  return { link: data.properties.action_link };
+  return { link: linkDeAcesso(data.properties, "recovery") };
 }
 
 export async function alterarStatus(params: {

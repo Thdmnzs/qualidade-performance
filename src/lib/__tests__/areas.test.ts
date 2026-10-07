@@ -27,6 +27,23 @@ describe("destinoAposLogin", () => {
   });
 });
 
+describe("areaDoEndereco: o Ranking existe nas duas áreas", () => {
+  it("o avaliador que abre o Ranking pela área de colaborador continua nela", () => {
+    expect(areaDoEndereco("/ranking", "colaborador")).toBe("colaborador");
+  });
+  it("vindo da gestão, continua na gestão", () => {
+    expect(areaDoEndereco("/ranking", "gestao")).toBe("gestao");
+  });
+  it("aberto direto (sem área anterior): a gestão, como antes", () => {
+    expect(areaDoEndereco("/ranking")).toBe("gestao");
+  });
+  it("as outras páginas decidem pelo endereço, venha de onde vier", () => {
+    expect(areaDoEndereco("/admin/avaliacoes", "colaborador")).toBe("gestao");
+    expect(areaDoEndereco("/painel", "gestao")).toBe("colaborador");
+    expect(areaDoEndereco("/rankingx", "colaborador")).toBe("colaborador");
+  });
+});
+
 describe("areaDoEndereco", () => {
   it.each([
     ["/painel", "colaborador"],

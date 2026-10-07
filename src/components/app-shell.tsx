@@ -15,13 +15,13 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
 import { BotaoTema } from "@/components/botao-tema";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
-import { areaDoEndereco, itensDoMenu, trocaDeArea, type Rota } from "@/lib/areas";
+import { areaDoEndereco, itensDoMenu, trocaDeArea, type Area, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
 
 type NavItem = {
@@ -55,7 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { employee, perfil } = usePermissoes();
   const { data: usuario } = useSessionUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const area = areaDoEndereco(pathname);
+  // A área anterior: o Ranking existe nas duas áreas e mantém a de onde se veio.
+  const areaAnterior = useRef<Area>("gestao");
+  const area = areaDoEndereco(pathname, areaAnterior.current);
+  areaAnterior.current = area;
   const troca = trocaDeArea(perfil, area);
   const navigate = useNavigate();
   const queryClient = useQueryClient();

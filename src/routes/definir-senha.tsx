@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { destinoAposLogin } from "@/lib/areas";
+import { lerCodigoDoLink, type TipoDoLink } from "@/lib/link-de-acesso";
 import { REGRAS_SENHA, senhaAtendeRegras } from "@/lib/senha";
 
 export const Route = createFileRoute("/definir-senha")({
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/definir-senha")({
 
 type Estado =
   | { fase: "verificando" }
+  | { fase: "confirmar"; codigo: string; tipo: TipoDoLink }
   | { fase: "invalido"; mensagem: string }
   | { fase: "pronto"; email: string; tipo: "convite" | "senha" };
 
@@ -67,7 +69,16 @@ function DefinirSenha() {
   const [confirmacao, setConfirmacao] = useState("");
   const [salvando, setSalvando] = useState(false);
 
+  const [continuando, setContinuando] = useState(false);
+
   useEffect(() => {
+    // Link novo: o código está no fragmento e só é usado no clique em "Continuar".
+    const novo = lerCodigoDoLink(window.location.hash);
+    if (novo) {
+      setEstado({ fase: "confirmar", ...novo });
+      return;
+    }
+    // Link antigo (gerado antes de 07/10/2026): a sessão já vem no fragmento.
     const { erro, tipo } = lerLinkDaUrl();
     if (erro) {
       setEstado({ fase: "invalido", mensagem: erro });
@@ -86,6 +97,27 @@ function DefinirSenha() {
       setEstado({ fase: "pronto", email, tipo });
     });
   }, []);
+
+  async function continuar() {
+    if (estado.fase !== "confirmar") return;
+    setContinuando(true);
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: estado.codigo,
+      type: estado.tipo,
+    });
+    // O código não fica no endereço depois de usado (nem no histórico do navegador).
+    window.history.replaceState(null, "", window.location.pathname);
+    setContinuando(false);
+    const email = data.session?.user.email;
+    if (error || !email) {
+      setEstado({
+        fase: "invalido",
+        mensagem: "Este link expirou ou já foi usado. Peça um novo link a um administrador.",
+      });
+      return;
+    }
+    setEstado({ fase: "pronto", email, tipo: estado.tipo === "invite" ? "convite" : "senha" });
+  }
 
   const senhaValida = senhaAtendeRegras(senha);
   const confere = senha.length > 0 && senha === confirmacao;
@@ -113,14 +145,31 @@ function DefinirSenha() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold text-primary">
-            QualityHUB
-          </h1>
+          <h1 className="font-display text-3xl font-bold text-primary">QualityHUB</h1>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-glow">
           {estado.fase === "verificando" && (
             <p className="text-center text-sm text-muted-foreground">Verificando o link...</p>
+          )}
+
+          {estado.fase === "confirmar" && (
+            <div className="space-y-4 text-center">
+              <h2 className="font-display text-xl font-semibold">
+                {estado.tipo === "invite"
+                  ? "Você foi convidado(a) para o QualityHUB"
+                  : "Definir uma nova senha"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {estado.tipo === "invite"
+                  ? "Clique em continuar para criar a sua senha de acesso."
+                  : "Clique em continuar para escolher a sua nova senha."}{" "}
+                Este link pode ser usado uma vez só, e por poucos minutos.
+              </p>
+              <Button type="button" className="w-full" disabled={continuando} onClick={continuar}>
+                {continuando ? "Verificando..." : "Continuar"}
+              </Button>
+            </div>
           )}
 
           {estado.fase === "invalido" && (
