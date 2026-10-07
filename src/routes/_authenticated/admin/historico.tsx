@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Auditoria } from "@/components/auditoria";
+import { ProdutividadeAvaliadores } from "@/components/produtividade-avaliadores";
 import { AvaliacoesPorColaborador } from "@/components/avaliacoes-por-colaborador";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/admin/historico")({
   component: Historico,
 });
 
-type Aba = "avaliacoes" | "sorteios" | "auditoria";
+type Aba = "avaliacoes" | "sorteios" | "auditoria" | "avaliadores";
 const TODAS = "todas";
 
 function Historico() {
@@ -41,7 +42,7 @@ function Historico() {
     <div>
       <PageHeader
         titulo="Histórico"
-        descricao="Consulta das quinzenas fechadas, dos sorteios descartados e da auditoria. Somente leitura."
+        descricao="Consulta das quinzenas fechadas, dos sorteios descartados, da auditoria e da produtividade dos avaliadores. Somente leitura."
       />
       <div
         className="mb-5 inline-flex rounded-lg bg-secondary p-1"
@@ -53,6 +54,7 @@ function Historico() {
             ["avaliacoes", "Avaliações de quinzenas fechadas"],
             ["sorteios", "Sorteios descartados"],
             ["auditoria", "Auditoria"],
+            ["avaliadores", "Avaliadores"],
           ] as [Aba, string][]
         ).map(([chave, rotulo]) => (
           <button
@@ -71,8 +73,10 @@ function Historico() {
         <AvaliacoesFechadas />
       ) : aba === "sorteios" ? (
         <SorteiosDescartados />
-      ) : (
+      ) : aba === "auditoria" ? (
         <Auditoria />
+      ) : (
+        <ProdutividadeAvaliadores />
       )}
     </div>
   );

@@ -23,6 +23,21 @@ export type Database = {
   };
   public: {
     Tables: {
+      leituras_escala: {
+        Row: {
+          abas: number;
+          dias: number;
+          erro: string | null;
+          id: string;
+          lido_em: string;
+          nomes_nao_reconhecidos: string[];
+          origem: string;
+          por_user_id: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       audit_logs: {
         Row: {
           acao: string;
@@ -1373,6 +1388,33 @@ export type Database = {
           _sugestoes: Json;
           _tokens_entrada: number | null;
           _tokens_saida: number | null;
+        };
+        Returns: Json;
+      };
+      produtividade_avaliadores: {
+        Args: { _ate: string; _de: string };
+        Returns: {
+          avaliacoes: number;
+          avaliador_user_id: string;
+          contadas: number;
+          descartes: number;
+          horas_quali: number | null;
+          minutos: number;
+          nome: string;
+        }[];
+      };
+      registrar_abertura_contato: {
+        Args: { _chamador: string; _conversa_id: string; _employee_id: string };
+        Returns: undefined;
+      };
+      registrar_leitura_escala: {
+        Args: {
+          _abas: number;
+          _chamador: string | null;
+          _dias: string[];
+          _erro: string | null;
+          _linhas: Json;
+          _origem: string;
         };
         Returns: Json;
       };

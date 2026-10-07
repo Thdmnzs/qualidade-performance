@@ -231,6 +231,20 @@ async function exigirAvaliadorSobre(chamadorId: string, employeeId: string) {
   if (error || !pode) throw new ErroDoIntercom("Você não pode buscar contatos deste colaborador.");
 }
 
+/**
+ * A hora em que o avaliador abriu o contato (vale a primeira), para medir o
+ * ritmo. Nunca atrapalha o carregamento: se falhar, só aquela avaliação fica
+ * sem o tempo medido.
+ */
+async function registrarAbertura(chamadorId: string, employeeId: string, conversaId: string) {
+  const { error } = await supabaseAdmin.rpc("registrar_abertura_contato", {
+    _chamador: chamadorId,
+    _employee_id: employeeId,
+    _conversa_id: conversaId,
+  });
+  if (error) console.error("[intercom] não registrou a abertura:", error.message);
+}
+
 async function appIdDoWorkspace(): Promise<string> {
   const eu = await exigir(
     await chamar<{ app?: { id_code?: string } }>("/me"),
@@ -422,7 +436,9 @@ export async function buscarContato(p: {
     appIdDoWorkspace(),
     atendenteDoColaborador(p.employeeId),
   ]);
-  return paraContato(await obterConversa(id), appId, atendente.id, null, false);
+  const contato = paraContato(await obterConversa(id), appId, atendente.id, null, false);
+  await registrarAbertura(p.chamadorId, p.employeeId, contato.conversaId);
+  return contato;
 }
 
 export async function descartarContato(p: {
