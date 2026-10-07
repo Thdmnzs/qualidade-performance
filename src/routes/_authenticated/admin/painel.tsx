@@ -19,7 +19,11 @@ import {
   YAxis,
 } from "recharts";
 
+import { ExternalLink } from "lucide-react";
+
+import { CartaoDoGrafico } from "@/components/cartao-do-grafico";
 import { CartaoIndicador } from "@/components/cartao-indicador";
+import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +80,13 @@ const CORES = [
 ];
 const dec = (v: number, n = 1) => v.toFixed(n).replace(".", ",");
 const POR_PAGINA = 12;
+// O relatório antigo, no Looker Studio (lê a planilha "Q&T - Matriz de Desempenho").
+const LOOKER = "https://datastudio.google.com/reporting/f3257624-3a80-4f2d-9e28-9b29a7288357";
+type Linha = Record<string, unknown>;
+const colunasPorQuinzena = (chaves: { chave: string; rotulo: string }[]) => [
+  { rotulo: "Quinzena", valor: (l: Linha) => l["quinzena"] },
+  ...chaves.map((c) => ({ rotulo: c.rotulo, valor: (l: Linha) => l[c.chave] })),
+];
 
 function Painel() {
   const hoje = new Date();
@@ -143,10 +154,17 @@ function Painel() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        titulo="Painel"
-        descricao="Os resultados do time de CX, calculados a partir das avaliações e dos indicadores do QualityHUB."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          titulo="Painel"
+          descricao="Os resultados do time de CX, calculados a partir das avaliações e dos indicadores do QualityHUB."
+        />
+        <Button asChild variant="outline">
+          <a href={LOOKER} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="size-4" /> Abrir no Looker Studio
+          </a>
+        </Button>
+      </div>
       <div
         className="inline-flex rounded-lg bg-secondary p-1"
         role="tablist"
@@ -322,8 +340,30 @@ function AbaMetricas({
         {cartao("csat", "CSAT", r.csat)}
       </div>
 
-      <section className="overflow-x-auto rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-bold">Detalhamento por pessoa</h2>
+      <CartaoDoGrafico
+        titulo="Detalhamento por pessoa"
+        imagem={false}
+        className="overflow-x-auto"
+        linhas={mets}
+        colunas={[
+          {
+            rotulo: "Quinzena",
+            valor: (m) => rotuloDaQuinzena(m.quinzena_inicio, m.quinzena_status),
+          },
+          { rotulo: "Nome", valor: (m) => m.nome },
+          { rotulo: "Turno", valor: (m) => m.turno },
+          { rotulo: "Produtividade", valor: (m) => m.produtividade },
+          { rotulo: "SLA chat (minutos)", valor: (m) => m.sla_chat },
+          { rotulo: "SLA e-mail (minutos)", valor: (m) => m.sla_email },
+          { rotulo: "CSAT (%)", valor: (m) => m.csat },
+          { rotulo: "Quiz entregue", valor: (m) => m.quiz_entregue },
+          { rotulo: "Média de horas", valor: (m) => m.horas_semanais },
+          { rotulo: "Qualidade", valor: (m) => m.qualidade },
+          { rotulo: "Elegível", valor: (m) => m.elegivel },
+          { rotulo: "Posição", valor: (m) => m.posicao },
+          { rotulo: "Prêmio (R$)", valor: (m) => m.premio },
+        ]}
+      >
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-xs uppercase">
             <tr>
@@ -409,7 +449,7 @@ function AbaMetricas({
             ›
           </button>
         </div>
-      </section>
+      </CartaoDoGrafico>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Evolucao
@@ -473,8 +513,18 @@ function Evolucao({
 }) {
   const vazio = dados.every((d) => d.valor === null);
   return (
-    <section className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="font-bold">{titulo}</h2>
+    <CartaoDoGrafico
+      titulo={titulo}
+      linhas={vazio ? [] : dados}
+      colunas={[
+        { rotulo: "Quinzena", valor: (d) => d.quinzena },
+        {
+          rotulo:
+            titulo.replace(/^Evolução d[aoe] /, "") + (titulo.includes("SLA") ? " (minutos)" : ""),
+          valor: (d) => d.valor,
+        },
+      ]}
+    >
       {vazio ? (
         <p className="mt-3 text-sm">Aguardando os dados (a importação dos indicadores).</p>
       ) : (
@@ -524,7 +574,7 @@ function Evolucao({
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </CartaoDoGrafico>
   );
 }
 
@@ -591,9 +641,14 @@ function AbaAvaliacoes({
         />
       </div>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-bold">Índice de acerto dos critérios avaliados, por quinzena</h2>
-        <p className="text-xs">Só o "Sim" é acerto.</p>
+      <CartaoDoGrafico
+        titulo="Índice de acerto dos critérios avaliados, por quinzena"
+        descricao='Só o "Sim" é acerto.'
+        linhas={acertos as Linha[]}
+        colunas={colunasPorQuinzena(
+          ORDENS.map((o) => ({ chave: `c${o}`, rotulo: `${o}. ${TIPO_DE_ERRO[o]} (%)` })),
+        )}
+      >
         <div className="mt-3 h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={acertos} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -619,11 +674,16 @@ function AbaAvaliacoes({
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </section>
+      </CartaoDoGrafico>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="font-bold">Evolução individual por critério avaliado</h2>
+      <CartaoDoGrafico
+        titulo={`Evolução individual por critério avaliado · ${criterio}. ${TIPO_DE_ERRO[criterio]}`}
+        linhas={individual.dados as Linha[]}
+        colunas={colunasPorQuinzena(
+          individual.pessoas.map((p) => ({ chave: p, rotulo: `${p} (%)` })),
+        )}
+      >
+        <div className="mt-2 flex flex-wrap items-end justify-end gap-3" data-sem-imagem="">
           <div className="space-y-1">
             <Label htmlFor="p-criterio" className="text-xs">
               Critério
@@ -669,11 +729,17 @@ function AbaAvaliacoes({
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </section>
+      </CartaoDoGrafico>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="font-bold">Nota média por colaborador</h2>
+        <CartaoDoGrafico
+          titulo="Nota média por colaborador"
+          linhas={porPessoa}
+          colunas={[
+            { rotulo: "Nome", valor: (p) => p.nome },
+            { rotulo: "Nota média", valor: (p) => p.media },
+          ]}
+        >
           <div className="mt-3" style={{ height: Math.max(200, porPessoa.length * 30) }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -698,12 +764,18 @@ function AbaAvaliacoes({
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </section>
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="font-bold">Erros por tipo</h2>
-          <p className="text-xs">
-            Cada critério que não foi "Sim" conta uma vez; o Médio aparece como parcial.
-          </p>
+        </CartaoDoGrafico>
+        <CartaoDoGrafico
+          titulo="Erros por tipo"
+          descricao='Cada critério que não foi "Sim" conta uma vez; o Médio aparece como parcial.'
+          linhas={erros}
+          colunas={[
+            { rotulo: "Tipo", valor: (e) => e.tipo },
+            { rotulo: "Não", valor: (e) => e.nao },
+            { rotulo: "Médio (parcial)", valor: (e) => e.parcial },
+            { rotulo: "Total", valor: (e) => e.total },
+          ]}
+        >
           {erros.length === 0 ? (
             <p className="mt-3 text-sm">Nenhum erro no recorte escolhido.</p>
           ) : (
@@ -740,12 +812,30 @@ function AbaAvaliacoes({
               </ResponsiveContainer>
             </div>
           )}
-        </section>
+        </CartaoDoGrafico>
       </div>
 
-      <section className="overflow-x-auto rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-bold">Avaliações com desconto</h2>
-        <p className="text-xs">As mais recentes, com todos os erros e o feedback do avaliador.</p>
+      <CartaoDoGrafico
+        titulo="Avaliações com desconto"
+        descricao="As mais recentes, com todos os erros e o feedback do avaliador."
+        imagem={false}
+        className="overflow-x-auto"
+        linhas={descontos}
+        colunas={[
+          { rotulo: "Data do contato", valor: (a) => a.data_contato },
+          { rotulo: "Nome", valor: (a) => a.nome },
+          { rotulo: "Nota", valor: (a) => a.nota },
+          {
+            rotulo: "Erros",
+            valor: (a) => a.erros.map((e) => e.tipo + (e.parcial ? " (parcial)" : "")).join(", "),
+          },
+          {
+            rotulo: "Feedback",
+            valor: (a) =>
+              [...a.erros.map((e) => e.observacao), a.comentarios].filter(Boolean).join(" "),
+          },
+        ]}
+      >
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-xs uppercase">
             <tr>
@@ -785,7 +875,7 @@ function AbaAvaliacoes({
             ))}
           </tbody>
         </table>
-      </section>
+      </CartaoDoGrafico>
     </section>
   );
 }
