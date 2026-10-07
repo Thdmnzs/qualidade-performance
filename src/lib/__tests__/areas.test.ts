@@ -41,6 +41,19 @@ describe("areaDoEndereco", () => {
 });
 
 describe("itensDoMenu", () => {
+  it("ADM vê o Painel logo depois da Visão geral (desde 07/10/2026)", () => {
+    expect(itensDoMenu("adm", "gestao").slice(0, 3)).toEqual([
+      "/admin",
+      "/admin/painel",
+      "/admin/avaliacoes",
+    ]);
+  });
+
+  it("o Painel é só do ADM: nem o avaliador nem o colaborador o veem", () => {
+    expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/painel");
+    expect(itensDoMenu("colaborador", "colaborador")).not.toContain("/admin/painel");
+  });
+
   it("avaliador na gestão vê avaliações, contestações e o ranking (desde 06/10/2026)", () => {
     expect(itensDoMenu("avaliador", "gestao")).toEqual([
       "/admin/avaliacoes",

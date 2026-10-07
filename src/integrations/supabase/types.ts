@@ -490,6 +490,7 @@ export type Database = {
           login: string;
           nome: string;
           status: Database["public"]["Enums"]["employee_status"];
+          turno: string | null;
           updated_at: string;
           user_id: string | null;
         };
@@ -501,6 +502,7 @@ export type Database = {
           login: string;
           nome: string;
           status?: Database["public"]["Enums"]["employee_status"];
+          turno?: string | null;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -512,6 +514,7 @@ export type Database = {
           login?: string;
           nome?: string;
           status?: Database["public"]["Enums"]["employee_status"];
+          turno?: string | null;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -1390,6 +1393,45 @@ export type Database = {
       registrar_abertura_contato: {
         Args: { _chamador: string; _conversa_id: string; _employee_id: string };
         Returns: undefined;
+      };
+      painel_avaliacoes: {
+        Args: { _ate: string; _de: string; _employee_id?: string; _turno?: string };
+        Returns: {
+          comentarios: string | null;
+          data_contato: string | null;
+          employee_id: string;
+          evaluation_id: string;
+          fortnight_id: string;
+          itens: Json;
+          nome: string;
+          nota: number;
+          quinzena_inicio: string;
+          quinzena_status: string;
+          tipo: string;
+          turno: string | null;
+        }[];
+      };
+      painel_metricas: {
+        Args: { _ate: string; _de: string; _employee_id?: string; _turno?: string };
+        Returns: {
+          csat: number | null;
+          elegivel: boolean | null;
+          employee_id: string;
+          fortnight_id: string;
+          horas_semanais: number | null;
+          nome: string;
+          oficial: boolean | null;
+          posicao: number | null;
+          premio: number | null;
+          produtividade: number | null;
+          qualidade: number | null;
+          quinzena_inicio: string;
+          quinzena_status: string;
+          quiz_entregue: boolean | null;
+          sla_chat: number | null;
+          sla_email: number | null;
+          turno: string | null;
+        }[];
       };
       podio_da_quinzena: {
         Args: { _fortnight_id: string };

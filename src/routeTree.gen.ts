@@ -25,6 +25,7 @@ import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminContestacoesRouteImport } from './routes/_authenticated/admin/contestacoes'
 import { Route as AuthenticatedAdminHistoricoRouteImport } from './routes/_authenticated/admin/historico'
 import { Route as AuthenticatedAdminIndicadoresRouteImport } from './routes/_authenticated/admin/indicadores'
+import { Route as AuthenticatedAdminPainelRouteImport } from './routes/_authenticated/admin/painel'
 import { Route as AuthenticatedAdminProcessosRouteImport } from './routes/_authenticated/admin/processos'
 
 const IndexRoute = IndexRouteImport.update({
@@ -114,6 +115,12 @@ const AuthenticatedAdminIndicadoresRoute =
     path: '/admin/indicadores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPainelRoute =
+  AuthenticatedAdminPainelRouteImport.update({
+    id: '/admin/painel',
+    path: '/admin/painel',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminProcessosRoute =
   AuthenticatedAdminProcessosRouteImport.update({
     id: '/admin/processos',
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -174,6 +183,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
   '/_authenticated/admin/historico': typeof AuthenticatedAdminHistoricoRoute
   '/_authenticated/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
+  '/_authenticated/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/_authenticated/admin/processos': typeof AuthenticatedAdminProcessosRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/admin/contestacoes'
     | '/admin/historico'
     | '/admin/indicadores'
+    | '/admin/painel'
     | '/admin/processos'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/admin/contestacoes'
     | '/admin/historico'
     | '/admin/indicadores'
+    | '/admin/painel'
     | '/admin/processos'
     | '/admin'
   id:
@@ -231,6 +243,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/contestacoes'
     | '/_authenticated/admin/historico'
     | '/_authenticated/admin/indicadores'
+    | '/_authenticated/admin/painel'
     | '/_authenticated/admin/processos'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -356,6 +369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndicadoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/painel': {
+      id: '/_authenticated/admin/painel'
+      path: '/admin/painel'
+      fullPath: '/admin/painel'
+      preLoaderRoute: typeof AuthenticatedAdminPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/processos': {
       id: '/_authenticated/admin/processos'
       path: '/admin/processos'
@@ -378,6 +398,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminContestacoesRoute: typeof AuthenticatedAdminContestacoesRoute
   AuthenticatedAdminHistoricoRoute: typeof AuthenticatedAdminHistoricoRoute
   AuthenticatedAdminIndicadoresRoute: typeof AuthenticatedAdminIndicadoresRoute
+  AuthenticatedAdminPainelRoute: typeof AuthenticatedAdminPainelRoute
   AuthenticatedAdminProcessosRoute: typeof AuthenticatedAdminProcessosRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
@@ -394,6 +415,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminContestacoesRoute: AuthenticatedAdminContestacoesRoute,
   AuthenticatedAdminHistoricoRoute: AuthenticatedAdminHistoricoRoute,
   AuthenticatedAdminIndicadoresRoute: AuthenticatedAdminIndicadoresRoute,
+  AuthenticatedAdminPainelRoute: AuthenticatedAdminPainelRoute,
   AuthenticatedAdminProcessosRoute: AuthenticatedAdminProcessosRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }

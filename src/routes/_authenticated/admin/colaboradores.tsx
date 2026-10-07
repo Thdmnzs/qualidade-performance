@@ -40,6 +40,7 @@ const vazio = {
   nome: "",
   login: "",
   email: "",
+  turno: "" as "" | "Manhã" | "Tarde" | "Noite",
   perfil: "colaborador" as Perfil,
   /** perfil ao abrir a edição; permite saber se houve mudança */
   perfilOriginal: "colaborador" as Perfil,
@@ -61,6 +62,19 @@ function Colaboradores() {
     queryFn: fetchColaboradores,
     enabled: isAdmin,
   });
+  // O turno fica à parte da listagem (a função da listagem é usada por outras telas).
+  const { data: turnos = {} } = useQuery({
+    queryKey: ["colaboradores-turnos"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("employees").select("id, turno");
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((e) => [e.id, e.turno ?? ""])) as Record<
+        string,
+        string
+      >;
+    },
+  });
   const ativos = lista.filter((c) => c.status === "ativo");
   const inativos = lista.filter((c) => c.status === "inativo");
 
@@ -70,6 +84,7 @@ function Colaboradores() {
         nome: form.nome.trim(),
         login: normalizarLogin(form.login),
         email: normalizarEmail(form.email),
+        turno: form.turno || null,
       };
       if (!LOGIN_VALIDO.test(dados.login)) {
         throw new Error(
@@ -119,6 +134,7 @@ function Colaboradores() {
     onSuccess: ({ mensagem }) => {
       toast.success(mensagem);
       setForm(vazio);
+      qc.invalidateQueries({ queryKey: ["colaboradores-turnos"] });
     },
     onError: (e: Error) => {
       toast.error(
@@ -219,6 +235,7 @@ function Colaboradores() {
                       nome: c.nome,
                       login: c.login,
                       email: c.email ?? "",
+                      turno: (turnos[c.id] ?? "") as typeof vazio.turno,
                       perfil: c.perfil,
                       perfilOriginal: c.perfil,
                       temAcesso: c.tem_acesso,
@@ -337,6 +354,20 @@ function Colaboradores() {
               É o e-mail de login; não pode ser alterado depois que o acesso existe.
             </p>
           )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="turno">Turno</Label>
+          <select
+            id="turno"
+            value={form.turno}
+            onChange={(e) => setForm({ ...form, turno: e.target.value as typeof vazio.turno })}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">Sem turno</option>
+            <option>Manhã</option>
+            <option>Tarde</option>
+            <option>Noite</option>
+          </select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="perfil">Perfil</Label>
