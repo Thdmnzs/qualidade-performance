@@ -64,7 +64,8 @@ export function ContatoIntercom({
   const descartar = useServerFn(descartarContatoFn);
   const [contato, setContato] = useState<Contato | null>(null);
   const [referencia, setReferencia] = useState("");
-  const [descartando, setDescartando] = useState(false);
+  // O descarte (com motivo) vale para os dois caminhos; muda só o que vem depois.
+  const [descartando, setDescartando] = useState<false | "sortear" | "link">(false);
   const [motivo, setMotivo] = useState("");
 
   // Trocar de colaborador ou quinzena, ou registrar a avaliação, recomeça o painel.
@@ -113,11 +114,17 @@ export function ContatoIntercom({
   const descarte = useMutation({
     mutationFn: () => descartar({ data: { sorteioId: contato!.sorteioId!, motivo } }),
     onSuccess: () => {
+      const depois = descartando;
       setDescartando(false);
       setMotivo("");
       setContato(null);
-      toast.success("Contato descartado. Sorteando outro...");
-      sorteio.mutate();
+      if (depois === "link") {
+        setReferencia("");
+        toast.success("Contato descartado. Cole o link do novo contato.");
+      } else {
+        toast.success("Contato descartado. Sorteando outro...");
+        sorteio.mutate();
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -183,15 +190,27 @@ export function ContatoIntercom({
                   </a>
                 )}
                 {contato.sorteioId ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDescartando(true)}
-                    disabled={ocupado}
-                  >
-                    <RefreshCw className="size-3.5" /> Sortear outro
-                  </Button>
+                  <>
+                    {/* Mesma regra do "Sortear outro": descarta (com motivo) e abre o campo do link. */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDescartando("link")}
+                      disabled={ocupado}
+                    >
+                      <Link2 className="size-3.5" /> Inserir link
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDescartando("sortear")}
+                      disabled={ocupado}
+                    >
+                      <RefreshCw className="size-3.5" /> Sortear outro
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     type="button"
@@ -255,10 +274,15 @@ export function ContatoIntercom({
           </div>
         )}
 
-        <Dialog open={descartando} onOpenChange={(aberto) => !aberto && setDescartando(false)}>
+        <Dialog
+          open={descartando !== false}
+          onOpenChange={(aberto) => !aberto && setDescartando(false)}
+        >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Sortear outro contato</DialogTitle>
+              <DialogTitle>
+                {descartando === "link" ? "Descartar e inserir um link" : "Sortear outro contato"}
+              </DialogTitle>
               <DialogDescription>
                 O contato atual será descartado, e o motivo fica registrado na auditoria. A mesma
                 conversa não volta a ser sorteada para este colaborador nesta quinzena.
@@ -285,7 +309,11 @@ export function ContatoIntercom({
                 disabled={motivo.trim().length < 10 || descarte.isPending}
                 onClick={() => descarte.mutate()}
               >
-                {descarte.isPending ? "Descartando..." : "Descartar e sortear outro"}
+                {descarte.isPending
+                  ? "Descartando..."
+                  : descartando === "link"
+                    ? "Descartar e inserir link"
+                    : "Descartar e sortear outro"}
               </Button>
             </DialogFooter>
           </DialogContent>
