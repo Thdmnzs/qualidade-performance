@@ -40,6 +40,40 @@ export type TicketIntercom = {
 export type TipoDeTicket = { id: string | number; name?: string | null; archived?: boolean | null };
 
 const NUCLEOS = new Set(["cxtech", "rede", "fraude e risco", "logistica", "financeiro"]);
+
+export type Nucleo = "cxtech" | "rede" | "fraude e risco" | "logistica" | "financeiro";
+
+/**
+ * Quem avalia os tickets de cada núcleo (reunião de 07/10/2026), pelo E-MAIL, que
+ * não se repete nem muda (o nome, sim: a Fran está cadastrada como "Franciele").
+ * O ADM sorteia de qualquer núcleo. Uma avaliadora fora da tabela não recebe
+ * tickets até ser incluída aqui.
+ */
+export const NUCLEOS_POR_AVALIADOR: Record<string, Nucleo[]> = {
+  "rachel@flukeoperadora.com.br": ["cxtech", "logistica", "fraude e risco", "financeiro"],
+  "fran@flukeoperadora.com.br": ["rede", "logistica", "fraude e risco", "financeiro"],
+};
+
+export const ROTULO_DO_NUCLEO: Record<Nucleo, string> = {
+  cxtech: "CX Tech",
+  rede: "Rede",
+  logistica: "Logística",
+  "fraude e risco": "Fraude e Risco",
+  financeiro: "Financeiro",
+};
+
+/** Os núcleos de quem sorteia: todos para o ADM; os da tabela para a avaliadora; nenhum fora dela. */
+export function nucleosDe(email: string | null | undefined, ehAdm: boolean): Nucleo[] {
+  if (ehAdm) return [...NUCLEOS] as Nucleo[];
+  return NUCLEOS_POR_AVALIADOR[normalizar(email)] ?? [];
+}
+
+/** O núcleo de um tipo de ticket ("[rede] portabilidade" → "rede"), ou null. */
+export function nucleoDoTipo(nome: string | null | undefined): Nucleo | null {
+  const m = normalizar(nome).match(/^\[([^\]]+)\]/);
+  const n = m?.[1]?.trim();
+  return n && NUCLEOS.has(n) ? (n as Nucleo) : null;
+}
 const normalizar = (s: unknown) =>
   String(s ?? "")
     .normalize("NFD")
@@ -48,9 +82,9 @@ const normalizar = (s: unknown) =>
     .trim();
 
 /** O tipo entra no sorteio? Pelo núcleo entre colchetes no começo do nome. */
-export function tipoEntraNoSorteio(nome: string | null | undefined): boolean {
-  const m = normalizar(nome).match(/^\[([^\]]+)\]/);
-  return !!m && NUCLEOS.has(m[1]!.trim());
+export function tipoEntraNoSorteio(nome: string | null | undefined, nucleos?: Nucleo[]): boolean {
+  const n = nucleoDoTipo(nome);
+  return !!n && (!nucleos || nucleos.includes(n));
 }
 
 const partes = (t: TicketIntercom) =>

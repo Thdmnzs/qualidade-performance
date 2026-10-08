@@ -187,6 +187,31 @@ describe("montarPedido num ticket de back-office", () => {
   });
 });
 
+describe("montarPedido num ticket com a conversa do cliente (07/10/2026)", () => {
+  it("a conversa do cliente vai junto, delimitada, e o contexto pede para avaliar os dois", () => {
+    const p = montarPedido({
+      ficha: FICHA,
+      mensagens: [{ autor: "nota", nome: null, quando: 1, texto: "Enviado ao CX Tech." }],
+      atributos: [],
+      processo: null,
+      dicionario: null,
+      tipo: "ticket_n2",
+      conversaDoCliente: [
+        { autor: "cliente", nome: null, quando: 1, texto: "Meu CPF é [CPF], o app não libera." },
+        { autor: "atendente", nome: null, quando: 2, texto: "Vou acionar o time técnico." },
+      ],
+    });
+    const texto = p.messages[0]!.content;
+    expect(texto).toContain(
+      "<conversa_do_cliente>\n[Cliente] Meu CPF é [CPF], o app não libera.\n[Atendente] Vou acionar o time técnico.\n</conversa_do_cliente>",
+    );
+    expect(texto).toContain(
+      "Avalie, numa ficha só, o atendimento na <conversa_do_cliente> e a qualidade do encaminhamento",
+    );
+    expect(p.system).toContain("<conversa_do_cliente>");
+  });
+});
+
 describe("retirarSugestoes: ao trocar de contato", () => {
   const sug = {
     criterios: {

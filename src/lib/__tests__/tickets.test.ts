@@ -8,6 +8,8 @@ import {
   historicoDoTicket,
   mensagensDoTicket,
   tipoEntraNoSorteio,
+  nucleosDe,
+  nucleoDoTipo,
   type TicketIntercom,
 } from "../tickets";
 
@@ -151,5 +153,52 @@ describe("o ticket na tela", () => {
   it("a conversa de origem e o assunto sugerido", () => {
     expect(conversaDeOrigem(TICKET)).toBe("215476171612345");
     expect(assuntoDoTicket(TICKET)).toBe("[cxtech] B2C · dash: falha/atualização");
+  });
+});
+
+describe("os núcleos de cada avaliadora (reunião de 07/10/2026)", () => {
+  it("a Rachel: CX Tech, Logística, Fraude e Risco e Financeiro (pelo e-mail, sem diferenciar maiúsculas)", () => {
+    expect(nucleosDe("Rachel@flukeoperadora.com.br", false)).toEqual([
+      "cxtech",
+      "logistica",
+      "fraude e risco",
+      "financeiro",
+    ]);
+  });
+  it("a Fran (cadastrada como Franciele): Rede, Logística, Fraude e Risco e Financeiro", () => {
+    expect(nucleosDe("fran@flukeoperadora.com.br", false)).toEqual([
+      "rede",
+      "logistica",
+      "fraude e risco",
+      "financeiro",
+    ]);
+  });
+  it("o ADM: todos os núcleos", () => {
+    expect(nucleosDe("admin@teste.com", true).sort()).toEqual([
+      "cxtech",
+      "financeiro",
+      "fraude e risco",
+      "logistica",
+      "rede",
+    ]);
+  });
+  it("uma avaliadora fora da tabela: nenhum (não recebe tickets por engano)", () => {
+    expect(nucleosDe("nova@flukeoperadora.com.br", false)).toEqual([]);
+    expect(nucleosDe(null, false)).toEqual([]);
+  });
+  it("o tipo entra no sorteio só se o núcleo for de quem sorteia", () => {
+    const rachel = nucleosDe("rachel@flukeoperadora.com.br", false);
+    expect(tipoEntraNoSorteio("[cxtech] B2C", rachel)).toBe(true);
+    expect(tipoEntraNoSorteio("[rede] portabilidade", rachel)).toBe(false);
+    expect(tipoEntraNoSorteio("[financeiro] reembolso pix automático", rachel)).toBe(true);
+    expect(tipoEntraNoSorteio("[logística]", nucleosDe("fran@flukeoperadora.com.br", false))).toBe(
+      true,
+    );
+    expect(tipoEntraNoSorteio("[cxtech] B2B", [])).toBe(false);
+  });
+  it("o núcleo de cada tipo", () => {
+    expect(nucleoDoTipo("[rede] VOZ ou SMS")).toBe("rede");
+    expect(nucleoDoTipo("[fraude e risco]")).toBe("fraude e risco");
+    expect(nucleoDoTipo("[leads] B2B")).toBeNull();
   });
 });

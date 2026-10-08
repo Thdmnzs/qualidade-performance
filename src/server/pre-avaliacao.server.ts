@@ -71,8 +71,18 @@ export async function preAvaliar(p: {
     if (m.nome && m.autor === "cliente") nomes[m.nome] = "Cliente";
     if (m.nome && (m.autor === "atendente" || m.autor === "nota")) nomes[m.nome] = "Atendente";
   }
+  // Num ticket, a conversa com o cliente também entra (e também é mascarada).
+  for (const m of contato.ticket?.conversa?.mensagens ?? []) {
+    if (m.nome && m.autor === "cliente") nomes[m.nome] = "Cliente";
+    if (m.nome && (m.autor === "atendente" || m.autor === "nota")) nomes[m.nome] = "Atendente";
+  }
   if (colaborador?.nome) nomes[colaborador.nome] = "Atendente";
   const mensagens: Mensagem[] = contato.mensagens.map((m) => ({
+    ...m,
+    nome: null,
+    texto: mascarar(m.texto, nomes),
+  }));
+  const conversaDoCliente: Mensagem[] = (contato.ticket?.conversa?.mensagens ?? []).map((m) => ({
     ...m,
     nome: null,
     texto: mascarar(m.texto, nomes),
@@ -108,6 +118,7 @@ export async function preAvaliar(p: {
     processo,
     dicionario: ref?.dicionario ?? null,
     ...(p.tipo ? { tipo: p.tipo } : {}),
+    ...(conversaDoCliente.length ? { conversaDoCliente } : {}),
   });
   const inicio = Date.now();
   const controle = new AbortController();

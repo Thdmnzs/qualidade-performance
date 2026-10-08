@@ -2,12 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------- O banco, simulado (consultas encadeadas, como o cliente do Supabase) ----------
 let sorteios: Record<string, unknown>[] = [];
+let avaliadas: Record<string, unknown>[] = [];
+// Quem está sorteando (desde 07/10/2026, os núcleos dependem do e-mail dele).
+let emailDoAvaliador = "rachel@flukeoperadora.com.br";
+let ehAdm = false;
 const rpc = vi.fn();
 const consulta = (dados: unknown) => {
   const q: Record<string, unknown> = {};
+  let porUsuario = false;
   q["select"] = () => q;
-  q["eq"] = () => q;
+  q["eq"] = (coluna: string) => {
+    if (coluna === "user_id") porUsuario = true;
+    return q;
+  };
   q["single"] = async () => ({ data: dados, error: null });
+  q["maybeSingle"] = async () => ({
+    data: porUsuario ? { email: emailDoAvaliador } : dados,
+    error: null,
+  });
   q["then"] = (ok: (v: unknown) => unknown) =>
     Promise.resolve({ data: dados, error: null }).then(ok);
   return q;
@@ -20,7 +32,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         tabela === "sorteios_contato"
           ? sorteios
           : tabela === "evaluations"
-            ? []
+            ? avaliadas
             : tabela === "fortnights"
               ? { data_inicio: "2026-10-01", data_fim: "2026-10-15" }
               : { nome: "Rubia", email: "rubia@fluke.com" },
@@ -73,6 +85,45 @@ vi.stubGlobal(
         ],
       });
     if (caminho === "/tickets/search") return json({ tickets });
+    // As conversas encerradas da quinzena (para o sorteio de atendimento): a 555 (do ticket 1) e a 777.
+    if (caminho === "/conversations/search")
+      return json({ conversations: [{ id: "555" }, { id: "777" }] });
+    if (caminho === "/conversations/777")
+      return json({
+        id: "777",
+        source: {
+          type: "conversation",
+          author: { type: "user", id: "c2", name: "Outro cliente" },
+          body: "<p>Oi</p>",
+        },
+        conversation_parts: {
+          conversation_parts: [
+            {
+              part_type: "comment",
+              body: "<p>Olá!</p>",
+              author: { type: "admin", id: 701, name: "Rubia" },
+            },
+          ],
+        },
+      });
+    if (caminho === "/conversations/555")
+      return json({
+        id: "555",
+        source: {
+          type: "whatsapp",
+          author: { type: "user", id: "c1", name: "Cliente" },
+          body: "<p>Meu app não libera o cadastro.</p>",
+        },
+        conversation_parts: {
+          conversation_parts: [
+            {
+              part_type: "comment",
+              body: "<p>Vou acionar o time técnico.</p>",
+              author: { type: "admin", id: 701, name: "Rubia" },
+            },
+          ],
+        },
+      });
     const t = tickets.find((x) => caminho === `/tickets/${x.id}`);
     return t ? json(t) : new Response("{}", { status: 404 });
   }),
@@ -84,15 +135,20 @@ const ids = { chamadorId: "aval-1", employeeId: "emp-rubia", fortnightId: "q-1" 
 
 beforeEach(() => {
   sorteios = [];
+  avaliadas = [];
+  emailDoAvaliador = "rachel@flukeoperadora.com.br";
+  ehAdm = false;
   pedidos.length = 0;
   rpc.mockReset();
   rpc.mockImplementation(async (nome: string) => ({
     data:
       nome === "pode_atuar_sobre"
         ? true
-        : nome === "registrar_sorteio_contato"
-          ? "sorteio-novo"
-          : null,
+        : nome === "is_admin"
+          ? ehAdm
+          : nome === "registrar_sorteio_contato"
+            ? "sorteio-novo"
+            : null,
     error: null,
   }));
 });
@@ -257,5 +313,74 @@ describe("o sorteio em aberto (a brecha do recarregar)", () => {
     expect(
       await buscarContato({ ...semQuinzena, referencia: link("1"), tipo: "ticket_n2" }),
     ).toMatchObject({ conversaId: "1" });
+  });
+});
+
+describe("os núcleos e a conversa do ticket (reunião de 07/10/2026)", () => {
+  const link = (id: string) => `https://app.intercom.com/a/inbox/x/inbox/conversation/${id}`;
+  beforeEach(() => {
+    tickets = [ticket("1", [parte(RUBIA, 10)])];
+  });
+  it("o ticket sorteado traz a conversa com o cliente (as mensagens e o canal)", async () => {
+    const c = await sortearContato({ ...ids, tipo: "ticket_n2" });
+    expect(c.ticket?.conversa?.canal).toEqual({ tipo: "whatsapp", rotulo: "WhatsApp" });
+    expect(c.ticket?.conversa?.mensagens.map((m) => m.texto)).toEqual([
+      "Meu app não libera o cadastro.",
+      "Vou acionar o time técnico.",
+    ]);
+  });
+  it("a Fran não recebe ticket de CX Tech (não é núcleo dela)", async () => {
+    emailDoAvaliador = "fran@flukeoperadora.com.br";
+    await expect(sortearContato({ ...ids, tipo: "ticket_n2" })).rejects.toThrow(
+      /Nenhum tipo de ticket/,
+    );
+  });
+  it("uma avaliadora fora da tabela: não recebe tickets, e é orientada a completar com atendimento", async () => {
+    emailDoAvaliador = "nova@flukeoperadora.com.br";
+    await expect(sortearContato({ ...ids, tipo: "ticket_n2" })).rejects.toThrow(
+      /ainda não tem núcleos.*Complete as 10 com avaliações de atendimento/,
+    );
+  });
+  it("o ADM sorteia de qualquer núcleo", async () => {
+    emailDoAvaliador = "admin@teste.com";
+    ehAdm = true;
+    expect((await sortearContato({ ...ids, tipo: "ticket_n2" })).conversaId).toBe("1");
+  });
+  it("a conversa do ticket já foi avaliada como atendimento: o ticket sai do sorteio", async () => {
+    avaliadas = [{ link_conversa: link("555"), tipo: "interacao" }];
+    await expect(sortearContato({ ...ids, tipo: "ticket_n2" })).rejects.toThrow(
+      /dos seus núcleos.*Complete as 10 com avaliações de atendimento/,
+    );
+  });
+  it("colar o link de um ticket de outro núcleo: recusado, dizendo o núcleo", async () => {
+    emailDoAvaliador = "fran@flukeoperadora.com.br";
+    await expect(
+      buscarContato({ ...ids, referencia: link("1"), tipo: "ticket_n2" }),
+    ).rejects.toThrow(
+      "Este ticket é do núcleo CX Tech, que não está entre os seus (Rede, Logística, Fraude e Risco, Financeiro).",
+    );
+  });
+});
+
+describe("o outro sentido: a conversa de um ticket avaliado", () => {
+  it("não cai no sorteio de atendimento (foi avaliada junto com o ticket)", async () => {
+    tickets = [ticket("1", [parte(RUBIA, 10)])]; // o ticket 1 saiu da conversa 555
+    avaliadas = [
+      {
+        link_conversa: "https://app.intercom.com/a/inbox/x/inbox/conversation/1",
+        tipo: "ticket_n2",
+      },
+    ];
+    for (let i = 0; i < 6; i++) {
+      const c = await sortearContato({ ...ids, tipo: "interacao" });
+      expect(c.conversaId).toBe("777");
+    }
+  });
+  it("sem o ticket avaliado, a conversa 555 continua podendo ser sorteada", async () => {
+    tickets = [ticket("1", [parte(RUBIA, 10)])];
+    const vistas = new Set<string>();
+    for (let i = 0; i < 30; i++)
+      vistas.add((await sortearContato({ ...ids, tipo: "interacao" })).conversaId);
+    expect(vistas.has("555")).toBe(true);
   });
 });

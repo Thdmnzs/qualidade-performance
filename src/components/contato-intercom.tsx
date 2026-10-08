@@ -292,22 +292,8 @@ export function ContatoIntercom({
                 Nota interna
               </li>
             </ul>
-            <ol className="mt-3 max-h-[62vh] space-y-2 overflow-y-auto pr-1">
-              {contato.mensagens.map((m, i) => (
-                <li
-                  key={i}
-                  className={`rounded-lg px-3 py-2 text-sm ${ESTILO[m.autor]?.bolha ?? ""} ${ESTILO[m.autor]?.lado ?? ""}`}
-                >
-                  <p className={`mb-0.5 text-xs font-bold ${ESTILO[m.autor]?.autor ?? ""}`}>
-                    {ROTULO[m.autor]}
-                    {m.nome && ` · ${m.nome}`}
-                    {m.quando && ` · ${dataHoraBR(new Date(m.quando * 1000).toISOString())}`}
-                  </p>
-                  {/* Texto puro: nada de HTML vindo do Intercom é interpretado aqui. */}
-                  <p className="whitespace-pre-wrap break-words">{m.texto}</p>
-                </li>
-              ))}
-            </ol>
+            <ListaDeMensagens mensagens={contato.mensagens} />
+            {contato.ticket?.conversa && <ConversaDoCliente conversa={contato.ticket.conversa} />}
             <p className="mt-2 text-xs text-muted-foreground">
               Links dentro das mensagens não são clicáveis aqui. Para abrir qualquer link, use a
               conversa no Intercom.
@@ -493,5 +479,61 @@ function SeloDoCanal({ canal }: { canal: NonNullable<Contato["canal"]> }) {
       <Icone className="size-3.5" aria-hidden="true" />
       {canal.rotulo}
     </span>
+  );
+}
+
+/** As mensagens de uma conversa (ou do histórico de um ticket), com o estilo de cada autor. */
+function ListaDeMensagens({ mensagens }: { mensagens: Contato["mensagens"] }) {
+  return (
+    <ol className="mt-3 max-h-[62vh] space-y-2 overflow-y-auto pr-1">
+      {mensagens.map((m, i) => (
+        <li
+          key={i}
+          className={`rounded-lg px-3 py-2 text-sm ${ESTILO[m.autor]?.bolha ?? ""} ${ESTILO[m.autor]?.lado ?? ""}`}
+        >
+          <p className={`mb-0.5 text-xs font-bold ${ESTILO[m.autor]?.autor ?? ""}`}>
+            {ROTULO[m.autor]}
+            {m.nome && ` · ${m.nome}`}
+            {m.quando && ` · ${dataHoraBR(new Date(m.quando * 1000).toISOString())}`}
+          </p>
+          {/* Texto puro: nada de HTML vindo do Intercom é interpretado aqui. */}
+          <p className="whitespace-pre-wrap break-words">{m.texto}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** A conversa com o cliente, dentro do ticket: avaliada junto com ele, numa ficha só. */
+function ConversaDoCliente({
+  conversa,
+}: {
+  conversa: NonNullable<NonNullable<Contato["ticket"]>["conversa"]>;
+}) {
+  const link = linkSeguroDoIntercom(conversa.link);
+  return (
+    <div className="mt-6 border-t border-border pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold">Conversa com o cliente</p>
+        <span className="flex items-center gap-2 text-xs">
+          <SeloDoCanal canal={conversa.canal} />
+          {link && (
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+            >
+              Abrir no Intercom <ExternalLink className="size-3.5" />
+            </a>
+          )}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        A conversa de onde o ticket saiu. Ela é avaliada junto com o ticket, nesta mesma ficha, e
+        não entra mais no sorteio de atendimento.
+      </p>
+      <ListaDeMensagens mensagens={conversa.mensagens} />
+    </div>
   );
 }

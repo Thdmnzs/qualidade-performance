@@ -35,8 +35,12 @@ import {
   estadoDoTicket,
   historicoDoTicket,
   mensagensDoTicket,
+  nucleoDoTipo,
+  nucleosDe,
+  ROTULO_DO_NUCLEO,
   tipoEntraNoSorteio,
   tituloDoTicket,
+  type Nucleo,
   type TicketIntercom,
   type TipoDeTicket,
 } from "@/lib/tickets";
@@ -227,6 +231,8 @@ export type Contato = {
     criador: string | null;
     historico: { quando: number | null; texto: string }[];
     conversaDeOrigem: string | null;
+    /** A conversa com o cliente, avaliada junto com o ticket (07/10/2026). */
+    conversa: { link: string; canal: Canal; mensagens: Mensagem[] } | null;
   };
 };
 
@@ -366,20 +372,31 @@ async function conversasDoPeriodo(adminId: string, inicio: number, fim: number):
 
 // ---------- Tickets de back-office ----------
 
-// Os tipos que entram no sorteio, guardados por 10 minutos (não pergunta ao Intercom a cada sorteio).
-let tiposGuardados: { ids: string[]; ate: number } | null = null;
-async function tiposDoSorteio(): Promise<string[]> {
-  if (tiposGuardados && tiposGuardados.ate > Date.now()) return tiposGuardados.ids;
-  const r = await exigir(
-    await chamar<{ data?: TipoDeTicket[] }>("/ticket_types"),
-    "listar os tipos de ticket",
-  );
-  const ids = (r.data ?? [])
-    .filter((t) => !t.archived && tipoEntraNoSorteio(t.name))
+// Os tipos de ticket do Intercom, guardados por 10 minutos (não pergunta a cada sorteio).
+let tiposGuardados: { tipos: TipoDeTicket[]; ate: number } | null = null;
+/** Os tipos que entram no sorteio, só dos núcleos de quem sorteia. */
+async function tiposDoSorteio(nucleos: Nucleo[]): Promise<string[]> {
+  if (!tiposGuardados || tiposGuardados.ate <= Date.now()) {
+    const r = await exigir(
+      await chamar<{ data?: TipoDeTicket[] }>("/ticket_types"),
+      "listar os tipos de ticket",
+    );
+    tiposGuardados = { tipos: r.data ?? [], ate: Date.now() + 10 * 60_000 };
+  }
+  return tiposGuardados.tipos
+    .filter((t) => !t.archived && tipoEntraNoSorteio(t.name, nucleos))
     .map((t) => String(t.id));
-  tiposGuardados = { ids, ate: Date.now() + 10 * 60_000 };
-  return ids;
 }
+
+/** Os núcleos de back-office de quem sorteia: todos para o ADM; os da tabela para a avaliadora. */
+async function nucleosDoChamador(chamadorId: string): Promise<Nucleo[]> {
+  const [{ data: adm }, { data: eu }] = await Promise.all([
+    supabaseAdmin.rpc("is_admin", { _user_id: chamadorId }),
+    supabaseAdmin.from("employees").select("email").eq("user_id", chamadorId).maybeSingle(),
+  ]);
+  return nucleosDe(eu?.email ?? null, !!adm);
+}
+const listaDeNucleos = (n: Nucleo[]) => n.map((x) => ROTULO_DO_NUCLEO[x]).join(", ");
 
 async function obterTicket(id: string): Promise<TicketIntercom> {
   return exigir(
@@ -439,16 +456,27 @@ async function comHistorico(tickets: TicketIntercom[]): Promise<TicketIntercom[]
   return prontos;
 }
 
-function paraContatoDoTicket(
+async function paraContatoDoTicket(
   t: TicketIntercom,
   appId: string,
   adminId: string,
   sorteioId: string | null,
   jaEmAberto: boolean,
-): Contato {
+): Promise<Contato> {
   const id = String(t.id);
   const criador = criadorDoTicket(t);
   const origem = conversaDeOrigem(t);
+  // A conversa com o cliente, avaliada junto com o ticket. Se não carregar, o ticket aparece mesmo assim.
+  let conversa: NonNullable<Contato["ticket"]>["conversa"] = null;
+  if (origem) {
+    const r = await chamar<ConversaIntercom>(`/conversations/${encodeURIComponent(origem)}`);
+    if (r.ok)
+      conversa = {
+        link: linkDaConversa(appId, origem),
+        canal: canalDaConversa(r.dados.source),
+        mensagens: montarTranscricao(r.dados),
+      };
+  }
   return {
     sorteioId,
     jaEmAberto,
@@ -469,6 +497,7 @@ function paraContatoDoTicket(
       criador: criador?.nome ?? null,
       historico: historicoDoTicket(t),
       conversaDeOrigem: origem ? linkDaConversa(appId, origem) : null,
+      conversa,
     },
   };
 }
@@ -498,7 +527,7 @@ async function situacaoDoSorteio(
   erroDoBanco(erroSorteios);
   const { data: avaliadas, error: erroAvaliadas } = await supabaseAdmin
     .from("evaluations")
-    .select("link_conversa")
+    .select("link_conversa, tipo")
     .eq("employee_id", employeeId)
     .eq("fortnight_id", fortnightId)
     .eq("anulada", false);
@@ -513,11 +542,21 @@ async function situacaoDoSorteio(
         !s.descartado_em &&
         !linksAvaliados.has(s.link),
     ) ?? null;
+  // Os números das conversas e dos tickets já avaliados (cada um no seu tipo).
+  const idsAvaliados = (t: string) =>
+    new Set(
+      (avaliadas ?? [])
+        .filter((e) => e.tipo === t)
+        .map((e) => (e.link_conversa ? extrairIdDaConversa(e.link_conversa) : null))
+        .filter((x): x is string => !!x),
+    );
   return {
     sorteios: sorteios ?? [],
     linksAvaliados,
     totalAvaliadas: (avaliadas ?? []).length,
     emAberto,
+    conversasAvaliadas: idsAvaliados("interacao"),
+    ticketsAvaliados: idsAvaliados("ticket_n2"),
   };
 }
 
@@ -565,12 +604,14 @@ export async function sortearContato(p: {
   const atendente = await atendenteDoColaborador(p.employeeId);
 
   // Já há um contato em aberto deste avaliador? Mostra o mesmo (não é um sorteio novo).
-  const { sorteios, linksAvaliados, totalAvaliadas, emAberto } = await situacaoDoSorteio(
-    p.chamadorId,
-    p.employeeId,
-    p.fortnightId,
-    tipo,
-  );
+  const {
+    sorteios,
+    linksAvaliados,
+    totalAvaliadas,
+    emAberto,
+    conversasAvaliadas,
+    ticketsAvaliados,
+  } = await situacaoDoSorteio(p.chamadorId, p.employeeId, p.fortnightId, tipo);
   // O limite de 10: sem vaga, não há o que sortear (nem um sorteio em aberto serviria).
   const limite = limiteAtingido(totalAvaliadas);
   if (limite) throw new ErroDoIntercom(limite);
@@ -608,7 +649,13 @@ export async function sortearContato(p: {
   }
 
   if (tipo === "ticket_n2") {
-    const tipos = await tiposDoSorteio();
+    const nucleos = await nucleosDoChamador(p.chamadorId);
+    if (!nucleos.length) {
+      throw new ErroDoIntercom(
+        "Você ainda não tem núcleos de back-office definidos para avaliar. Complete as 10 com avaliações de atendimento.",
+      );
+    }
+    const tipos = await tiposDoSorteio(nucleos);
     if (!tipos.length) {
       throw new ErroDoIntercom(
         "Nenhum tipo de ticket de back-office dos núcleos foi encontrado no Intercom.",
@@ -622,7 +669,13 @@ export async function sortearContato(p: {
         semCriador++; // sem um atendente identificado com segurança: fora do sorteio
         return false;
       }
-      return criador.id === String(atendente.id) && !excluir.has(String(t.id));
+      // A conversa do ticket já foi avaliada como atendimento? O ticket também sai.
+      const conversa = conversaDeOrigem(t);
+      return (
+        criador.id === String(atendente.id) &&
+        !excluir.has(String(t.id)) &&
+        !(conversa && conversasAvaliadas.has(conversa))
+      );
     });
     const escolhido = escolherAleatorio(
       dele.map((t) => String(t.id)),
@@ -631,7 +684,7 @@ export async function sortearContato(p: {
     );
     if (!escolhido) {
       throw new ErroDoIntercom(
-        `Não há tickets de back-office criados por ${atendente.nome} disponíveis para sortear nesta quinzena (criados na quinzena e ainda não avaliados).` +
+        `Não há tickets de back-office criados por ${atendente.nome}, dos seus núcleos (${listaDeNucleos(nucleos)}), disponíveis para sortear nesta quinzena. Complete as 10 com avaliações de atendimento.` +
           (semCriador
             ? ` ${semCriador} ticket(s) da quinzena ficaram de fora porque não foi possível identificar quem os criou.`
             : ""),
@@ -649,6 +702,15 @@ export async function sortearContato(p: {
     erroDoBanco(error);
     return paraContatoDoTicket(ticket, appId, atendente.id, sorteioId as string, false);
   }
+
+  // As conversas ligadas aos tickets já avaliados (foram avaliadas junto com eles) saem.
+  const ligadas = await Promise.all(
+    [...ticketsAvaliados].map(async (id) => {
+      const r = await chamar<TicketIntercom>(`/tickets/${encodeURIComponent(id)}`);
+      return r.ok ? conversaDeOrigem(r.dados) : null;
+    }),
+  );
+  for (const c of ligadas) if (c) excluir.add(c);
 
   // Só o sorteio de conversas busca as conversas da quinzena.
   const candidatos = await conversasDoPeriodo(atendente.id, inicio, fim);
@@ -714,6 +776,16 @@ export async function buscarContato(p: {
   let contato: Contato;
   if (p.tipo === "ticket_n2") {
     const ticket = await obterTicket(id);
+    // Só os tickets dos núcleos de quem avalia (o ADM, todos).
+    const nucleos = await nucleosDoChamador(p.chamadorId);
+    const nucleo = nucleoDoTipo(ticket.ticket_type?.name);
+    if (!nucleo || !nucleos.includes(nucleo)) {
+      throw new ErroDoIntercom(
+        nucleo
+          ? `Este ticket é do núcleo ${ROTULO_DO_NUCLEO[nucleo]}, que não está entre os seus${nucleos.length ? ` (${listaDeNucleos(nucleos)})` : ""}.`
+          : "Este tipo de ticket não entra na avaliação de back-office.",
+      );
+    }
     const criador = criadorDoTicket(ticket);
     // Quem é avaliado é quem criou: um ticket de outra pessoa é recusado.
     if (criador && criador.id !== String(atendente.id)) {
@@ -721,7 +793,7 @@ export async function buscarContato(p: {
         `Este ticket foi criado por ${criador.nome ?? "outra pessoa"}, e não por ${atendente.nome}.`,
       );
     }
-    contato = paraContatoDoTicket(ticket, appId, atendente.id, null, false);
+    contato = await paraContatoDoTicket(ticket, appId, atendente.id, null, false);
   } else {
     contato = await paraContato(await obterConversa(id), appId, atendente.id, null, false);
   }
