@@ -4,7 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { destinoAposLogin, type AbaDeLogin } from "@/lib/areas";
+import { destinoAposLogin, inicioDoPerfil, type AbaDeLogin } from "@/lib/areas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
@@ -32,13 +32,15 @@ function AuthPage() {
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  // A aba errada: o motivo do bloqueio, no próprio cartão (até a pessoa trocar de aba).
+  const [abaErrada, setAbaErrada] = useState<string | null>(null);
 
   // Já logado: vai para a área padrão do perfil.
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
       const { data: perfil } = await supabase.rpc("meu_perfil");
-      if (perfil) navigate({ to: destinoAposLogin(perfil, "colaborador").para, replace: true });
+      if (perfil) navigate({ to: inicioDoPerfil(perfil), replace: true });
     });
   }, [navigate]);
 
@@ -62,7 +64,12 @@ function AuthPage() {
       return;
     }
     const destino = destinoAposLogin(perfil, aba);
-    if (destino.aviso) toast.info(destino.aviso);
+    if (destino.para === null) {
+      // A aba não é a desta pessoa: a sessão é encerrada na hora, e ela fica no login.
+      await supabase.auth.signOut();
+      setAbaErrada(destino.bloqueio);
+      return;
+    }
     navigate({ to: destino.para, replace: true });
   }
 
@@ -92,7 +99,10 @@ function AuthPage() {
               type="button"
               role="tab"
               aria-selected={aba === t}
-              onClick={() => setAba(t)}
+              onClick={() => {
+                setAba(t);
+                setAbaErrada(null);
+              }}
               className={cn(
                 "rounded-md py-1.5 text-sm font-medium capitalize transition-colors",
                 aba === t
@@ -104,6 +114,15 @@ function AuthPage() {
             </button>
           ))}
         </div>
+
+        {abaErrada && (
+          <p
+            role="alert"
+            className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            {abaErrada}
+          </p>
+        )}
 
         <form onSubmit={entrar} className="mt-6 space-y-5">
           <div className="space-y-2">

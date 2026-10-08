@@ -64,9 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   async function sair() {
+    // Primeiro a sessão, depois a memória: senão, a tela busca o cadastro de novo no meio
+    // do caminho e guarda um "ninguém logado" (o "Cadastro não vinculado" do próximo login).
     await queryClient.cancelQueries();
-    queryClient.clear();
     await supabase.auth.signOut();
+    queryClient.clear();
     navigate({ to: "/auth", replace: true });
   }
 

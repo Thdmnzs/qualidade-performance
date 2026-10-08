@@ -8,11 +8,13 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { SCRIPT_DO_TEMA, useTema } from "../lib/tema";
+import { supabase } from "../integrations/supabase/client";
+import { deveApagarAMemoria } from "../lib/memoria-da-sessao";
 
 function NotFoundComponent() {
   return (
@@ -127,6 +129,18 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const tema = useTema();
+
+  // A memória da tela acompanha QUEM está logado: o usuário mudou (entrou, saiu, ou
+  // outra pessoa entrou no mesmo navegador), a memória inteira é apagada.
+  const usuarioDaMemoria = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      const atual = sessao?.user.id ?? null;
+      if (deveApagarAMemoria(usuarioDaMemoria.current, atual)) queryClient.clear();
+      usuarioDaMemoria.current = atual;
+    });
+    return () => data.subscription.unsubscribe();
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

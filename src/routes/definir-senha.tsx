@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { destinoAposLogin } from "@/lib/areas";
+import { inicioDoPerfil } from "@/lib/areas";
 import { lerCodigoDoLink, type TipoDoLink } from "@/lib/link-de-acesso";
 import { REGRAS_SENHA, senhaAtendeRegras } from "@/lib/senha";
 
@@ -136,7 +136,7 @@ function DefinirSenha() {
     const { data: perfil } = await supabase.rpc("meu_perfil");
     // Primeiro acesso entra pela área do colaborador (o ADM vai direto para a gestão).
     navigate({
-      to: perfil ? destinoAposLogin(perfil, "colaborador").para : "/painel",
+      to: perfil ? inicioDoPerfil(perfil) : "/painel",
       replace: true,
     });
   }

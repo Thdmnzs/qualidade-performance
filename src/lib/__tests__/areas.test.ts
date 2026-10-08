@@ -1,29 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { areaDoEndereco, destinoAposLogin, itensDoMenu, trocaDeArea } from "../areas";
+import {
+  areaDoEndereco,
+  destinoAposLogin,
+  inicioDoPerfil,
+  itensDoMenu,
+  trocaDeArea,
+} from "../areas";
 
-describe("destinoAposLogin", () => {
+describe("destinoAposLogin: a aba errada bloqueia o login (desde 08/10/2026)", () => {
   it("avaliador entra na área que escolheu (multiacesso)", () => {
     expect(destinoAposLogin("avaliador", "avaliador")).toEqual({
       para: "/admin/avaliacoes",
-      aviso: null,
+      bloqueio: null,
     });
-    expect(destinoAposLogin("avaliador", "colaborador")).toEqual({ para: "/painel", aviso: null });
+    expect(destinoAposLogin("avaliador", "colaborador")).toEqual({
+      para: "/painel",
+      bloqueio: null,
+    });
   });
-
-  it("colaborador vai para a própria área e é avisado se escolheu a de avaliador", () => {
+  it("colaborador entra pela aba Colaborador; pela de Avaliador, é bloqueado e orientado", () => {
     expect(destinoAposLogin("colaborador", "colaborador")).toEqual({
       para: "/painel",
-      aviso: null,
+      bloqueio: null,
     });
     expect(destinoAposLogin("colaborador", "avaliador")).toEqual({
-      para: "/painel",
-      aviso: "Seu acesso não inclui a área de avaliador.",
+      para: null,
+      bloqueio: "Este acesso é de colaborador. Escolha a aba Colaborador para entrar.",
     });
   });
-
-  it("ADM sempre vai para a gestão", () => {
-    expect(destinoAposLogin("adm", "avaliador").para).toBe("/admin");
-    expect(destinoAposLogin("adm", "colaborador").aviso).toContain("apenas a área de gestão");
+  it("ADM entra pela aba Avaliador (a gestão); pela de Colaborador, é bloqueado", () => {
+    expect(destinoAposLogin("adm", "avaliador")).toEqual({ para: "/admin", bloqueio: null });
+    expect(destinoAposLogin("adm", "colaborador")).toEqual({
+      para: null,
+      bloqueio: "O perfil ADM entra pela aba Avaliador.",
+    });
+  });
+  it("quem já está logado vai para o início do perfil", () => {
+    expect(inicioDoPerfil("adm")).toBe("/admin");
+    expect(inicioDoPerfil("avaliador")).toBe("/painel");
+    expect(inicioDoPerfil("colaborador")).toBe("/painel");
   });
 });
 

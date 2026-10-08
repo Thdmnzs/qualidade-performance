@@ -20,25 +20,37 @@ export const INICIO_DA_AREA = {
 } as const;
 
 export type Inicio = (typeof INICIO_DA_AREA)[keyof typeof INICIO_DA_AREA];
-export type Destino = { para: Inicio; aviso: string | null };
+/** Ou a área de entrada, ou o motivo do bloqueio (a aba errada não deixa entrar). */
+export type Destino = { para: Inicio; bloqueio: null } | { para: null; bloqueio: string };
 
+/**
+ * Para onde ir depois do login. Desde 08/10/2026, a aba errada BLOQUEIA o login
+ * (antes, a pessoa entrava e só depois era avisada): o colaborador entra pela aba
+ * Colaborador; o ADM, pela aba Avaliador (a gestão); o avaliador, pelas duas.
+ */
 export function destinoAposLogin(perfil: Perfil, aba: AbaDeLogin): Destino {
   if (perfil === "adm") {
-    return {
-      para: INICIO_DA_AREA.adm,
-      aviso: aba === "colaborador" ? "O perfil ADM usa apenas a área de gestão." : null,
-    };
+    return aba === "avaliador"
+      ? { para: INICIO_DA_AREA.adm, bloqueio: null }
+      : { para: null, bloqueio: "O perfil ADM entra pela aba Avaliador." };
   }
   if (perfil === "avaliador") {
     return {
       para: aba === "avaliador" ? INICIO_DA_AREA.avaliador : INICIO_DA_AREA.colaborador,
-      aviso: null,
+      bloqueio: null,
     };
   }
-  return {
-    para: INICIO_DA_AREA.colaborador,
-    aviso: aba === "avaliador" ? "Seu acesso não inclui a área de avaliador." : null,
-  };
+  return aba === "colaborador"
+    ? { para: INICIO_DA_AREA.colaborador, bloqueio: null }
+    : {
+        para: null,
+        bloqueio: "Este acesso é de colaborador. Escolha a aba Colaborador para entrar.",
+      };
+}
+
+/** A área de início de cada perfil, para quem já está logado (sem a escolha da aba). */
+export function inicioDoPerfil(perfil: Perfil): Inicio {
+  return perfil === "adm" ? INICIO_DA_AREA.adm : INICIO_DA_AREA.colaborador;
 }
 
 /** A área é derivada do endereço: tudo sob /admin (e o ranking) é gestão. */
