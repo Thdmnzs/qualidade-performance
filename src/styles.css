@@ -430,7 +430,47 @@ html.dark .raridade-texto {
 
 /* A descrição do indicador nos cartões (06/10/2026). */
 @layer components {
-  .cartao-ind .descricao { font-size: 12px; line-height: 1.4; color: #1a1d1a; }
-  .cartao-ind.escuro .descricao { color: #ff9b9b; }
-  html.dark .cartao-ind.claro .descricao { color: #a3b2a8; }
+  .cartao-ind .descricao {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #1a1d1a;
+  }
+  .cartao-ind.escuro .descricao {
+    color: #ff9b9b;
+  }
+  html.dark .cartao-ind.claro .descricao {
+    color: #a3b2a8;
+  }
+}
+
+/* A moldura da FLUKER (a conquista suprema): um gradiente verde que gira, só
+   depois de ganha. Quem prefere menos movimento vê a moldura parada. */
+@property --giro-fluker {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.moldura-suprema {
+  padding: 2px;
+  border-radius: 1rem;
+  background: conic-gradient(
+    from var(--giro-fluker),
+    #0ef500,
+    #071407,
+    #13a403,
+    #0ef500,
+    #071407,
+    #0ef500
+  );
+  animation: girar-fluker 4s linear infinite;
+}
+@keyframes girar-fluker {
+  to {
+    --giro-fluker: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .moldura-suprema {
+    animation: none;
+  }
 }

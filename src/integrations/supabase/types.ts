@@ -1332,6 +1332,7 @@ export type Database = {
       desfazer_aviso_slack: { Args: { _evento: string; _id: string }; Returns: undefined };
       guardar_mensagem_slack: { Args: { _id: string; _ts: string }; Returns: undefined };
       reservar_aviso_slack: { Args: { _evento: string; _id: string }; Returns: boolean };
+      meu_progresso_de_conquistas: { Args: never; Returns: { quinzenas_com_100: number }[] };
       editar_avaliacao: {
         Args: {
           _assunto: string;
