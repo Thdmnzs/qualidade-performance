@@ -1307,6 +1307,31 @@ export type Database = {
         Args: { _chamador: string; _motivo: string; _sorteio_id: string };
         Returns: undefined;
       };
+      avisos_slack_pendentes: { Args: never; Returns: { evento: string; id: string }[] };
+      dados_do_aviso_de_contestacao: {
+        Args: { _id: string };
+        Returns: {
+          assunto: string | null;
+          avaliador: string | null;
+          colaborador: string;
+          data_contato: string | null;
+          id: string;
+          nota_anterior: number | null;
+          nota_nova: number | null;
+          respondeu: string | null;
+          respondida_em: string | null;
+          responder_ate: string | null;
+          slack_abertura_em: string | null;
+          slack_lembrete_em: string | null;
+          slack_resposta_em: string | null;
+          slack_ts: string | null;
+          status: string;
+          tipo: string | null;
+        }[];
+      };
+      desfazer_aviso_slack: { Args: { _evento: string; _id: string }; Returns: undefined };
+      guardar_mensagem_slack: { Args: { _id: string; _ts: string }; Returns: undefined };
+      reservar_aviso_slack: { Args: { _evento: string; _id: string }; Returns: boolean };
       editar_avaliacao: {
         Args: {
           _assunto: string;

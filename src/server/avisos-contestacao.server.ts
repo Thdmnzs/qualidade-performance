@@ -1,0 +1,112 @@
+/**
+ * Os avisos de contestação no Slack (08/10/2026): a abertura (no canal), o
+ * lembrete do dia do prazo e a resposta (na conversa da abertura).
+ *
+ * Nenhum aviso sai duas vezes: cada um é RESERVADO no banco antes de postar; se o
+ * Slack falhar, a reserva é desfeita, e a tarefa da manhã tenta de novo.
+ */
+import { timingSafeEqual } from "node:crypto";
+
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  textoDaAbertura,
+  textoDaResposta,
+  TEXTO_DO_LEMBRETE,
+  type DadosDoAviso,
+} from "@/lib/avisos-contestacao";
+import { postarNoSlack, slackConfigurado } from "@/server/slack.server";
+
+type Evento = "abertura" | "lembrete" | "resposta";
+const URL_DO_QUALITYHUB = () =>
+  process.env["QUALITYHUB_URL"] || "https://qualidade-performance.vercel.app";
+
+async function dados(id: string) {
+  const { data, error } = await supabaseAdmin.rpc("dados_do_aviso_de_contestacao", { _id: id });
+  if (error) throw new Error(error.message);
+  return (data?.[0] ?? null) as
+    | (DadosDoAviso & {
+        slack_ts: string | null;
+        slack_abertura_em: string | null;
+        slack_resposta_em: string | null;
+      })
+    | null;
+}
+
+/** Reserva o aviso, faz a ação, e desfaz a reserva se ela falhar. */
+async function comReserva(id: string, evento: Evento, acao: () => Promise<void>): Promise<boolean> {
+  const { data: reservado, error } = await supabaseAdmin.rpc("reservar_aviso_slack", {
+    _id: id,
+    _evento: evento,
+  });
+  if (error) throw new Error(error.message);
+  if (!reservado) return false; // outra tentativa já cuidou dele
+  try {
+    await acao();
+    return true;
+  } catch (e) {
+    await supabaseAdmin.rpc("desfazer_aviso_slack", { _id: id, _evento: evento });
+    console.error(
+      `[avisos] o aviso de ${evento} da contestação ${id} não saiu:`,
+      e instanceof Error ? e.message : e,
+    );
+    return false;
+  }
+}
+
+/** A abertura e a resposta que faltam (chamado logo depois de contestar ou de responder). */
+export async function avisarContestacao(id: string): Promise<void> {
+  if (!slackConfigurado()) return;
+  const d = await dados(id);
+  if (!d) return;
+  if (!d.slack_abertura_em) {
+    await comReserva(id, "abertura", async () => {
+      const ts = await postarNoSlack({ texto: textoDaAbertura(d, URL_DO_QUALITYHUB()) });
+      await supabaseAdmin.rpc("guardar_mensagem_slack", { _id: id, _ts: ts });
+    });
+  }
+  if ((d.status === "deferida" || d.status === "indeferida") && !d.slack_resposta_em) {
+    const ts = (await dados(id))?.slack_ts ?? null; // a conversa da abertura (se ela saiu)
+    await comReserva(id, "resposta", async () => {
+      await postarNoSlack({ texto: textoDaResposta(d), naConversaDe: ts });
+    });
+  }
+}
+
+/** O lembrete do dia do prazo, na conversa da abertura e também no canal. */
+async function lembrar(id: string): Promise<void> {
+  const d = await dados(id);
+  if (!d) return;
+  await comReserva(id, "lembrete", async () => {
+    await postarNoSlack({
+      texto: TEXTO_DO_LEMBRETE,
+      naConversaDe: d.slack_ts,
+      tambemNoCanal: true,
+    });
+  });
+}
+
+/** A tarefa da manhã (8h): os lembretes do dia e os avisos que se perderam. */
+export async function tarefaDosAvisos(request: Request): Promise<Response> {
+  const segredo = process.env["CRON_SECRET"];
+  const recebido = request.headers.get("authorization") ?? "";
+  const esperado = `Bearer ${segredo ?? ""}`;
+  const igual =
+    !!segredo &&
+    recebido.length === esperado.length &&
+    timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado));
+  if (!igual) return new Response("Não autorizado.", { status: 401 });
+  if (!slackConfigurado()) return Response.json({ avisos: 0, motivo: "Slack não configurado" });
+  const { data: pendentes, error } = await supabaseAdmin.rpc("avisos_slack_pendentes");
+  if (error) return new Response(error.message, { status: 500 });
+  let feitos = 0;
+  for (const p of pendentes ?? []) {
+    try {
+      if (p.evento === "lembrete") await lembrar(p.id);
+      else await avisarContestacao(p.id);
+      feitos++;
+    } catch (e) {
+      console.error("[avisos] erro na tarefa da manhã:", e instanceof Error ? e.message : e);
+    }
+  }
+  return Response.json({ avisos: feitos });
+}

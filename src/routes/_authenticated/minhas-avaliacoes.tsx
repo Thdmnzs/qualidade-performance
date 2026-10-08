@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { avisarContestacaoFn } from "@/lib/avisos-contestacao.functions";
 import {
   avaliacaoApontada,
   contestacaoEmAndamento,
@@ -330,11 +331,13 @@ function ContestarAvaliacaoDialog({
 
   const contestar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("contestar_avaliacao", {
+      const { data, error } = await supabase.rpc("contestar_avaliacao", {
         _evaluation_id: avaliacao!.id,
         _descricao: motivo,
       });
       if (error) throw new Error(error.message);
+      // O aviso no Slack: sem esperar e sem mostrar erro (a tarefa da manhã repara o que faltar).
+      void avisarContestacaoFn({ data: { contestationId: data } }).catch(() => {});
     },
     onSuccess: () => {
       toast.success("Contestação enviada. Ela aparece em Minhas contestações.");

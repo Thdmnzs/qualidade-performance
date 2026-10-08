@@ -19,6 +19,7 @@ import { Route as AuthenticatedMinhasAvaliacoesRouteImport } from './routes/_aut
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticated/ranking'
+import { Route as ApiAvisosContestacoesRouteImport } from './routes/api/avisos-contestacoes'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAvaliacoesRouteImport } from './routes/_authenticated/admin/avaliacoes'
 import { Route as AuthenticatedAdminColaboradoresRouteImport } from './routes/_authenticated/admin/colaboradores'
@@ -80,6 +81,11 @@ const AuthenticatedRankingRoute = AuthenticatedRankingRouteImport.update({
   path: '/ranking',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiAvisosContestacoesRoute = ApiAvisosContestacoesRouteImport.update({
+  id: '/api/avisos-contestacoes',
+  path: '/api/avisos-contestacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ranking': typeof AuthenticatedRankingRoute
+  '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ranking': typeof AuthenticatedRankingRoute
+  '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/ranking': typeof AuthenticatedRankingRoute
+  '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
   '/_authenticated/admin/colaboradores': typeof AuthenticatedAdminColaboradoresRoute
   '/_authenticated/admin/contestacoes': typeof AuthenticatedAdminContestacoesRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/perfil'
     | '/ranking'
+    | '/api/avisos-contestacoes'
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/perfil'
     | '/ranking'
+    | '/api/avisos-contestacoes'
     | '/admin/avaliacoes'
     | '/admin/colaboradores'
     | '/admin/contestacoes'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/perfil'
     | '/_authenticated/ranking'
+    | '/api/avisos-contestacoes'
     | '/_authenticated/admin/avaliacoes'
     | '/_authenticated/admin/colaboradores'
     | '/_authenticated/admin/contestacoes'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   DefinirSenhaRoute: typeof DefinirSenhaRoute
+  ApiAvisosContestacoesRoute: typeof ApiAvisosContestacoesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/ranking'
       preLoaderRoute: typeof AuthenticatedRankingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/avisos-contestacoes': {
+      id: '/api/avisos-contestacoes'
+      path: '/api/avisos-contestacoes'
+      fullPath: '/api/avisos-contestacoes'
+      preLoaderRoute: typeof ApiAvisosContestacoesRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -428,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   DefinirSenhaRoute: DefinirSenhaRoute,
+  ApiAvisosContestacoesRoute: ApiAvisosContestacoesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
