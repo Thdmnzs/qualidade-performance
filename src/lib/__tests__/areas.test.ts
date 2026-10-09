@@ -86,12 +86,19 @@ describe("itensDoMenu", () => {
     expect(itensDoMenu("colaborador", "colaborador")).not.toContain("/admin/painel");
   });
 
-  it("avaliador na gestão vê avaliações, contestações e o ranking (desde 06/10/2026)", () => {
+  it("avaliador na gestão vê avaliações, contestações, a escala e o ranking", () => {
     expect(itensDoMenu("avaliador", "gestao")).toEqual([
       "/admin/avaliacoes",
       "/admin/contestacoes",
+      "/escala",
       "/ranking",
     ]);
+  });
+
+  it("a Escala está nas duas áreas, e mantém a área de quem a abre (como o Ranking)", () => {
+    expect(itensDoMenu("adm", "gestao")).toContain("/escala");
+    expect(areaDoEndereco("/escala", "colaborador")).toBe("colaborador");
+    expect(areaDoEndereco("/escala", "gestao")).toBe("gestao");
   });
 
   it("avaliador na área de colaborador vê o mesmo que um colaborador", () => {
@@ -122,12 +129,13 @@ describe("trocaDeArea", () => {
 });
 
 describe("área do colaborador", () => {
-  it("tem Visão geral, Minhas avaliações, Minhas contestações, Ranking (só o pódio) e Meu perfil, nesta ordem", () => {
+  it("tem Visão geral, Minhas avaliações, Minhas contestações, Indicadores, Escala, Ranking (só o pódio) e Meu perfil, nesta ordem", () => {
     expect(itensDoMenu("colaborador", "colaborador")).toEqual([
       "/painel",
       "/minhas-avaliacoes",
       "/contestacoes",
       "/indicadores",
+      "/escala",
       "/ranking",
       "/perfil",
     ]);

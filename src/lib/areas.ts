@@ -55,7 +55,7 @@ export function inicioDoPerfil(perfil: Perfil): Inicio {
 
 /** A área é derivada do endereço: tudo sob /admin (e o ranking) é gestão. */
 /** As páginas que existem nas DUAS áreas (o mesmo endereço nos dois menus). */
-const DAS_DUAS_AREAS = ["/ranking"];
+const DAS_DUAS_AREAS = ["/ranking", "/escala"];
 
 /**
  * A área pelo endereço. Numa página das duas áreas (o Ranking), vale a área em
@@ -83,7 +83,8 @@ export type Rota =
   | "/admin/processos"
   | "/admin/historico"
   | "/indicadores"
-  | "/admin/painel";
+  | "/admin/painel"
+  | "/escala";
 
 /** Itens do menu, na ordem, por perfil e área atual. */
 export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
@@ -96,16 +97,25 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
       "/admin/indicadores",
       "/admin/processos",
       "/admin/historico",
+      "/escala",
       "/ranking",
       "/admin/colaboradores",
     ];
   }
   if (perfil === "avaliador" && area === "gestao") {
     // O Ranking: desde 07/10/2026, o avaliador vê só o pódio publicado, como o colaborador.
-    return ["/admin/avaliacoes", "/admin/contestacoes", "/ranking"];
+    return ["/admin/avaliacoes", "/admin/contestacoes", "/escala", "/ranking"];
   }
   // Colaborador, e avaliador na área de colaborador.
-  return ["/painel", "/minhas-avaliacoes", "/contestacoes", "/indicadores", "/ranking", "/perfil"];
+  return [
+    "/painel",
+    "/minhas-avaliacoes",
+    "/contestacoes",
+    "/indicadores",
+    "/escala",
+    "/ranking",
+    "/perfil",
+  ];
 }
 
 /** Atalho para trocar de área sem sair (só o avaliador tem as duas). */

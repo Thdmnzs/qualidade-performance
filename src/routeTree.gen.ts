@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
 import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authenticated/contestacoes'
+import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
 import { Route as AuthenticatedMinhasAvaliacoesRouteImport } from './routes/_authenticated/minhas-avaliacoes'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
@@ -54,6 +55,11 @@ const AuthenticatedContestacoesRoute =
     path: '/contestacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
+  id: '/escala',
+  path: '/escala',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedIndicadoresRoute =
   AuthenticatedIndicadoresRouteImport.update({
     id: '/indicadores',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
   '/_authenticated/contestacoes': typeof AuthenticatedContestacoesRoute
+  '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
   '/_authenticated/minhas-avaliacoes': typeof AuthenticatedMinhasAvaliacoesRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/escala'
     | '/indicadores'
     | '/minhas-avaliacoes'
     | '/painel'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/contestacoes'
+    | '/escala'
     | '/indicadores'
     | '/minhas-avaliacoes'
     | '/painel'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/definir-senha'
     | '/_authenticated/contestacoes'
+    | '/_authenticated/escala'
     | '/_authenticated/indicadores'
     | '/_authenticated/minhas-avaliacoes'
     | '/_authenticated/painel'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/contestacoes'
       fullPath: '/contestacoes'
       preLoaderRoute: typeof AuthenticatedContestacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escala': {
+      id: '/_authenticated/escala'
+      path: '/escala'
+      fullPath: '/escala'
+      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/indicadores': {
@@ -408,6 +427,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedContestacoesRoute: typeof AuthenticatedContestacoesRoute
+  AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
   AuthenticatedMinhasAvaliacoesRoute: typeof AuthenticatedMinhasAvaliacoesRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
@@ -425,6 +445,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContestacoesRoute: AuthenticatedContestacoesRoute,
+  AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
   AuthenticatedMinhasAvaliacoesRoute: AuthenticatedMinhasAvaliacoesRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
