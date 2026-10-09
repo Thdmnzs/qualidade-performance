@@ -10,6 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { inicioDoPerfil } from "@/lib/areas";
 import { lerCodigoDoLink, type TipoDoLink } from "@/lib/link-de-acesso";
 import { REGRAS_SENHA, senhaAtendeRegras } from "@/lib/senha";
+import { conferirPrefixoDeSenhaFn } from "@/lib/senha.functions";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  apareceEmVazamentos,
+  prefixoESufixo,
+  TEXTO_DA_SITUACAO,
+  type SituacaoDaSenha,
+} from "@/lib/senha-vazada";
 
 export const Route = createFileRoute("/definir-senha")({
   // A sessão vem no fragmento da URL (#access_token=...), que só existe no navegador.
@@ -67,6 +75,9 @@ function DefinirSenha() {
   const [estado, setEstado] = useState<Estado>({ fase: "verificando" });
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
+  // A conferência de senhas vazadas (a senha nunca sai do navegador; só 5 caracteres do código).
+  const [vazamento, setVazamento] = useState<SituacaoDaSenha | null>(null);
+  const conferirPrefixo = useServerFn(conferirPrefixoDeSenhaFn);
   const [salvando, setSalvando] = useState(false);
 
   const [continuando, setContinuando] = useState(false);
@@ -119,7 +130,38 @@ function DefinirSenha() {
     setEstado({ fase: "pronto", email, tipo: estado.tipo === "invite" ? "convite" : "senha" });
   }
 
-  const senhaValida = senhaAtendeRegras(senha);
+  const regrasOk = senhaAtendeRegras(senha);
+  useEffect(() => {
+    if (!regrasOk) {
+      setVazamento(null);
+      return;
+    }
+    setVazamento("conferindo");
+    let valendo = true; // a pessoa continuou digitando? A resposta atrasada não vale para a senha nova.
+    const espera = setTimeout(async () => {
+      try {
+        const { prefixo, sufixo } = await prefixoESufixo(senha);
+        const { resposta } = await conferirPrefixo({ data: { prefixo } });
+        if (!valendo) return;
+        setVazamento(
+          resposta === null
+            ? "indisponivel"
+            : apareceEmVazamentos(sufixo, resposta)
+              ? "vazada"
+              : "segura",
+        );
+      } catch {
+        if (valendo) setVazamento("indisponivel");
+      }
+    }, 500);
+    return () => {
+      valendo = false;
+      clearTimeout(espera);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconfere só quando a senha muda
+  }, [senha, regrasOk]);
+  // Só salva com as regras cumpridas e a senha fora dos vazamentos (ou com o serviço fora do ar).
+  const senhaValida = regrasOk && (vazamento === "segura" || vazamento === "indisponivel");
   const confere = senha.length > 0 && senha === confirmacao;
 
   async function salvar(e: React.FormEvent) {
@@ -219,6 +261,26 @@ function DefinirSenha() {
                     </li>
                   );
                 })}
+                {vazamento && (
+                  <li
+                    className={`flex items-center gap-2 ${
+                      vazamento === "segura"
+                        ? "text-primary"
+                        : vazamento === "vazada"
+                          ? "font-medium text-destructive"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {vazamento === "segura" ? (
+                      <Check className="size-3.5" />
+                    ) : vazamento === "vazada" ? (
+                      <X className="size-3.5" />
+                    ) : (
+                      <span className="size-3.5" />
+                    )}
+                    {TEXTO_DA_SITUACAO[vazamento]}
+                  </li>
+                )}
               </ul>
 
               <div className="space-y-2">
