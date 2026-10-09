@@ -20,6 +20,7 @@ import {
   type Sugestoes,
 } from "@/lib/pre-avaliacao";
 import { buscarContato } from "@/server/intercom.server";
+import { mensagemSegura } from "@/server/erros-do-banco.server";
 
 export class ErroDaPreAvaliacao extends Error {}
 
@@ -48,7 +49,7 @@ export async function preAvaliar(p: {
     _conversa_id: p.conversaId,
   };
   const { data: guardada, error: erroBusca } = await supabaseAdmin.rpc("buscar_pre_avaliacao", ids);
-  if (erroBusca) throw new ErroDaPreAvaliacao(erroBusca.message);
+  if (erroBusca) throw new ErroDaPreAvaliacao(mensagemSegura(erroBusca, "pre-avaliacao"));
   if (guardada)
     return { estado: "pronta", sugestoes: guardada as unknown as Sugestoes, reaproveitada: true };
 
@@ -163,7 +164,7 @@ export async function preAvaliar(p: {
     _tokens_entrada: corpo.usage?.input_tokens ?? null,
     _tokens_saida: corpo.usage?.output_tokens ?? null,
   });
-  if (erroGrava) throw new ErroDaPreAvaliacao(erroGrava.message);
+  if (erroGrava) throw new ErroDaPreAvaliacao(mensagemSegura(erroGrava, "pre-avaliacao"));
   return {
     estado: "pronta",
     sugestoes: (gravada as unknown as Sugestoes) ?? sugestoes,

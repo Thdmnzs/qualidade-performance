@@ -97,7 +97,10 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
   if (!igual) return new Response("Não autorizado.", { status: 401 });
   if (!slackConfigurado()) return Response.json({ avisos: 0, motivo: "Slack não configurado" });
   const { data: pendentes, error } = await supabaseAdmin.rpc("avisos_slack_pendentes");
-  if (error) return new Response(error.message, { status: 500 });
+  if (error) {
+    console.error("[avisos] erro ao ler a fila:", error);
+    return new Response("Erro ao ler a fila de avisos.", { status: 500 });
+  }
   let feitos = 0;
   for (const p of pendentes ?? []) {
     try {

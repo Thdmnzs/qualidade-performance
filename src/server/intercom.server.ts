@@ -45,6 +45,7 @@ import {
   type TipoDeTicket,
 } from "@/lib/tickets";
 import { canalDaConversa, type Canal } from "@/lib/canal";
+import { mensagemSegura } from "@/server/erros-do-banco.server";
 import { limiteAtingido } from "@/lib/avaliacao";
 
 /** Versão atual da API (2.16, de julho de 2026). */
@@ -253,8 +254,9 @@ async function exigir<T>(r: Resposta<T>, oQue: string): Promise<T> {
 }
 
 /** Mensagem do banco (as nossas são claras) ou uma genérica. */
-function erroDoBanco(error: { message?: string } | null) {
-  if (error) throw new ErroDoIntercom(error.message || "Não foi possível concluir a operação.");
+function erroDoBanco(error: { code?: string; message?: string } | null) {
+  // Só as mensagens das regras vão para a tela; o resto vira a genérica (o detalhe fica no registro).
+  if (error) throw new ErroDoIntercom(mensagemSegura(error, "intercom"));
 }
 
 async function exigirAvaliadorSobre(chamadorId: string, employeeId: string) {

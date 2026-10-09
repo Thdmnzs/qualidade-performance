@@ -318,6 +318,7 @@ export function ContatoIntercom({
             <div className="space-y-2">
               <Label htmlFor="motivo-descarte">Por que descartar este contato?</Label>
               <Textarea
+                maxLength={1000}
                 id="motivo-descarte"
                 rows={3}
                 value={motivo}

@@ -190,6 +190,7 @@ export function CicloDaQuinzena({
           <div className="space-y-2">
             <Label htmlFor="motivo-reabertura">Motivo</Label>
             <Textarea
+              maxLength={1000}
               id="motivo-reabertura"
               rows={3}
               value={motivo}

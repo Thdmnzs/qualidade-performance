@@ -175,6 +175,7 @@ export function AjusteDaAvaliacao({
               </div>
               {respostas[c.id] && (
                 <Textarea
+                  maxLength={2000}
                   rows={2}
                   className="mt-2 text-xs"
                   aria-label={`Observação do critério ${c.ordem}`}

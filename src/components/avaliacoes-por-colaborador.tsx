@@ -301,6 +301,7 @@ function ExcluirAvaliacaoDialog({
         <div className="space-y-2">
           <Label htmlFor="motivo-exclusao">Motivo da exclusão</Label>
           <Textarea
+            maxLength={1000}
             id="motivo-exclusao"
             rows={3}
             value={motivo}

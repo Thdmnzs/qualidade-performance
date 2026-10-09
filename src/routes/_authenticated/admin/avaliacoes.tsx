@@ -701,6 +701,7 @@ function Avaliacoes() {
                         Dica para o colaborador (opcional)
                       </Label>
                       <Textarea
+                        maxLength={2000}
                         id={`obs-${c.id}`}
                         rows={2}
                         placeholder="Uma dica, mesmo com o critério atendido…"
@@ -722,6 +723,7 @@ function Avaliacoes() {
                         {respostas[c.id] === "nao" ? "obrigatório" : "opcional"})
                       </Label>
                       <Textarea
+                        maxLength={2000}
                         id={`obs-${c.id}`}
                         rows={2}
                         placeholder={
@@ -741,6 +743,7 @@ function Avaliacoes() {
             <div className="space-y-2">
               <Label htmlFor="cm">Comentários / feedback</Label>
               <Textarea
+                maxLength={4000}
                 id="cm"
                 rows={3}
                 value={comentarios}
