@@ -18,6 +18,7 @@ import {
 import { useRef, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { apagarRegistros } from "@/lib/expiracao-da-sessao";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
 import { BotaoTema } from "@/components/botao-tema";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Primeiro a sessão, depois a memória: senão, a tela busca o cadastro de novo no meio
     // do caminho e guarda um "ninguém logado" (o "Cadastro não vinculado" do próximo login).
     await queryClient.cancelQueries();
+    apagarRegistros(); // o próximo login recomeça o prazo de 9 horas
     await supabase.auth.signOut();
     queryClient.clear();
     navigate({ to: "/auth", replace: true });

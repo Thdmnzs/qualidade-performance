@@ -5,8 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // O roteador e o Supabase, simulados.
 const navegar = vi.fn();
+let motivoNaUrl: Record<string, string> = {};
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (opcoes: Record<string, unknown>) => ({ options: opcoes }),
+  createFileRoute: () => (opcoes: Record<string, unknown>) => ({
+    options: opcoes,
+    useSearch: () => motivoNaUrl,
+  }),
   useNavigate: () => navegar,
 }));
 let perfil = "colaborador";
@@ -39,6 +43,7 @@ async function entrarPela(aba: "Colaborador" | "Avaliador") {
 
 beforeEach(() => {
   perfil = "colaborador";
+  motivoNaUrl = {};
 });
 afterEach(() => {
   cleanup();
@@ -73,5 +78,15 @@ describe("a aba errada bloqueia o login", () => {
       "O perfil ADM entra pela aba Avaliador.",
     );
     expect(navegar).not.toHaveBeenCalled();
+  });
+});
+
+describe("a sessão encerrada pelo prazo", () => {
+  it("a tela de login explica o motivo", () => {
+    motivoNaUrl = { motivo: "inatividade" };
+    render(<Pagina />);
+    expect(screen.getByRole("status").textContent).toBe(
+      "Sua sessão foi encerrada depois de 30 minutos sem uso. Entre novamente.",
+    );
   });
 });

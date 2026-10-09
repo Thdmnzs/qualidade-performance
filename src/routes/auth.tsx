@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { destinoAposLogin, inicioDoPerfil, type AbaDeLogin } from "@/lib/areas";
+import { MENSAGEM_DO_FIM, type MotivoDoFim } from "@/lib/expiracao-da-sessao";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
@@ -22,6 +23,9 @@ export const Route = createFileRoute("/auth")({
       },
     ],
   }),
+  // O motivo de uma sessão encerrada pelo prazo (a guarda e o vigia mandam para cá).
+  validateSearch: (s: Record<string, unknown>): { motivo?: MotivoDoFim } =>
+    s["motivo"] === "inatividade" || s["motivo"] === "limite" ? { motivo: s["motivo"] } : {},
   component: AuthPage,
 });
 
@@ -34,6 +38,7 @@ function AuthPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   // A aba errada: o motivo do bloqueio, no próprio cartão (até a pessoa trocar de aba).
   const [abaErrada, setAbaErrada] = useState<string | null>(null);
+  const { motivo } = Route.useSearch();
 
   // Já logado: vai para a área padrão do perfil.
   useEffect(() => {
@@ -114,6 +119,15 @@ function AuthPage() {
             </button>
           ))}
         </div>
+
+        {motivo && !abaErrada && (
+          <p
+            role="status"
+            className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+          >
+            {MENSAGEM_DO_FIM[motivo]}
+          </p>
+        )}
 
         {abaErrada && (
           <p
