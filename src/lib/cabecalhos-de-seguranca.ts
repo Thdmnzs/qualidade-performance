@@ -32,9 +32,9 @@ export const CABECALHOS_DE_SEGURANCA: Record<string, string> = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   // Só HTTPS por 2 anos, inclusive nos subdomínios.
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
-  // Fase 1: a CSP só OBSERVA (registra no console o que bloquearia, sem bloquear).
-  // Depois de um ciclo sem alertas, troca-se para "Content-Security-Policy".
-  "Content-Security-Policy-Report-Only": CSP,
+  // A CSP BLOQUEIA (desde 09/10/2026, depois do período só observando): scripts, conexões
+  // e imagens só do próprio site e do Supabase. Um script injetado não manda dados para fora.
+  "Content-Security-Policy": CSP,
 };
 
 /** Devolve a resposta com os cabeçalhos de segurança (cria uma cópia: os originais podem ser imutáveis). */

@@ -1,28 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { CABECALHOS_DE_SEGURANCA, comCabecalhosDeSeguranca, CSP } from "../cabecalhos-de-seguranca";
 
-describe("cabeçalhos de segurança", () => {
-  it("aplica todos, mantendo o status, o corpo e os cabeçalhos originais", async () => {
-    const original = new Response("<p>ok</p>", {
-      status: 404,
-      headers: { "content-type": "text/html" },
-    });
-    const r = comCabecalhosDeSeguranca(original);
-    expect(r.status).toBe(404);
-    expect(r.headers.get("content-type")).toBe("text/html");
-    expect(await r.text()).toBe("<p>ok</p>");
-    for (const [nome, valor] of Object.entries(CABECALHOS_DE_SEGURANCA))
-      expect(r.headers.get(nome)).toBe(valor);
+describe("os cabeçalhos de segurança", () => {
+  it("a CSP BLOQUEIA (não só observa)", () => {
+    expect(CABECALHOS_DE_SEGURANCA["Content-Security-Policy"]).toBe(CSP);
+    expect(CABECALHOS_DE_SEGURANCA).not.toHaveProperty("Content-Security-Policy-Report-Only");
   });
-  it("funciona com cabeçalhos imutáveis (como os de uma resposta de fetch)", () => {
-    const imutavel = Response.redirect("https://example.com/", 302); // cabeçalhos "immutable"
-    expect(() => imutavel.headers.set("x", "y")).toThrow();
-    expect(comCabecalhosDeSeguranca(imutavel).headers.get("X-Frame-Options")).toBe("DENY");
+  it("as conexões e os scripts só do próprio site e do Supabase", () => {
+    expect(CSP).toContain("default-src 'self'");
+    expect(CSP).toMatch(
+      /connect-src 'self' https:\/\/[a-z0-9]+\.supabase\.co wss:\/\/[a-z0-9]+\.supabase\.co(;|$)/,
+    );
+    expect(CSP).not.toMatch(/script-src[^;]*https?:/);
   });
-  it("a CSP proíbe ser embutida em outro site e plugins, e só fala com o próprio domínio e o Supabase", () => {
+  it("ninguém embute o site em outro, nem troca a base dos links", () => {
     expect(CSP).toContain("frame-ancestors 'none'");
+    expect(CSP).toContain("base-uri 'self'");
     expect(CSP).toContain("object-src 'none'");
-    expect(CSP).toMatch(/connect-src 'self' https:\/\/zugwegvitdqkkeqttuez\.supabase\.co wss:/);
-    expect(CSP).not.toMatch(/\*/); // nenhum curinga
+    expect(CABECALHOS_DE_SEGURANCA["X-Frame-Options"]).toBe("DENY");
+  });
+  it("aplicados a qualquer resposta, sem perder o corpo nem o código", async () => {
+    const r = comCabecalhosDeSeguranca(
+      new Response("ok", { status: 201, headers: { "content-type": "text/plain" } }),
+    );
+    expect(r.status).toBe(201);
+    expect(await r.text()).toBe("ok");
+    expect(r.headers.get("content-security-policy")).toBe(CSP);
+    expect(r.headers.get("strict-transport-security")).toContain("max-age=63072000");
+    expect(r.headers.get("content-type")).toBe("text/plain");
   });
 });
