@@ -6,6 +6,7 @@ import type { FeriasDoAno } from "@/lib/escala-api";
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 const ROSA = "#F4B6B6";
 const VERDE = "#00E000";
+const PEDIDO = "repeating-linear-gradient(45deg, #F4B6B6 0 5px, #FBE1E1 5px 10px)"; // o pedido aguardando, tracejado
 const iso = (ano: number, m: number, d: number) =>
   `${ano}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
@@ -19,11 +20,14 @@ export function CalendarioDeFerias({
   destacar = "",
   aoEscolher,
   selecionados = [],
+  pedidos = [],
 }: {
   dados: FeriasDoAno;
   destacar?: string;
-  aoEscolher?: (datas: string[], ancora: DOMRect) => void;
+  aoEscolher?: ((datas: string[], ancora: DOMRect) => void) | undefined;
   selecionados?: string[];
+  /** Os pedidos aguardando que esta pessoa pode ver: tracejados, com o rótulo ("pedido", ou "Nome?"). */
+  pedidos?: { de: string; ate: string; rotulo: string; nome: string }[];
 }) {
   const { ano, eu, feriados, porDia } = dados;
   const hoje = hojeIso();
@@ -85,9 +89,11 @@ export function CalendarioDeFerias({
               const data = iso(ano, m, d);
               const pessoas = porDia.get(data) ?? [];
               const feriado = feriados.has(data);
+              const pedidosDoDia = pedidos.filter((p) => p.de <= data && data <= p.ate);
               const linhas = [
                 ...(feriado ? ["feriado"] : []),
                 ...pessoas.map((p) => nomeCurto(p.nome, todos)),
+                ...pedidosDoDia.map((p) => p.rotulo),
               ];
               const minha = !!eu && pessoas.some((p) => p.employee_id === eu);
               const achada =
@@ -101,6 +107,9 @@ export function CalendarioDeFerias({
               const titulo = [
                 feriado ? "Feriado" : "",
                 pessoas.length ? `Férias: ${pessoas.map((p) => p.nome).join(" e ")}` : "",
+                pedidosDoDia.length
+                  ? `Pedido aguardando: ${pedidosDoDia.map((p) => p.nome).join(" e ")}`
+                  : "",
                 !linhas.length ? "Livre" : "",
               ]
                 .filter(Boolean)
@@ -141,8 +150,17 @@ export function CalendarioDeFerias({
                       data === hoje
                         ? "outline-dashed outline-2 outline-offset-1 outline-[#2563EB]"
                         : "",
+                      pedidosDoDia.length
+                        ? "text-[#0D0F0D] outline-dashed outline-2 -outline-offset-2 outline-[#C2410C]"
+                        : "",
                     ].join(" ")}
-                    style={fundo ? { background: fundo } : undefined}
+                    style={
+                      fundo
+                        ? { background: fundo }
+                        : pedidosDoDia.length
+                          ? { background: PEDIDO }
+                          : undefined
+                    }
                   >
                     {linhas.map((x, k) => (
                       <span key={k} className="max-w-full truncate">
@@ -160,7 +178,13 @@ export function CalendarioDeFerias({
   );
 }
 
-export function LegendaDasFerias({ comMinhas }: { comMinhas: boolean }) {
+export function LegendaDasFerias({
+  comMinhas,
+  pedidos,
+}: {
+  comMinhas: boolean;
+  pedidos?: "meus" | "todos" | undefined;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span
@@ -175,6 +199,14 @@ export function LegendaDasFerias({ comMinhas }: { comMinhas: boolean }) {
       >
         Feriado
       </span>
+      {pedidos && (
+        <span
+          className="rounded-full px-2.5 py-1 font-bold text-[#0D0F0D] outline-dashed outline-2 -outline-offset-2 outline-[#C2410C]"
+          style={{ background: PEDIDO }}
+        >
+          {pedidos === "meus" ? "Seu pedido aguardando" : "Pedido aguardando"}
+        </span>
+      )}
       <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
         Livre (ninguém escolheu)
       </span>

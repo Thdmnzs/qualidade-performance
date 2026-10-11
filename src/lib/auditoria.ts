@@ -41,6 +41,10 @@ export const CATEGORIAS: Record<string, string[]> = {
     "ferias_tirar",
     "feriado_marcar",
     "feriado_tirar",
+    "ferias_pedir",
+    "ferias_cancelar_pedido",
+    "ferias_aprovar",
+    "ferias_recusar",
   ],
 };
 
@@ -195,6 +199,27 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         q(r.acao === "ferias_marcar" ? "marcou as férias de " : "tirou as férias de "),
         b(alvo),
         q(`: ${quanto}`),
+      ];
+    }
+    case "ferias_pedir":
+    case "ferias_cancelar_pedido":
+    case "ferias_aprovar":
+    case "ferias_recusar": {
+      const de = String(n["de"] ?? "");
+      const ate = String(n["ate"] ?? "");
+      const periodo =
+        de === ate ? `o dia ${dataBRCurta(de)}` : `${dataBRCurta(de)} a ${dataBRCurta(ate)}`;
+      if (r.acao === "ferias_aprovar" || r.acao === "ferias_recusar") {
+        return [
+          q(r.acao === "ferias_aprovar" ? "aprovou as férias de " : "recusou as férias de "),
+          b(alvo),
+          q(`: ${periodo}`),
+          ...(txt(n["motivo"]) ? [q(` · motivo: ${n["motivo"]}`)] : []),
+        ];
+      }
+      return [
+        q(r.acao === "ferias_pedir" ? "pediu férias: " : "cancelou o pedido de férias: "),
+        b(periodo),
       ];
     }
     case "feriado_marcar":

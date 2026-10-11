@@ -1367,6 +1367,13 @@ export type Database = {
         Returns: number;
       };
       definir_feriado: { Args: { _data: string; _feriado: boolean }; Returns: undefined };
+      pedidos_de_ferias: { Args: never; Returns: Json };
+      pedir_ferias: { Args: { _de: string; _ate: string; _observacao: string }; Returns: string };
+      cancelar_pedido_de_ferias: { Args: { _pedido: string }; Returns: undefined };
+      decidir_pedido_de_ferias: {
+        Args: { _pedido: string; _aprovar: boolean; _motivo: string };
+        Returns: undefined;
+      };
       editar_avaliacao: {
         Args: {
           _assunto: string;

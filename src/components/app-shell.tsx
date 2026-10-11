@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   BookOpen,
@@ -19,6 +19,7 @@ import {
 import { useRef, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { lerPedidos } from "@/lib/escala-api";
 import { apagarRegistros } from "@/lib/expiracao-da-sessao";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
 import { BotaoTema } from "@/components/botao-tema";
@@ -77,6 +78,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const itens = itensDoMenu(perfil, area).map((to) => ({ to, ...NAV[to] }));
+  // O selo da Escala, para o ADM: quantos pedidos de férias aguardam uma decisão.
+  const { data: pedidosDeFerias = [] } = useQuery({
+    queryKey: ["escala-pedidos"],
+    queryFn: lerPedidos,
+    enabled: perfil === "adm",
+    refetchInterval: 5 * 60_000,
+  });
+  const aguardando =
+    perfil === "adm" ? pedidosDeFerias.filter((p) => p.situacao === "aguardando").length : 0;
+  const selo = (to: string) =>
+    to === "/escala" && aguardando > 0 ? (
+      <span
+        className="ml-auto rounded-full bg-[#C2410C] px-1.5 text-[10px] font-bold text-white"
+        aria-label={`${aguardando} pedidos de férias aguardando`}
+      >
+        {aguardando}
+      </span>
+    ) : null;
   const menuDoUsuario = (
     <MenuDoUsuario
       nome={employee?.nome ?? "Usuário"}
@@ -123,6 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <item.icon className="size-4" />
               {item.label}
+              {selo(item.to)}
             </Link>
           ))}
         </nav>
@@ -153,9 +173,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={item.to}
               to={item.to}
-              className="whitespace-nowrap rounded-full bg-secondary px-3 py-1.5 text-xs font-medium"
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-secondary px-3 py-1.5 text-xs font-medium"
             >
               {item.label}
+              {selo(item.to)}
             </Link>
           ))}
           <div className="ml-auto flex shrink-0 items-center gap-2">

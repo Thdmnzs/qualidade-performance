@@ -162,6 +162,37 @@ describe("as frases da escala", () => {
       }),
     ).toBe("marcou as férias de Ruby Lima: o dia 09/11");
   });
+  it("os pedidos de férias: o pedido, o cancelamento e as decisões", () => {
+    expect(
+      texto({ acao: "ferias_pedir", valor_novo: { de: "2026-11-09", ate: "2026-11-13" } }),
+    ).toBe("pediu férias: 09/11 a 13/11");
+    expect(
+      texto({
+        acao: "ferias_cancelar_pedido",
+        valor_novo: { de: "2026-11-09", ate: "2026-11-09" },
+      }),
+    ).toBe("cancelou o pedido de férias: o dia 09/11");
+    expect(
+      texto({
+        acao: "ferias_aprovar",
+        alvo: null,
+        valor_novo: { de: "2026-11-09", ate: "2026-11-13", colaborador: "Ana Colab" },
+      }),
+    ).toBe("aprovou as férias de Ana Colab: 09/11 a 13/11");
+    expect(
+      texto({
+        acao: "ferias_recusar",
+        alvo: null,
+        valor_novo: {
+          de: "2026-11-09",
+          ate: "2026-11-13",
+          colaborador: "Ana Colab",
+          motivo: "Já há 2 pessoas.",
+        },
+      }),
+    ).toBe("recusou as férias de Ana Colab: 09/11 a 13/11 · motivo: Já há 2 pessoas.");
+    expect(categoriaDe("ferias_aprovar")).toBe("Escala");
+  });
   it("tudo na categoria Escala", () => {
     for (const a of ["escala_publicar", "escala_mudar_dia", "ferias_marcar", "feriado_tirar"])
       expect(categoriaDe(a)).toBe("Escala");

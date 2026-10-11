@@ -128,3 +128,43 @@ export async function definirFeriado(data: string, feriado: boolean) {
   const { error } = await supabase.rpc("definir_feriado", { _data: data, _feriado: feriado });
   falhar(error);
 }
+
+// ---------- Os pedidos de férias ----------
+export type PedidoDeFerias = {
+  id: string;
+  employee_id: string;
+  nome: string;
+  de: string;
+  ate: string;
+  observacao: string | null;
+  situacao: "aguardando" | "aprovado" | "recusado" | "cancelado";
+  motivo: string | null;
+  criado_em: string;
+  decidido_em: string | null;
+};
+/** O colaborador recebe os próprios; o ADM, os de todos (aguardando, e os decididos nos últimos 60 dias). */
+export async function lerPedidos(): Promise<PedidoDeFerias[]> {
+  const { data, error } = await supabase.rpc("pedidos_de_ferias");
+  falhar(error);
+  return (data as unknown as PedidoDeFerias[]) ?? [];
+}
+export async function pedirFerias(de: string, ate: string, observacao: string) {
+  const { error } = await supabase.rpc("pedir_ferias", {
+    _de: de,
+    _ate: ate,
+    _observacao: observacao,
+  });
+  falhar(error);
+}
+export async function cancelarPedido(id: string) {
+  const { error } = await supabase.rpc("cancelar_pedido_de_ferias", { _pedido: id });
+  falhar(error);
+}
+export async function decidirPedido(id: string, aprovar: boolean, motivo: string | null) {
+  const { error } = await supabase.rpc("decidir_pedido_de_ferias", {
+    _pedido: id,
+    _aprovar: aprovar,
+    _motivo: motivo ?? "",
+  });
+  falhar(error);
+}
