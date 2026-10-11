@@ -33,6 +33,24 @@ export const CATEGORIAS: Record<string, string[]> = {
     "excluir_colaborador",
     "definir_perfil",
   ],
+  Escala: [
+    "escala_publicar",
+    "escala_mudar_dia",
+    "escala_criar_sigla",
+    "ferias_marcar",
+    "ferias_tirar",
+    "feriado_marcar",
+    "feriado_tirar",
+  ],
+};
+
+const DIAS_DA_SEMANA_AUD = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+const dataBRCurta = (iso: unknown) =>
+  typeof iso === "string" && iso.length >= 10 ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "";
+const somaDias = (iso: string, n: number) => {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 };
 
 export function categoriaDe(acao: string): string {
@@ -143,6 +161,46 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         b(r.alvo ?? "um colaborador"),
         ...(txt(n["perfil"]) ? [q(` para ${PERFIL[String(n["perfil"])] ?? n["perfil"]}`)] : []),
       ];
+    case "escala_publicar": {
+      const ini = String(n["inicio"] ?? "");
+      return [
+        q("publicou a escala da semana de "),
+        b(`${dataBRCurta(ini)} a ${dataBRCurta(ini ? somaDias(ini, 6) : "")}`),
+      ];
+    }
+    case "escala_mudar_dia": {
+      const ini = String(n["inicio"] ?? "");
+      const d = Number(n["dia"] ?? 0);
+      return [
+        q("mudou a escala de "),
+        b(`${DIAS_DA_SEMANA_AUD[d] ?? "um dia"}, ${dataBRCurta(ini ? somaDias(ini, d) : "")}`),
+        q(", depois de publicada"),
+      ];
+    }
+    case "escala_criar_sigla":
+      return [
+        q("criou a atividade "),
+        b(txt(n["sigla"]) ?? ""),
+        ...(txt(n["significado"]) ? [q(` (${n["significado"]})`)] : []),
+        q(" na escala"),
+      ];
+    case "ferias_marcar":
+    case "ferias_tirar": {
+      const datas = Array.isArray(n["datas"]) ? (n["datas"] as string[]) : [];
+      const quanto =
+        datas.length === 1
+          ? `o dia ${dataBRCurta(datas[0])}`
+          : `${datas.length} dias (de ${dataBRCurta(datas[0])} a ${dataBRCurta(datas[datas.length - 1])})`;
+      return [
+        q(r.acao === "ferias_marcar" ? "marcou as férias de " : "tirou as férias de "),
+        b(alvo),
+        q(`: ${quanto}`),
+      ];
+    }
+    case "feriado_marcar":
+      return [q("marcou o feriado de "), b(dataBRCurta(n["data"]))];
+    case "feriado_tirar":
+      return [q("tirou o feriado de "), b(dataBRCurta(n["data"]))];
     default:
       return [q(`registrou a ação "${r.acao}"`), ...(r.alvo ? [q(" sobre "), b(r.alvo)] : [])];
   }

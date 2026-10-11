@@ -179,6 +179,22 @@ export type Database = {
         };
         Relationships: [];
       };
+      escala_siglas: {
+        Row: {
+          id: string;
+          sigla: string;
+          cor: string;
+          significado: string;
+          conta_como_trabalho: boolean;
+          em_atendimento: boolean;
+          faixa: boolean;
+          ordem: number;
+          criada_em: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       conquistas: {
         Row: {
           ativa: boolean;
@@ -1333,6 +1349,24 @@ export type Database = {
       guardar_mensagem_slack: { Args: { _id: string; _ts: string }; Returns: undefined };
       reservar_aviso_slack: { Args: { _evento: string; _id: string }; Returns: boolean };
       meu_progresso_de_conquistas: { Args: never; Returns: { quinzenas_com_100: number }[] };
+      escala_da_semana: { Args: { _inicio: string }; Returns: Json };
+      semanas_da_escala: { Args: never; Returns: Json };
+      ferias_do_ano: { Args: { _ano: number }; Returns: Json };
+      salvar_dia_da_escala: {
+        Args: { _inicio: string; _dia: number; _linhas: Json };
+        Returns: undefined;
+      };
+      salvar_semana_da_escala: { Args: { _inicio: string; _dias: Json }; Returns: undefined };
+      publicar_semana_da_escala: { Args: { _inicio: string }; Returns: undefined };
+      criar_sigla_da_escala: {
+        Args: { _sigla: string; _cor: string; _significado: string };
+        Returns: string;
+      };
+      definir_ferias: {
+        Args: { _employee_id: string; _datas: string[]; _de_ferias: boolean };
+        Returns: number;
+      };
+      definir_feriado: { Args: { _data: string; _feriado: boolean }; Returns: undefined };
       editar_avaliacao: {
         Args: {
           _assunto: string;

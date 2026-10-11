@@ -111,3 +111,59 @@ describe("categoriaDe", () => {
     expect(categoriaDe("acao_nova")).toBe("Outras");
   });
 });
+
+describe("as frases da escala", () => {
+  const texto = (r: Partial<Registro>) =>
+    fraseDoRegistro({
+      acao: "",
+      quem: "Admin",
+      alvo: null,
+      valor_anterior: null,
+      valor_novo: null,
+      ...r,
+    } as Registro)
+      .map((p) => p.texto)
+      .join("");
+  it("a publicação e a mudança depois de publicada", () => {
+    expect(texto({ acao: "escala_publicar", valor_novo: { inicio: "2026-10-12" } })).toBe(
+      "publicou a escala da semana de 12/10 a 18/10",
+    );
+    expect(texto({ acao: "escala_mudar_dia", valor_novo: { inicio: "2026-10-12", dia: 2 } })).toBe(
+      "mudou a escala de quarta, 14/10, depois de publicada",
+    );
+  });
+  it("as férias, os feriados e a atividade nova", () => {
+    expect(
+      texto({
+        acao: "ferias_marcar",
+        alvo: "Ruby Lima",
+        valor_novo: { datas: ["2026-11-09", "2026-11-10", "2026-11-13"] },
+      }),
+    ).toBe("marcou as férias de Ruby Lima: 3 dias (de 09/11 a 13/11)");
+    expect(
+      texto({ acao: "ferias_tirar", alvo: "Ruby Lima", valor_novo: { datas: ["2026-11-13"] } }),
+    ).toBe("tirou as férias de Ruby Lima: o dia 13/11");
+    expect(texto({ acao: "feriado_marcar", valor_novo: { data: "2026-10-12" } })).toBe(
+      "marcou o feriado de 12/10",
+    );
+    expect(
+      texto({
+        acao: "escala_criar_sigla",
+        valor_novo: { sigla: "trein", significado: "Treinamento" },
+      }),
+    ).toBe("criou a atividade trein (Treinamento) na escala");
+  });
+  it("as férias, sem o nome vindo da lista: usa o nome guardado no registro", () => {
+    expect(
+      texto({
+        acao: "ferias_marcar",
+        alvo: null,
+        valor_novo: { datas: ["2026-11-09"], colaborador: "Ruby Lima" },
+      }),
+    ).toBe("marcou as férias de Ruby Lima: o dia 09/11");
+  });
+  it("tudo na categoria Escala", () => {
+    for (const a of ["escala_publicar", "escala_mudar_dia", "ferias_marcar", "feriado_tirar"])
+      expect(categoriaDe(a)).toBe("Escala");
+  });
+});
