@@ -12,8 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { datasDoPeriodo, hojeIso, MESES_POR_EXTENSO } from "@/lib/escala";
-import { definirFeriado, definirFerias, lerFerias } from "@/lib/escala-api";
+import { AvisosDoPeriodo } from "@/components/escala/pedido-de-ferias";
+import { diasDoPedido, periodoDoPedido } from "@/lib/pedidos-de-ferias";
+import { anosDasFerias, datasDoPeriodo, hojeIso, MESES_POR_EXTENSO, nomeCurto } from "@/lib/escala";
+import {
+  decidirPedido,
+  definirFeriado,
+  definirFerias,
+  lerFerias,
+  lerPedidos,
+  type PedidoDeFerias,
+} from "@/lib/escala-api";
 
 type Pessoa = { id: string; nome: string };
 
@@ -29,6 +38,27 @@ export function MontarFerias({ pessoas }: { pessoas: Pessoa[] }) {
   const [periodo, setPeriodo] = useState(false);
   const fechar = useCallback(() => setAberto(null), []);
   const recarregar = () => qc.invalidateQueries({ queryKey: ["escala-ferias", ano] });
+  const { data: pedidos = [] } = useQuery({
+    queryKey: ["escala-pedidos"],
+    queryFn: lerPedidos,
+    refetchInterval: 5 * 60_000,
+  });
+  const [recusando, setRecusando] = useState<PedidoDeFerias | null>(null);
+  const aguardando = pedidos.filter((p) => p.situacao === "aguardando");
+  async function decidir(p: PedidoDeFerias, aprovar: boolean, motivo: string | null) {
+    try {
+      await decidirPedido(p.id, aprovar, motivo);
+      toast.success(
+        aprovar
+          ? `Férias de ${p.nome} aprovadas: ${periodoDoPedido(p)}. Elas já aparecem para o time.`
+          : `Pedido de ${p.nome} recusado. O motivo aparece para a pessoa.`,
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      await Promise.all([qc.invalidateQueries({ queryKey: ["escala-pedidos"] }), recarregar()]);
+    }
+  }
 
   async function mudar(fn: () => Promise<void>, ok: string) {
     try {
@@ -74,7 +104,7 @@ export function MontarFerias({ pessoas }: { pessoas: Pessoa[] }) {
             onChange={(e) => setAno(Number(e.target.value))}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm font-semibold"
           >
-            {[ano - 1, ano, ano + 1].map((a) => (
+            {anosDasFerias(hojeIso(), true).map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
@@ -84,13 +114,77 @@ export function MontarFerias({ pessoas }: { pessoas: Pessoa[] }) {
         </div>
       </div>
       <section className="rounded-2xl border border-border bg-card p-4">
+        <p className="text-sm font-bold">Pedidos de férias · {aguardando.length} aguardando</p>
+        <ul className="mt-3 space-y-2">
+          {aguardando.length === 0 && (
+            <li className="text-sm text-muted-foreground">Nenhum pedido aguardando.</li>
+          )}
+          {aguardando.map((p) => (
+            <li key={p.id} className="rounded-xl border border-border p-3 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p>
+                    <b>{p.nome}</b> · {periodoDoPedido(p)}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      · {diasDoPedido(p)} {diasDoPedido(p) === 1 ? "dia" : "dias"} · pedido em{" "}
+                      {new Date(p.criado_em).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        timeZone: "America/Fortaleza",
+                      })}
+                    </span>
+                  </p>
+                  {p.observacao && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">“{p.observacao}”</p>
+                  )}
+                  <div className="mt-1 text-xs">
+                    <AvisosDoPeriodo
+                      datas={datasDoPeriodo(p.de, p.ate)}
+                      dados={data}
+                      pessoa={p.employee_id}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setRecusando(p)}
+                  >
+                    Recusar
+                  </Button>
+                  <Button size="sm" onClick={() => decidir(p, true, null)}>
+                    Aprovar
+                  </Button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="rounded-2xl border border-border bg-card p-4">
         <CalendarioDeFerias
           dados={data}
           aoEscolher={(datas, ancora) => setAberto({ datas, ancora })}
           selecionados={aberto?.datas ?? []}
+          pedidos={aguardando.map((p) => ({
+            de: p.de,
+            ate: p.ate,
+            rotulo: `${nomeCurto(
+              p.nome,
+              pessoas.map((x) => x.nome),
+            )}?`,
+            nome: p.nome,
+          }))}
         />
       </section>
-      <LegendaDasFerias comMinhas={false} />
+      <LegendaDasFerias comMinhas={false} pedidos="todos" />
+      <JanelaDeRecusar
+        pedido={recusando}
+        aoFechar={() => setRecusando(null)}
+        aoRecusar={(motivo) => decidir(recusando!, false, motivo)}
+      />
 
       {aberto && (
         <Flutuante ancora={aberto.ancora} aoFechar={fechar}>
@@ -270,6 +364,69 @@ function MarcarPeriodo({
             }}
           >
             Marcar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function JanelaDeRecusar({
+  pedido,
+  aoFechar,
+  aoRecusar,
+}: {
+  pedido: PedidoDeFerias | null;
+  aoFechar: () => void;
+  aoRecusar: (motivo: string) => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const curto = motivo.trim().length < 10;
+  const fechar = () => {
+    setMotivo("");
+    aoFechar();
+  };
+  return (
+    <Dialog open={!!pedido} onOpenChange={(a) => !a && fechar()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            Recusar o pedido de {pedido?.nome} ({pedido ? periodoDoPedido(pedido) : ""})
+          </DialogTitle>
+          <DialogDescription>O motivo aparece para a pessoa, em “Meus pedidos”.</DialogDescription>
+        </DialogHeader>
+        <textarea
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          maxLength={300}
+          placeholder="Ex.: já há 2 pessoas de férias nessa semana"
+          className="h-20 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          aria-label="O motivo da recusa"
+        />
+        {motivo && curto && (
+          <p className="text-xs font-bold text-destructive">
+            Escreva o motivo, com pelo menos 10 caracteres.
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={fechar}>
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={curto || enviando}
+            onClick={async () => {
+              setEnviando(true);
+              try {
+                await aoRecusar(motivo.trim());
+                fechar();
+              } finally {
+                setEnviando(false);
+              }
+            }}
+          >
+            Recusar
           </Button>
         </div>
       </DialogContent>

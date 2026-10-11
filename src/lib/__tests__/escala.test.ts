@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   adicionarAoDia,
+  anosDasFerias,
+  ultimoDiaDosPedidos,
+  avisosDoPedido,
   avisoDaPessoa,
   blocosDoDia,
   celulasDaLinha,
@@ -175,4 +178,39 @@ describe("os nomes e as cores", () => {
     expect(corDoTexto("#C9DAF8")).toBe("#0D0F0D");
     expect(corDoTexto("#1C5BD9")).toBe("#FFFFFF");
   });
+});
+
+describe("os avisos do pedido de férias", () => {
+  const dados = {
+    feriados: new Set(["2026-11-02"]),
+    porDia: new Map([
+      ["2026-11-04", [{ employee_id: "a" }, { employee_id: "b" }]],
+      ["2026-11-05", [{ employee_id: "a" }, { employee_id: "eu" }]],
+    ]),
+  };
+  const ds = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"];
+  it("o feriado, e os dias com 2 pessoas (sem contar a própria)", () => {
+    const a = avisosDoPedido(ds, dados, "eu", "2026-10-11");
+    expect(a.feriados).toEqual(["2026-11-02"]);
+    expect(a.cheios).toEqual(["2026-11-04"]); // no dia 5, a outra pessoa é só uma
+    expect(a.jaDeFerias).toBe(false);
+    expect(a.passado).toBe(false);
+  });
+  it("o passado (e o próprio dia de hoje)", () => {
+    expect(avisosDoPedido(["2026-10-11"], dados, "eu", "2026-10-11").passado).toBe(true);
+  });
+  it("já de férias em todos os dias", () => {
+    expect(avisosDoPedido(["2026-11-05"], dados, "eu", "2026-10-11").jaDeFerias).toBe(true);
+  });
+});
+
+describe("os anos das férias", () => {
+  it("em 2026, até 2028; em 2027, até 2029", () => {
+    expect(anosDasFerias("2026-10-11")).toEqual([2026, 2027, 2028]);
+    expect(anosDasFerias("2027-01-01")).toEqual([2027, 2028, 2029]);
+  });
+  it("o ADM vê também o ano anterior", () =>
+    expect(anosDasFerias("2026-10-11", true)).toEqual([2025, 2026, 2027, 2028]));
+  it("o último dia que pode ser pedido", () =>
+    expect(ultimoDiaDosPedidos("2026-10-11")).toBe("2028-12-31"));
 });

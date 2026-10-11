@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { CalendarioDeFerias, LegendaDasFerias } from "@/components/escala/calendario-de-ferias";
+import { Flutuante } from "@/components/escala/comum";
+import {
+  AvisosDoPeriodo,
+  JanelaDePedirFerias,
+  MeusPedidos,
+} from "@/components/escala/pedido-de-ferias";
+import { periodoDoPedido, problemaDoPedido } from "@/lib/pedidos-de-ferias";
+import { Button } from "@/components/ui/button";
 import { MontarFerias } from "@/components/escala/montar-ferias";
 import { MontarSemana } from "@/components/escala/montar-semana";
 import { SemanaDoTime } from "@/components/escala/semana-do-time";
@@ -10,13 +19,23 @@ import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { usePermissoes } from "@/hooks/useAuth";
 import {
+  anosDasFerias,
   hojeIso,
   periodoDaSemana,
   periodosDasDatas,
   segundaDaSemana,
   textoDoPeriodo,
 } from "@/lib/escala";
-import { lerFerias, lerSemana, lerSemanas, lerSiglas } from "@/lib/escala-api";
+import {
+  cancelarPedido,
+  lerFerias,
+  lerPedidos,
+  lerSemana,
+  lerSemanas,
+  lerSiglas,
+  pedirFerias,
+  type PedidoDeFerias,
+} from "@/lib/escala-api";
 import { fetchColaboradores } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/escala")({
@@ -175,11 +194,21 @@ function SemanaPublicada() {
 }
 
 function FeriasDoTime() {
-  const ano = Number(hojeIso().slice(0, 4));
+  const qc = useQueryClient();
+  // O ano atual e os dois seguintes (em 2026, até 2028): para pedir férias no ano que vem.
+  const [ano, setAno] = useState(Number(hojeIso().slice(0, 4)));
   const [destacar, setDestacar] = useState("");
+  const [escolha, setEscolha] = useState<{ datas: string[]; ancora: DOMRect } | null>(null);
+  const [janela, setJanela] = useState<{ de: string; ate: string } | null | "vazia">(null);
+  const fecharEscolha = useCallback(() => setEscolha(null), []);
   const { data, isLoading, error } = useQuery({
     queryKey: ["escala-ferias", ano],
     queryFn: () => lerFerias(ano),
+    refetchInterval: 5 * 60_000,
+  });
+  const { data: pedidos = [] } = useQuery({
+    queryKey: ["escala-pedidos"],
+    queryFn: lerPedidos,
     refetchInterval: 5 * 60_000,
   });
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando as férias...</p>;
@@ -194,22 +223,72 @@ function FeriasDoTime() {
     .map(([d]) => d);
   const periodos = periodosDasDatas(minhas);
   const todas = [...data.porDia.values()];
+  const meusPedidos = pedidos.filter((p) => p.employee_id === data.eu);
+  const aguardando = meusPedidos.filter((p) => p.situacao === "aguardando");
+
+  async function enviar(de: string, ate: string, observacao: string) {
+    try {
+      await pedirFerias(de, ate, observacao);
+      toast.success(
+        `Pedido enviado: ${periodoDoPedido({ de, ate })}. A supervisão vai aprovar ou recusar.`,
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e;
+    } finally {
+      await qc.invalidateQueries({ queryKey: ["escala-pedidos"] });
+    }
+  }
+  async function cancelar(p: PedidoDeFerias) {
+    if (!window.confirm(`Cancelar o pedido de ${periodoDoPedido(p)}?`)) return;
+    try {
+      await cancelarPedido(p.id);
+      toast.success("Pedido cancelado.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      await qc.invalidateQueries({ queryKey: ["escala-pedidos"] });
+    }
+  }
+
+  const escolhaProblema = escolha ? problemaDoPedido(escolha.datas, data, pedidos, data.eu) : null;
   return (
     <div className="space-y-4">
-      <PageHeader
-        titulo={`Férias ${ano}`}
-        descricao="Os dias de férias de cada pessoa e os feriados. Veja os dias livres antes de pedir os seus."
-      />
-      <div className="flex flex-wrap items-end gap-3">
-        <section className="min-w-[260px] flex-1 rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader
+          titulo={`Férias ${ano}`}
+          descricao="Veja os dias livres e peça os seus: arraste no calendário, ou use o botão."
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Ano"
+            value={ano}
+            onChange={(e) => {
+              setAno(Number(e.target.value));
+              setEscolha(null);
+            }}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm font-semibold"
+          >
+            {anosDasFerias().map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+          {data.eu && <Button onClick={() => setJanela("vazia")}>+ Pedir férias</Button>}
+        </div>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-[1fr_1.3fr]">
+        <section className="rounded-2xl border border-border bg-card p-4">
           {data.eu ? (
             <>
               <p className="text-sm font-bold">
-                Suas férias em {ano} · {minhas.length} {minhas.length === 1 ? "dia" : "dias"}
+                Suas férias aprovadas em {ano} · {minhas.length}{" "}
+                {minhas.length === 1 ? "dia" : "dias"}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {periodos.length === 0 && (
-                  <span className="text-xs text-muted-foreground">Nenhum dia marcado ainda.</span>
+                  <span className="text-xs text-muted-foreground">Nenhum dia aprovado ainda.</span>
                 )}
                 {periodos.map((p) => (
                   <span
@@ -228,21 +307,77 @@ function FeriasDoTime() {
             </p>
           )}
         </section>
-        <label className="text-sm font-bold">
-          Destacar uma pessoa
-          <Input
-            value={destacar}
-            onChange={(e) => setDestacar(e.target.value)}
-            placeholder="Por exemplo: Carol"
-            className="mt-1 w-56"
-            maxLength={40}
-          />
-        </label>
+        {data.eu && <MeusPedidos pedidos={meusPedidos} aoCancelar={cancelar} />}
       </div>
+      <label className="block text-sm font-bold">
+        Destacar uma pessoa
+        <Input
+          value={destacar}
+          onChange={(e) => setDestacar(e.target.value)}
+          placeholder="Por exemplo: Carol"
+          className="mt-1 w-56"
+          maxLength={40}
+        />
+      </label>
       <section className="rounded-2xl border border-border bg-card p-4">
-        <CalendarioDeFerias dados={data} destacar={destacar} />
+        <CalendarioDeFerias
+          dados={data}
+          destacar={destacar}
+          pedidos={aguardando.map((p) => ({
+            de: p.de,
+            ate: p.ate,
+            rotulo: "pedido",
+            nome: "você",
+          }))}
+          aoEscolher={data.eu ? (datas, ancora) => setEscolha({ datas, ancora }) : undefined}
+          selecionados={escolha?.datas ?? []}
+        />
       </section>
-      <LegendaDasFerias comMinhas={!!data.eu} />
+      <LegendaDasFerias comMinhas={!!data.eu} pedidos={data.eu ? "meus" : undefined} />
+
+      {escolha && (
+        <Flutuante ancora={escolha.ancora} aoFechar={fecharEscolha} largura={270}>
+          <div className="space-y-1.5 p-1 text-sm">
+            <p className="text-xs font-bold text-muted-foreground">
+              {periodoDoPedido({
+                de: escolha.datas[0]!,
+                ate: escolha.datas[escolha.datas.length - 1]!,
+              })}{" "}
+              · {escolha.datas.length} {escolha.datas.length === 1 ? "dia" : "dias"}
+            </p>
+            {escolhaProblema ? (
+              <p className="font-medium text-destructive">{escolhaProblema}</p>
+            ) : (
+              <>
+                <div className="text-xs">
+                  <AvisosDoPeriodo datas={escolha.datas} dados={data} pessoa={data.eu} />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setJanela({
+                      de: escolha.datas[0]!,
+                      ate: escolha.datas[escolha.datas.length - 1]!,
+                    });
+                    setEscolha(null);
+                  }}
+                >
+                  Pedir férias nesses dias
+                </Button>
+              </>
+            )}
+          </div>
+        </Flutuante>
+      )}
+      <JanelaDePedirFerias
+        aberta={janela !== null}
+        aoFechar={() => setJanela(null)}
+        inicial={janela === "vazia" ? null : janela}
+        dados={data}
+        pedidos={pedidos}
+        eu={data.eu}
+        aoEnviar={enviar}
+      />
     </div>
   );
 }

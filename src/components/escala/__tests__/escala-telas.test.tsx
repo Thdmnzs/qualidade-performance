@@ -37,11 +37,27 @@ const api = {
   criarSigla: vi.fn(async (..._a: unknown[]) => "s-novo"),
   definirFerias: vi.fn(async (..._a: unknown[]) => {}),
   definirFeriado: vi.fn(async (..._a: unknown[]) => {}),
+  lerPedidos: vi.fn(async () => [
+    {
+      id: "p1",
+      employee_id: "r",
+      nome: "Ruby Lima",
+      de: "2026-11-09",
+      ate: "2026-11-13",
+      observacao: "Viagem.",
+      situacao: "aguardando",
+      motivo: null,
+      criado_em: "2026-10-10T12:00:00Z",
+      decidido_em: null,
+    },
+  ]),
+  decidirPedido: vi.fn(async (..._a: unknown[]) => {}),
 };
 vi.mock("@/lib/escala-api", () => api);
 const { MontarSemana } = await import("../montar-semana");
 const { MontarFerias } = await import("../montar-ferias");
 const { SemanaDoTime } = await import("../semana-do-time");
+const { JanelaDePedirFerias } = await import("../pedido-de-ferias");
 
 const PESSOAS = [
   { id: "r", nome: "Ruby Lima" },
@@ -226,5 +242,122 @@ describe("a trava enquanto a semana carrega", () => {
     liberar();
     expect(await screen.findByRole("button", { name: "+ Ruby" })).toBeTruthy();
     expect(api.salvarDia).not.toHaveBeenCalled();
+  });
+});
+
+describe("os pedidos de férias", () => {
+  it("o ADM vê o pedido, com os avisos, e aprova", async () => {
+    abrir(<MontarFerias pessoas={PESSOAS} />);
+    expect(await screen.findByText("Pedidos de férias · 1 aguardando")).toBeTruthy();
+    expect(screen.getByText("“Viagem.”")).toBeTruthy();
+    expect(screen.getAllByTitle(/Pedido aguardando: Ruby Lima/).length).toBe(5); // tracejado nos 5 dias
+    fireEvent.click(screen.getByRole("button", { name: "Aprovar" }));
+    await waitFor(() => expect(api.decidirPedido).toHaveBeenCalledWith("p1", true, null));
+  });
+  it("recusar pede um motivo de 10 caracteres, que vai junto", async () => {
+    abrir(<MontarFerias pessoas={PESSOAS} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Recusar" }));
+    const janela = await screen.findByRole("dialog");
+    fireEvent.change(within(janela).getByLabelText("O motivo da recusa"), {
+      target: { value: "curto" },
+    });
+    expect(
+      (within(janela).getByRole("button", { name: "Recusar" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.change(within(janela).getByLabelText("O motivo da recusa"), {
+      target: { value: "Já há 2 pessoas nessa semana." },
+    });
+    fireEvent.click(within(janela).getByRole("button", { name: "Recusar" }));
+    await waitFor(() =>
+      expect(api.decidirPedido).toHaveBeenCalledWith("p1", false, "Já há 2 pessoas nessa semana."),
+    );
+  });
+  const dados = { ano: 2026, eu: "t", feriados: new Set(["2026-11-02"]), porDia: new Map() };
+  it("o colaborador: um período no passado não é enviado", () => {
+    const enviar = vi.fn(async () => {});
+    render(
+      <JanelaDePedirFerias
+        aberta
+        aoFechar={() => {}}
+        inicial={{ de: "2026-10-05", ate: "2026-10-07" }}
+        dados={dados}
+        pedidos={[]}
+        eu="t"
+        aoEnviar={enviar}
+      />,
+    );
+    expect(screen.getByText("Escolha dias a partir de amanhã.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Enviar o pedido" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+  it("o colaborador: um período válido mostra os avisos e é enviado com a observação", async () => {
+    const enviar = vi.fn(async (..._a: unknown[]) => {});
+    render(
+      <JanelaDePedirFerias
+        aberta
+        aoFechar={() => {}}
+        inicial={{ de: "2026-11-02", ate: "2026-11-06" }}
+        dados={dados}
+        pedidos={[]}
+        eu="t"
+        aoEnviar={enviar}
+      />,
+    );
+    expect(screen.getByText(/5 dias/)).toBeTruthy();
+    expect(screen.getByText(/Inclui um feriado \(2\/11\)/)).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText(/viagem de família/), {
+      target: { value: "Viagem marcada" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar o pedido" }));
+    await waitFor(() =>
+      expect(enviar).toHaveBeenCalledWith("2026-11-02", "2026-11-06", "Viagem marcada"),
+    );
+  });
+  it("o colaborador: até o fim do segundo ano seguinte (em 2026, até 31/12/2028)", () => {
+    render(
+      <JanelaDePedirFerias
+        aberta
+        aoFechar={() => {}}
+        inicial={{ de: "2028-12-28", ate: "2029-01-02" }}
+        dados={dados}
+        pedidos={[]}
+        eu="t"
+        aoEnviar={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Você pode pedir férias até 31/12/2028.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Enviar o pedido" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByLabelText("Até").getAttribute("max")).toBe("2028-12-31");
+  });
+  it("o colaborador: um pedido sobrepondo outro que aguarda não é enviado", () => {
+    const pedidos = [
+      {
+        id: "x",
+        employee_id: "t",
+        nome: "Thiago",
+        de: "2026-11-04",
+        ate: "2026-11-05",
+        observacao: null,
+        situacao: "aguardando" as const,
+        motivo: null,
+        criado_em: "",
+        decidido_em: null,
+      },
+    ];
+    render(
+      <JanelaDePedirFerias
+        aberta
+        aoFechar={() => {}}
+        inicial={{ de: "2026-11-02", ate: "2026-11-06" }}
+        dados={dados}
+        pedidos={pedidos}
+        eu="t"
+        aoEnviar={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Você já tem um pedido aguardando nesses dias.")).toBeTruthy();
   });
 });

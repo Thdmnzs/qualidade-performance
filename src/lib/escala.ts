@@ -218,3 +218,42 @@ export function textoDoPeriodo(p: { de: string; ate: string }): string {
   const d2 = Number(p.ate.slice(8, 10));
   return d1 === d2 ? `${d1} de ${mes}` : `${d1} a ${d2} de ${mes}`;
 }
+
+// ---------- Os pedidos de férias: os avisos (os mesmos para o colaborador e o ADM) ----------
+export type AvisosDoPedido = {
+  feriados: string[]; // os dias do período que são feriado
+  cheios: string[]; // os dias com 2 pessoas (ou mais) já de férias, fora a própria pessoa
+  jaDeFerias: boolean; // a pessoa já está de férias em TODOS os dias
+  passado: boolean; // algum dia é hoje ou já passou
+};
+export function avisosDoPedido(
+  datas: string[],
+  dados: { feriados: Set<string>; porDia: Map<string, { employee_id: string }[]> },
+  pessoa: string | null,
+  hoje: string = hojeIso(),
+): AvisosDoPedido {
+  const outras = (d: string) =>
+    (dados.porDia.get(d) ?? []).filter((p) => p.employee_id !== pessoa).length;
+  const minhas = datas.filter((d) =>
+    (dados.porDia.get(d) ?? []).some((p) => p.employee_id === pessoa),
+  );
+  return {
+    feriados: datas.filter((d) => dados.feriados.has(d)),
+    cheios: datas.filter((d) => outras(d) >= 2),
+    jaDeFerias: datas.length > 0 && minhas.length === datas.length,
+    passado: datas.some((d) => d <= hoje),
+  };
+}
+
+// ---------- Os anos das férias: o atual e os dois seguintes (avança sozinho a cada ano) ----------
+export const ANOS_A_FRENTE = 2;
+export function anosDasFerias(hoje: string = hojeIso(), comOAnterior = false): number[] {
+  const ano = Number(hoje.slice(0, 4));
+  return Array.from(
+    { length: ANOS_A_FRENTE + 1 + (comOAnterior ? 1 : 0) },
+    (_, i) => ano - (comOAnterior ? 1 : 0) + i,
+  );
+}
+/** O último dia que pode ser pedido: o fim do segundo ano seguinte. */
+export const ultimoDiaDosPedidos = (hoje: string = hojeIso()) =>
+  `${Number(hoje.slice(0, 4)) + ANOS_A_FRENTE}-12-31`;
