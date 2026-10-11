@@ -175,14 +175,6 @@ export function LegendaDasFerias({ comMinhas }: { comMinhas: boolean }) {
       >
         Feriado
       </span>
-      <span
-        className="inline-flex flex-col items-center rounded-lg px-2.5 py-0.5 text-[10px] font-bold leading-tight text-[#0D0F0D]"
-        style={{ background: VERDE }}
-      >
-        <span>feriado</span>
-        <span>Rachel</span>
-      </span>
-      <span className="text-muted-foreground">férias num feriado</span>
       <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
         Livre (ninguém escolheu)
       </span>
