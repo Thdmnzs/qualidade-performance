@@ -96,12 +96,17 @@ export type MinhaAparencia = {
   capa_temporada_preferida: string | null;
   mes: number;
   nivel: number;
+  aniversario_hoje?: boolean; // hoje é o aniversário da pessoa (e ela quer o tema)
   capas_liberadas: string[];
   molduras_liberadas: string[];
 };
 
-/** A capa e a moldura que valem AGORA (a da temporada, se a pessoa quiser e houver uma). */
+/**
+ * A capa e a moldura que valem AGORA: no aniversário (com o tema), a festa; senão, a da
+ * temporada, se a pessoa quiser e houver uma; senão, as escolhidas.
+ */
 export function aparenciaDeAgora(a: MinhaAparencia): { capa: string; moldura: string } {
+  if (a.aniversario_hoje) return { capa: "festa", moldura: "festa" };
   const { capas, moldura } = temporadaDoMes(a.mes);
   const capaDaTemporada =
     capas.find((c) => c.id === a.capa_temporada_preferida)?.id ?? capas[0]?.id;

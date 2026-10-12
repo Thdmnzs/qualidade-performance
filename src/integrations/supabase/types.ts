@@ -1353,6 +1353,49 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      meus_dados_pessoais: { Args: never; Returns: Json };
+      salvar_meus_dados_pessoais: {
+        Args: {
+          _dia: number | null;
+          _mes: number | null;
+          _cep: string;
+          _rua: string;
+          _numero: string;
+          _complemento: string;
+          _bairro: string;
+          _cidade: string;
+          _uf: string;
+          _contato_nome: string;
+          _contato_parentesco: string;
+          _contato_telefone: string;
+          _visivel: boolean;
+          _tema: boolean;
+        };
+        Returns: undefined;
+      };
+      dados_pessoais_de: { Args: { _employee_id: string }; Returns: Json };
+      corrigir_dados_pessoais: {
+        Args: {
+          _employee_id: string;
+          _dia: number | null;
+          _mes: number | null;
+          _cep: string;
+          _rua: string;
+          _numero: string;
+          _complemento: string;
+          _bairro: string;
+          _cidade: string;
+          _uf: string;
+          _contato_nome: string;
+          _contato_parentesco: string;
+          _contato_telefone: string;
+        };
+        Returns: undefined;
+      };
+      situacao_dos_dados_pessoais: {
+        Args: never;
+        Returns: { employee_id: string; falta: string[] }[];
+      };
       definir_aparencia: {
         Args: {
           _capa: string;

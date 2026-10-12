@@ -62,7 +62,18 @@ const FOGO = (x: number, y: number, r: number, cor: string) =>
 const radial = (id: string, cor: string, opac: number, extra = "") =>
   `<radialGradient id="${id}" ${extra}><stop offset="0" stop-color="${cor}" stop-opacity="${opac}"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></radialGradient>`;
 
+const BALAO = (x: number, y: number, cor: string, r = 16) =>
+  `<g transform="translate(${x} ${y})"><path d="M0 ${r * 1.2} Q-4 ${r * 2.2} 6 ${r * 3.4}" stroke="#FDE68A" stroke-width="1.3" fill="none"/><ellipse rx="${r * 0.82}" ry="${r}" fill="${cor}"/><ellipse cx="${-r * 0.28}" cy="${-r * 0.35}" rx="${r * 0.18}" ry="${r * 0.28}" fill="#fff" opacity=".45"/><path d="M-3 ${r} L3 ${r} L0 ${r + 4}Z" fill="${cor}"/></g>`;
+const BOLO = (x: number) =>
+  `<g transform="translate(${x} 150)"><rect x="-44" y="-40" width="88" height="40" rx="8" fill="#F9A8D4"/><rect x="-44" y="-40" width="88" height="10" rx="5" fill="#FDF2F8"/><rect x="-32" y="-66" width="64" height="28" rx="7" fill="#FBCFE8"/>${[-16, 0, 16].map((d) => `<rect x="${d - 2}" y="-82" width="4" height="16" rx="2" fill="#38BDF8"/><path d="M${d} -92 q4 5 0 9 q-4 -4 0 -9Z" fill="#FDE047"/>`).join("")}</g>`;
+
 const ARTES: Record<string, (u: string) => string> = {
+  // A de festa: só no dia do aniversário (não aparece no "Mudar capa").
+  festa: () =>
+    svg(
+      `${CONFETE(11, ["#F43F5E", "#FDE047", "#0EF500", "#38BDF8", "#A855F7"])}${BALAO(70, 40, "#F43F5E")}${BALAO(110, 30, "#FDE047", 13)}${BALAO(150, 48, "#0EF500", 15)}${BALAO(560, 34, "#38BDF8", 15)}${BALAO(520, 52, "#A855F7", 12)}${BOLO(330)}<text x="420" y="138" font-family="Quicksand, sans-serif" font-weight="700" font-size="22" fill="#FDF4FF">feliz aniversário!</text>`,
+      fundo("#3B0764"),
+    ),
   sinal: () =>
     svg(
       [0, 1, 2, 3, 4]

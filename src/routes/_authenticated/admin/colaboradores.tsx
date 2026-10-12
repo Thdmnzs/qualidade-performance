@@ -19,6 +19,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissoes, type Perfil } from "@/hooks/useAuth";
 import { fetchColaboradores } from "@/lib/queries";
+import { lerSituacaoDosDados } from "@/lib/dados-pessoais-api";
+import { textoDoQueFalta } from "@/lib/dados-pessoais";
+import { FichaDoAdm } from "@/components/dados-pessoais/ficha-do-adm";
 import { alterarStatusFn, criarAcessoFn, gerarLinkDeSenhaFn } from "@/lib/acessos.functions";
 import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/lib/format";
 
@@ -62,6 +65,13 @@ function Colaboradores() {
     queryFn: fetchColaboradores,
     enabled: isAdmin,
   });
+  // Os dados pessoais: o que falta em cada ficha (sem os dados), e a ficha aberta.
+  const { data: situacaoDosDados = new Map<string, string[]>() } = useQuery({
+    queryKey: ["situacao-dos-dados"],
+    queryFn: lerSituacaoDosDados,
+    enabled: isAdmin,
+  });
+  const [fichaAberta, setFichaAberta] = useState<{ id: string; nome: string } | null>(null);
   // O turno fica à parte da listagem (a função da listagem é usada por outras telas).
   const { data: turnos = {} } = useQuery({
     queryKey: ["colaboradores-turnos"],
@@ -200,6 +210,7 @@ function Colaboradores() {
             <th className="px-4 py-3">Login</th>
             <th className="px-4 py-3">Perfil</th>
             <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Dados pessoais</th>
             <th className="px-4 py-3 text-right">Ações</th>
           </tr>
         </thead>
@@ -225,7 +236,23 @@ function Colaboradores() {
                   </span>
                 )}
               </td>
+              <td className="px-4 py-3">
+                {textoDoQueFalta(situacaoDosDados.get(c.id) ?? []) ? (
+                  <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-bold">
+                    {textoDoQueFalta(situacaoDosDados.get(c.id) ?? [])}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">✓ completos</span>
+                )}
+              </td>
               <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setFichaAberta({ id: c.id, nome: c.nome })}
+                >
+                  🔒 Dados pessoais
+                </Button>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -440,6 +467,7 @@ function Colaboradores() {
 
       <LinkDeAcessoDialog dados={linkAberto} onFechar={() => setLinkAberto(null)} />
       <ExcluirColaboradorDialog colaborador={excluindo} onFechar={() => setExcluindo(null)} />
+      <FichaDoAdm pessoa={fichaAberta} aoFechar={() => setFichaAberta(null)} />
     </div>
   );
 }

@@ -32,6 +32,7 @@ export const CATEGORIAS: Record<string, string[]> = {
     "reativar_colaborador",
     "excluir_colaborador",
     "definir_perfil",
+    "dados_pessoais_corrigir",
   ],
   Escala: [
     "escala_publicar",
@@ -221,6 +222,15 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         q(r.acao === "ferias_pedir" ? "pediu férias: " : "cancelou o pedido de férias: "),
         b(periodo),
       ];
+    }
+    case "dados_pessoais_corrigir": {
+      // Só os NOMES das partes (o endereço, o contato...), nunca os valores.
+      const partes = Array.isArray(n["partes"]) ? (n["partes"] as string[]) : [];
+      const lista =
+        partes.length > 1
+          ? `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`
+          : (partes[0] ?? "os dados pessoais");
+      return [q("corrigiu "), q(lista), q(" de "), b(alvo)];
     }
     case "feriado_marcar":
       return [q("marcou o feriado de "), b(dataBRCurta(n["data"]))];

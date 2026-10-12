@@ -60,6 +60,12 @@ describe("a aparência de agora", () => {
   it("num mês sem temporada, valem as escolhidas (mesmo com as chaves ligadas)", () => {
     expect(aparenciaDeAgora({ ...base, mes: 3 })).toEqual({ capa: "torre", moldura: "ouro" });
   });
+  it("no aniversário (com o tema), a festa vem antes da temporada", () => {
+    expect(aparenciaDeAgora({ ...base, aniversario_hoje: true })).toEqual({
+      capa: "festa",
+      moldura: "festa",
+    });
+  });
   it("em novembro, a capa da temporada, mas a moldura de sempre (novembro não tem moldura)", () => {
     expect(aparenciaDeAgora({ ...base, mes: 11 })).toEqual({ capa: "azul", moldura: "ouro" });
   });

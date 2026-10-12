@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { FotoDePerfil } from "@/components/foto-de-perfil";
+import { EditarPerfil } from "@/components/dados-pessoais/editar-perfil";
 import { Capa } from "@/components/perfil/aparencia";
 import { JanelaDaCapa, JanelaDaMoldura } from "@/components/perfil/escolher-aparencia";
 import {
@@ -132,6 +133,7 @@ function Perfil() {
     queryFn: lerMinhaAparencia,
   });
   const [janela, setJanela] = useState<null | "capa" | "moldura">(null);
+  const [editando, setEditando] = useState(false);
   const mudarAparencia = useMutation({
     mutationFn: (nova: MinhaAparencia) => salvarAparencia(nova),
     onMutate: async (nova) => {
@@ -337,12 +339,29 @@ function Perfil() {
                 aoTrocarMoldura={aparencia ? () => setJanela("moldura") : undefined}
               />
             </div>
-            {temporada && temporada.capas.length > 0 && (
-              <span className="mb-1 rounded-full bg-[#3B1A5C] px-3 py-1 text-xs font-bold text-[#FED7AA]">
-                🗓 Temporada: {temporada.capas.map((c) => c.nome).join(" e ")} · em{" "}
-                {MESES[aparencia!.mes]}
-              </span>
-            )}
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              {aparencia?.aniversario_hoje ? (
+                <span className="rounded-full bg-[#F43F5E] px-3 py-1 text-xs font-bold text-white">
+                  🎂 Hoje é o seu aniversário! Feliz aniversário!
+                </span>
+              ) : (
+                temporada &&
+                temporada.capas.length > 0 && (
+                  <span className="rounded-full bg-[#3B1A5C] px-3 py-1 text-xs font-bold text-[#FED7AA]">
+                    🗓 Temporada: {temporada.capas.map((c) => c.nome).join(" e ")} · em{" "}
+                    {MESES[aparencia!.mes]}
+                  </span>
+                )
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setEditando(true)}
+              >
+                ✏️ Editar perfil
+              </Button>
+            </div>
           </div>
           <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
             Janela de status
@@ -397,6 +416,7 @@ function Perfil() {
           </div>
         </div>
       </section>
+      <EditarPerfil aberto={editando} aoFechar={() => setEditando(false)} />
       {aparencia && (
         <>
           <JanelaDaCapa

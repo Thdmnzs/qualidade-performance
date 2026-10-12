@@ -193,6 +193,16 @@ describe("as frases da escala", () => {
     ).toBe("recusou as férias de Ana Colab: 09/11 a 13/11 · motivo: Já há 2 pessoas.");
     expect(categoriaDe("ferias_aprovar")).toBe("Escala");
   });
+  it("a correção dos dados pessoais: só as partes, nunca os valores", () => {
+    expect(
+      texto({
+        acao: "dados_pessoais_corrigir",
+        alvo: null,
+        valor_novo: { partes: ["o endereço", "o contato de emergência"], colaborador: "Ana Colab" },
+      }),
+    ).toBe("corrigiu o endereço e o contato de emergência de Ana Colab");
+    expect(categoriaDe("dados_pessoais_corrigir")).toBe("Acessos e cadastros");
+  });
   it("tudo na categoria Escala", () => {
     for (const a of ["escala_publicar", "escala_mudar_dia", "ferias_marcar", "feriado_tirar"])
       expect(categoriaDe(a)).toBe("Escala");
