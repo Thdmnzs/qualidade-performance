@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ComMoldura } from "@/components/perfil/aparencia";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_DAS_FOTOS, caminhoDaFoto, iniciais, prepararFoto } from "@/lib/foto";
 
@@ -48,19 +49,24 @@ export async function linkDaFoto(employeeId: string): Promise<string | null> {
 }
 
 /**
- * Foto de perfil. Com `editavel`, mostra o botão da câmera (enviar, trocar e
- * remover); sem, só a foto (ou as iniciais), para reaproveitar em outras telas.
+ * Foto de perfil. Com `editavel`, mostra o lápis (enviar, remover e, com `aoTrocarMoldura`,
+ * trocar a moldura); sem, só a foto (ou as iniciais), para reaproveitar em outras telas.
+ * Com `moldura`, a foto ganha o anel da moldura (o da pessoa, ou o da temporada).
  */
 export function FotoDePerfil({
   employeeId,
   nome,
   tamanho = "grande",
   editavel = false,
+  moldura = "nenhuma",
+  aoTrocarMoldura,
 }: {
   employeeId: string;
   nome: string;
   tamanho?: "grande" | "pequena";
   editavel?: boolean;
+  moldura?: string;
+  aoTrocarMoldura?: (() => void) | undefined;
 }) {
   const qc = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
@@ -134,11 +140,16 @@ export function FotoDePerfil({
       )}
     </div>
   );
-  if (!editavel) return circulo;
+  const comMoldura = (
+    <ComMoldura id={moldura} espessura={tamanho === "grande" ? 6 : 3}>
+      {circulo}
+    </ComMoldura>
+  );
+  if (!editavel) return comMoldura;
 
   return (
     <div className="relative">
-      {circulo}
+      {comMoldura}
       <input
         ref={entrada}
         type="file"
@@ -154,15 +165,14 @@ export function FotoDePerfil({
           <button
             type="button"
             className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground"
-            aria-label="Foto de perfil"
+            aria-label="Mudar a foto ou a moldura"
           >
-            <Camera className="size-4" />
+            <Pencil className="size-4" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onSelect={() => entrada.current?.click()}>
-            {url ? "Trocar foto" : "Enviar foto"}
-          </DropdownMenuItem>
+          {/* "Enviar foto": se já houver uma, ela é trocada. */}
+          <DropdownMenuItem onSelect={() => entrada.current?.click()}>Enviar foto</DropdownMenuItem>
           {url && (
             <DropdownMenuItem
               className="text-destructive"
@@ -170,6 +180,9 @@ export function FotoDePerfil({
             >
               Remover foto
             </DropdownMenuItem>
+          )}
+          {aoTrocarMoldura && (
+            <DropdownMenuItem onSelect={aoTrocarMoldura}>Trocar moldura</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { FotoDePerfil } from "@/components/foto-de-perfil";
+import { lerMoldurasDoTime } from "@/lib/aparencia-api";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Podio } from "@/components/podio";
 import { Label } from "@/components/ui/label";
@@ -63,6 +64,15 @@ function Ranking() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+  // A moldura de cada pessoa (a escolhida, ou a da temporada).
+  const pessoasDoRanking = [
+    ...new Set([...podio, ...classificacao].map((x) => x.employee_id as string)),
+  ].sort();
+  const { data: molduras = new Map<string, string>() } = useQuery({
+    queryKey: ["molduras-do-time", pessoasDoRanking],
+    enabled: pessoasDoRanking.length > 0,
+    queryFn: () => lerMoldurasDoTime(pessoasDoRanking),
   });
   const { data: catalogo = [] } = useQuery({
     queryKey: ["conquistas"],
@@ -190,7 +200,12 @@ function Ranking() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <FotoDePerfil employeeId={c.employee_id} nome={c.nome} tamanho="pequena" />
+                      <FotoDePerfil
+                        employeeId={c.employee_id}
+                        nome={c.nome}
+                        tamanho="pequena"
+                        moldura={molduras.get(c.employee_id) ?? "nenhuma"}
+                      />
                       <span className="font-bold">{c.nome}</span>
                     </div>
                   </td>

@@ -474,3 +474,79 @@ html.dark .raridade-texto {
     animation: none;
   }
 }
+
+/* ---------- A aparência do perfil (11/10/2026): as molduras em volta da foto ---------- */
+@property --giro-moldura {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes girar-moldura {
+  to {
+    --giro-moldura: 360deg;
+  }
+}
+.moldura-anel {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--espessura, 6px)),
+    #000 calc(100% - var(--espessura, 6px) + 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--espessura, 6px)),
+    #000 calc(100% - var(--espessura, 6px) + 1px)
+  );
+}
+.moldura-verde {
+  background: conic-gradient(#0ef500, #13a403, #0ef500);
+}
+.moldura-prata {
+  background: conic-gradient(#f4f5f7, #9aa3ae, #f4f5f7, #c9ced6, #f4f5f7);
+}
+.moldura-ouro {
+  background: conic-gradient(#fff2b3, #e8c547, #b8962e, #ffe680, #e8c547, #fff2b3);
+}
+.moldura-lendaria {
+  background: conic-gradient(from var(--giro-moldura), #ffb224, #ff6b00, #ffe08a, #ffb224);
+  animation: girar-moldura 6s linear infinite;
+}
+.moldura-fluker {
+  background: conic-gradient(
+    from var(--giro-moldura),
+    #0ef500,
+    #071407,
+    #13a403,
+    #0ef500,
+    #071407,
+    #0ef500
+  );
+  animation: girar-moldura 4s linear infinite;
+  filter: drop-shadow(0 0 6px #0ef50088);
+}
+.moldura-bruxas {
+  background: conic-gradient(#f97316, #7c3aed, #f97316, #4c1d95, #f97316);
+}
+.moldura-festa {
+  background: conic-gradient(
+    from var(--giro-moldura),
+    #f43f5e,
+    #fde047,
+    #0ef500,
+    #38bdf8,
+    #a855f7,
+    #f43f5e
+  );
+  animation: girar-moldura 5s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .moldura-lendaria,
+  .moldura-fluker,
+  .moldura-festa {
+    animation: none;
+  }
+}

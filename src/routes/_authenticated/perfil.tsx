@@ -5,6 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { FotoDePerfil } from "@/components/foto-de-perfil";
+import { Capa } from "@/components/perfil/aparencia";
+import { JanelaDaCapa, JanelaDaMoldura } from "@/components/perfil/escolher-aparencia";
+import {
+  aparenciaDeAgora,
+  MESES,
+  quantoFalta,
+  quaseLa,
+  temporadaDoMes,
+  type MinhaAparencia,
+} from "@/lib/aparencia";
+import { lerMinhaAparencia, salvarAparencia } from "@/lib/aparencia-api";
+import { iniciais } from "@/lib/foto";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,15 +111,49 @@ function Perfil() {
       return data?.destaques ?? [];
     },
   });
-  const { data: quinzenasCom100 = 0 } = useQuery({
+  const { data: progresso = { quinzenasCom100: 0, quinzenasAvaliadas: 0 } } = useQuery({
     queryKey: ["progresso-conquistas", employee?.id],
     enabled: !!employee?.id,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("meu_progresso_de_conquistas");
       if (error) throw error;
-      return data?.[0]?.quinzenas_com_100 ?? 0;
+      return {
+        quinzenasCom100: data?.[0]?.quinzenas_com_100 ?? 0,
+        quinzenasAvaliadas: data?.[0]?.quinzenas_avaliadas ?? 0,
+      };
     },
   });
+  const quinzenasCom100 = progresso.quinzenasCom100;
+
+  // ---------- A aparência: a capa, a moldura e as temporadas ----------
+  const { data: aparencia } = useQuery({
+    queryKey: ["minha-aparencia", employee?.id],
+    enabled: !!employee?.id,
+    queryFn: lerMinhaAparencia,
+  });
+  const [janela, setJanela] = useState<null | "capa" | "moldura">(null);
+  const mudarAparencia = useMutation({
+    mutationFn: (nova: MinhaAparencia) => salvarAparencia(nova),
+    onMutate: async (nova) => {
+      // A tela muda na hora; se o banco recusar, volta ao que estava.
+      await qc.cancelQueries({ queryKey: ["minha-aparencia", employee?.id] });
+      const antes = qc.getQueryData<MinhaAparencia>(["minha-aparencia", employee?.id]);
+      qc.setQueryData(["minha-aparencia", employee?.id], nova);
+      return { antes };
+    },
+    onError: (e, _n, ctx) => {
+      if (ctx?.antes) qc.setQueryData(["minha-aparencia", employee?.id], ctx.antes);
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["minha-aparencia", employee?.id] });
+      void qc.invalidateQueries({ queryKey: ["molduras-do-time"] });
+    },
+  });
+  const aoMudar = (m: Partial<MinhaAparencia>) =>
+    aparencia && mudarAparencia.mutate({ ...aparencia, ...m });
+  const agora = aparencia ? aparenciaDeAgora(aparencia) : { capa: "sinal", moldura: "nenhuma" };
+  const temporada = aparencia ? temporadaDoMes(aparencia.mes) : null;
 
   // As missões: as mesmas fontes da Visão geral (a última quinzena publicada).
   const { data: quinzenas = [] } = useQuery({ queryKey: ["quinzenas"], queryFn: fetchQuinzenas });
@@ -176,6 +222,15 @@ function Perfil() {
 
   const xpTotal = ganhas.reduce((s, g) => s + g.xp, 0);
   const nv = nivelDe(xpTotal);
+  const ganhasSet = new Set(porConquista.keys());
+  const proximas = quaseLa({
+    ganhas: ganhasSet,
+    quinzenasCom100: progresso.quinzenasCom100,
+    quinzenasAvaliadas: progresso.quinzenasAvaliadas,
+    centrais: catalogo
+      .filter((c) => CENTRAIS.includes(c.numero) && c.ativa)
+      .map((c) => ({ numero: c.numero, ...progressoDaCentral(c, catalogo, ganhasSet) })),
+  }).filter((x) => catalogo.some((c) => c.numero === x.numero && c.ativa));
 
   // O aviso de subida de nível: ao abrir o perfil, se o nível passou do último visto neste navegador.
   useEffect(() => {
@@ -260,58 +315,156 @@ function Perfil() {
       />
 
       {/* ---------- A janela de status ---------- */}
-      <section className="rounded-2xl border border-primary/50 bg-card p-5 shadow-[0_0_28px_-8px_rgba(14,245,0,0.35)] dark:bg-gradient-to-b dark:from-[#0e260e] dark:to-card sm:p-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          Janela de status
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-6">
-          <FotoDePerfil employeeId={employee.id} nome={employee.nome} editavel />
-          <div className="min-w-[220px] flex-1">
-            <p className="font-display text-2xl font-semibold">{employee.nome}</p>
-            {titulo && (
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Título: <b className="text-primary">{titulo}</b>
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-              <b className="text-lg">Nível {nv.nivel}</b>
-              <span className="text-muted-foreground">
-                <b className="text-foreground">{xpTotal.toLocaleString("pt-BR")}</b> /{" "}
-                {nv.proximo.toLocaleString("pt-BR")} XP
-              </span>
-            </div>
-            <div
-              className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-secondary"
-              role="progressbar"
-              aria-valuenow={pct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Progresso até o próximo nível"
-            >
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-[#13a403] to-primary transition-all duration-700 dark:shadow-[0_0_12px_rgba(14,245,0,0.55)]"
-                style={{ width: `${pct}%` }}
+      <section className="overflow-hidden rounded-2xl border border-primary/50 bg-card shadow-[0_0_28px_-8px_rgba(14,245,0,0.35)] dark:bg-gradient-to-b dark:from-[#0e260e] dark:to-card">
+        <Capa id={agora.capa} sufixo="janela-de-status">
+          <button
+            type="button"
+            onClick={() => setJanela("capa")}
+            disabled={!aparencia}
+            className="absolute left-3 top-3 rounded-full bg-black/65 px-3.5 py-1.5 text-xs font-bold text-white backdrop-blur-sm hover:bg-black/80"
+          >
+            🖼 Mudar capa
+          </button>
+        </Capa>
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="-mt-12 flex flex-wrap items-end justify-between gap-2">
+            <div className="rounded-full bg-card p-1">
+              <FotoDePerfil
+                employeeId={employee.id}
+                nome={employee.nome}
+                editavel
+                moldura={agora.moldura}
+                aoTrocarMoldura={aparencia ? () => setJanela("moldura") : undefined}
               />
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Faltam{" "}
-              <b className="text-foreground">{(nv.proximo - xpTotal).toLocaleString("pt-BR")} XP</b>{" "}
-              para o nível {nv.nivel + 1} · cada nível, {XP_POR_NIVEL.toLocaleString("pt-BR")} XP. O
-              XP é contado no fechamento de cada quinzena.
-            </p>
+            {temporada && temporada.capas.length > 0 && (
+              <span className="mb-1 rounded-full bg-[#3B1A5C] px-3 py-1 text-xs font-bold text-[#FED7AA]">
+                🗓 Temporada: {temporada.capas.map((c) => c.nome).join(" e ")} · em{" "}
+                {MESES[aparencia!.mes]}
+              </span>
+            )}
+          </div>
+          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Janela de status
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-6">
+            <div className="min-w-[220px] flex-1">
+              <p className="font-display text-2xl font-semibold">{employee.nome}</p>
+              {titulo && (
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Título: <b className="text-primary">{titulo}</b>
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <b className="text-lg">Nível {nv.nivel}</b>
+                <span className="text-muted-foreground">
+                  <b className="text-foreground">{xpTotal.toLocaleString("pt-BR")}</b> /{" "}
+                  {nv.proximo.toLocaleString("pt-BR")} XP
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Progresso até o próximo nível"
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#13a403] to-primary transition-all duration-700 dark:shadow-[0_0_12px_rgba(14,245,0,0.55)]"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Faltam{" "}
+                <b className="text-foreground">
+                  {(nv.proximo - xpTotal).toLocaleString("pt-BR")} XP
+                </b>{" "}
+                para o nível {nv.nivel + 1} · cada nível, {XP_POR_NIVEL.toLocaleString("pt-BR")} XP.
+                O XP é contado no fechamento de cada quinzena.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs">
+            {maiorSequencia >= 2 && (
+              <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
+                🔥 {textoDoBonus(maiorSequencia)}
+              </span>
+            )}
+            <span className="rounded-full bg-secondary px-3 py-1">
+              🏆 {porConquista.size} de {totalDeConquistas} conquistas
+            </span>
           </div>
         </div>
-        <div className="mt-5 flex flex-wrap gap-2 text-xs">
-          {maiorSequencia >= 2 && (
-            <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
-              🔥 {textoDoBonus(maiorSequencia)}
-            </span>
-          )}
-          <span className="rounded-full bg-secondary px-3 py-1">
-            🏆 {porConquista.size} de {totalDeConquistas} conquistas
-          </span>
-        </div>
       </section>
+      {aparencia && (
+        <>
+          <JanelaDaCapa
+            aberta={janela === "capa"}
+            aoFechar={() => setJanela(null)}
+            aparencia={aparencia}
+            aoMudar={aoMudar}
+          />
+          <JanelaDaMoldura
+            aberta={janela === "moldura"}
+            aoFechar={() => setJanela(null)}
+            aparencia={aparencia}
+            aoMudar={aoMudar}
+            iniciais={iniciais(employee.nome)}
+          />
+        </>
+      )}
+
+      {/* ---------- Quase lá: as conquistas mais perto ---------- */}
+      {proximas.length > 0 && (
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Quase lá
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            As conquistas mais perto de serem suas.
+          </p>
+          <ul className="mt-4 grid gap-4 md:grid-cols-3">
+            {proximas.map((x) => {
+              const c = catalogo.find((k) => k.numero === x.numero);
+              if (!c) return null;
+              const pctDaConquista = Math.round((x.atual / x.alvo) * 100);
+              return (
+                <li key={x.numero}>
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-1.5">
+                      <IconeDaConquista c={c} /> <b>{c.nome}</b>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {raridade(c.xp).nome} · {c.xp} XP
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{c.condicao}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div
+                      className="h-2 flex-1 overflow-hidden rounded-full bg-secondary"
+                      role="progressbar"
+                      aria-valuenow={pctDaConquista}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Progresso de ${c.nome}`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#13a403] to-primary"
+                        style={{ width: `${pctDaConquista}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold">
+                      {x.atual} de {x.alvo}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-primary">{quantoFalta(x)}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
         {/* ---------- Os atributos ---------- */}

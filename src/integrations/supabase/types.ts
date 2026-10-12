@@ -1348,7 +1348,25 @@ export type Database = {
       desfazer_aviso_slack: { Args: { _evento: string; _id: string }; Returns: undefined };
       guardar_mensagem_slack: { Args: { _id: string; _ts: string }; Returns: undefined };
       reservar_aviso_slack: { Args: { _evento: string; _id: string }; Returns: boolean };
-      meu_progresso_de_conquistas: { Args: never; Returns: { quinzenas_com_100: number }[] };
+      meu_progresso_de_conquistas: {
+        Args: never;
+        Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
+      };
+      minha_aparencia: { Args: never; Returns: Json };
+      definir_aparencia: {
+        Args: {
+          _capa: string;
+          _moldura: string;
+          _capa_da_temporada: boolean;
+          _moldura_da_temporada: boolean;
+          _capa_temporada_preferida: string | null;
+        };
+        Returns: undefined;
+      };
+      molduras_do_time: {
+        Args: { _pessoas: string[] };
+        Returns: { employee_id: string; moldura: string }[];
+      };
       escala_da_semana: { Args: { _inicio: string }; Returns: Json };
       semanas_da_escala: { Args: never; Returns: Json };
       ferias_do_ano: { Args: { _ano: number }; Returns: Json };
