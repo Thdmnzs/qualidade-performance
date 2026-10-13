@@ -13,9 +13,17 @@
 const PILULA = "/capas/fluke-pill-white.svg";
 const APARELHOS = "/capas/aparelhos.webp";
 
+/*
+ * A tela de pintura vai de -300 a 900 (1.200 de largura, 8 por 1), com o desenho principal no
+ * centro (de 0 a 600, 4 por 1). Com o "slice", a capa sempre mostra a ALTURA inteira: numa faixa
+ * estreita (o celular), aparece só o centro; numa larga (a página inteira), aparecem os lados, com o
+ * fundo e os elementos que se repetem estendidos. Assim, nada é cortado em cima nem embaixo.
+ */
+const ESQ = -300;
+const LARG = 1200;
 const svg = (conteudo: string, fundo = "") =>
-  `<svg viewBox="0 0 600 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${fundo}${conteudo}</svg>`;
-const fundo = (cor: string) => `<rect width="600" height="150" fill="${cor}"/>`;
+  `<svg viewBox="${ESQ} 0 ${LARG} 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${fundo}${conteudo.replace(/<rect width="600" height="150"/g, `<rect x="${ESQ}" width="${LARG}" height="150"`)}</svg>`;
+const fundo = (cor: string) => `<rect x="${ESQ}" width="${LARG}" height="150" fill="${cor}"/>`;
 const ondas = (cx: number, cy: number, n: number, cor: string, base = 26) =>
   Array.from(
     { length: n },
@@ -29,8 +37,8 @@ export const ABOBORA = (x: number, y: number, r: number) =>
 const LACO = (x: number, y: number, cor: string) =>
   `<g transform="translate(${x} ${y})"><path d="M0 0 C-22 -30 -40 -6 -10 18 L-26 52 L-14 54 L0 26 L14 54 L26 52 L10 18 C40 -6 22 -30 0 0Z" fill="${cor}"/></g>`;
 const CONFETE = (seed: number, cores: string[]) =>
-  Array.from({ length: 46 }, (_, i) => {
-    const x = (i * 131 + seed) % 600;
+  Array.from({ length: 92 }, (_, i) => {
+    const x = ((i * 131 + seed) % LARG) + ESQ;
     const y = (i * 53 + seed * 3) % 150;
     const c = cores[i % cores.length];
     return i % 3
@@ -38,18 +46,18 @@ const CONFETE = (seed: number, cores: string[]) =>
       : `<rect x="${x}" y="${y}" width="7" height="3" rx="1" fill="${c}" transform="rotate(${(i * 37) % 180} ${x} ${y})"/>`;
   }).join("");
 const BANDEIRINHAS = (y: number, cores: string[]) =>
-  `<path d="M-10 ${y} Q300 ${y + 22} 610 ${y}" stroke="#FDE68A" stroke-width="1.5" fill="none"/>` +
-  Array.from({ length: 17 }, (_, i) => {
-    const x = i * 37 + 4;
-    const yy = y + 22 * (1 - Math.pow((x - 300) / 310, 2));
+  `<path d="M${ESQ - 10} ${y} Q300 ${y + 44} ${ESQ + LARG + 10} ${y}" stroke="#FDE68A" stroke-width="1.5" fill="none"/>` +
+  Array.from({ length: 33 }, (_, i) => {
+    const x = ESQ + i * 37 + 4;
+    const yy = y + 22 * (1 - Math.pow((x - 300) / 610, 2));
     return `<path d="M${x} ${yy.toFixed(1)} L${x + 26} ${yy.toFixed(1)} L${x + 13} ${(yy + 22).toFixed(1)}Z" fill="${cores[i % cores.length]}"/>`;
   }).join("");
 const FOGUEIRA = (x: number) =>
   `<g transform="translate(${x} 150)"><path d="M-30 0 L30 -8 M-30 -8 L30 0" stroke="#7C2D12" stroke-width="7" stroke-linecap="round"/><path d="M0 -12 C-22 -30 -6 -50 0 -64 C6 -48 24 -34 0 -12Z" fill="#F97316"/><path d="M0 -14 C-10 -26 -2 -38 0 -46 C3 -36 12 -28 0 -14Z" fill="#FDE047"/></g>`;
 const LUZES = (y: number) =>
-  `<path d="M-10 ${y} Q150 ${y + 26} 300 ${y} T610 ${y}" stroke="#14532D" stroke-width="2" fill="none"/>` +
-  Array.from({ length: 22 }, (_, i) => {
-    const x = i * 28 + 6;
+  `<path d="M${ESQ - 10} ${y} Q-150 ${y + 26} 0 ${y} T300 ${y} T600 ${y} T${ESQ + LARG + 10} ${y}" stroke="#14532D" stroke-width="2" fill="none"/>` +
+  Array.from({ length: 43 }, (_, i) => {
+    const x = ESQ + i * 28 + 6;
     const yy = y + 13 - 13 * Math.cos((Math.PI * x) / 300);
     const cor = ["#0EF500", "#F43F5E", "#FDE047", "#38BDF8", "#F97316"][i % 5];
     return `<ellipse cx="${x}" cy="${(yy + 7).toFixed(1)}" rx="4" ry="6" fill="${cor}"/><circle cx="${x}" cy="${(yy + 7).toFixed(1)}" r="10" fill="${cor}" opacity=".18"/>`;
@@ -79,7 +87,7 @@ const ARTES: Record<string, (u: string) => string> = {
       [0, 1, 2, 3, 4]
         .map(
           (i) =>
-            `<path d="M0 ${110 - i * 14} Q150 ${70 - i * 14} 300 ${100 - i * 14} T600 ${80 - i * 14}" stroke="#0EF500" stroke-opacity="${0.15 + i * 0.12}" stroke-width="2" fill="none"/>`,
+            `<path d="M-300 ${100 - i * 14} Q-150 ${130 - i * 14} 0 ${110 - i * 14} Q150 ${70 - i * 14} 300 ${100 - i * 14} T600 ${80 - i * 14} T900 ${110 - i * 14}" stroke="#0EF500" stroke-opacity="${0.15 + i * 0.12}" stroke-width="2" fill="none"/>`,
         )
         .join(""),
       fundo("#071407"),
@@ -95,7 +103,7 @@ const ARTES: Record<string, (u: string) => string> = {
     ),
   faixas: () =>
     svg(
-      `${[0, 1, 2, 3, 4].map((i) => `<rect y="${i * 30}" width="600" height="30" fill="${i % 2 ? "#EDFFF0" : "#FFFFFF"}"/>`).join("")}<rect x="380" y="40" width="190" height="70" rx="35" fill="#0EF500"/><rect x="398" y="58" width="34" height="34" rx="17" fill="#071407"/>`,
+      `${[0, 1, 2, 3, 4].map((i) => `<rect x="${ESQ}" y="${i * 30}" width="${LARG}" height="30" fill="${i % 2 ? "#EDFFF0" : "#FFFFFF"}"/>`).join("")}<rect x="380" y="40" width="190" height="70" rx="35" fill="#0EF500"/><rect x="398" y="58" width="34" height="34" rx="17" fill="#071407"/>`,
     ),
   aurora: (u) =>
     svg(
@@ -108,12 +116,12 @@ const ARTES: Record<string, (u: string) => string> = {
     ),
   fibra: () =>
     svg(
-      `${Array.from({ length: 14 }, (_, i) => `<line x1="${i * 46 - 60}" y1="150" x2="${i * 46 + 90}" y2="0" stroke="${i % 3 ? "#0EF500" : "#38BDF8"}" stroke-opacity="${(0.12 + (i % 4) * 0.08).toFixed(2)}" stroke-width="${1 + (i % 3)}"/>`).join("")}${Array.from({ length: 10 }, (_, i) => `<circle cx="${40 + i * 58}" cy="${30 + ((i * 37) % 100)}" r="2" fill="#B9FFB0"/>`).join("")}`,
+      `${Array.from({ length: 28 }, (_, i) => `<line x1="${ESQ + i * 46 - 60}" y1="150" x2="${ESQ + i * 46 + 90}" y2="0" stroke="${i % 3 ? "#0EF500" : "#38BDF8"}" stroke-opacity="${(0.12 + (i % 4) * 0.08).toFixed(2)}" stroke-width="${1 + (i % 3)}"/>`).join("")}${Array.from({ length: 20 }, (_, i) => `<circle cx="${ESQ + 40 + i * 58}" cy="${30 + ((i * 37) % 100)}" r="2" fill="#B9FFB0"/>`).join("")}`,
       fundo("#04120A"),
     ),
   torre: () =>
     svg(
-      `<path d="M470 150 L490 40 L510 150 M478 110 H502 M483 80 H497" stroke="#C9D6E3" stroke-width="3" fill="none"/>${[1, 2, 3].map((r) => `<circle cx="490" cy="40" r="${r * 22}" stroke="#0EF500" stroke-opacity="${(0.5 - r * 0.12).toFixed(2)}" stroke-width="2" fill="none"/>`).join("")}<path d="M0 150 L0 120 L60 110 L120 125 L200 105 L280 120 L360 108 L440 122 L600 112 L600 150Z" fill="#071407"/>`,
+      `<path d="M470 150 L490 40 L510 150 M478 110 H502 M483 80 H497" stroke="#C9D6E3" stroke-width="3" fill="none"/>${[1, 2, 3].map((r) => `<circle cx="490" cy="40" r="${r * 22}" stroke="#0EF500" stroke-opacity="${(0.5 - r * 0.12).toFixed(2)}" stroke-width="2" fill="none"/>`).join("")}<path d="M-300 150 L-300 118 L-220 112 L-140 124 L-60 110 L0 120 L60 110 L120 125 L200 105 L280 120 L360 108 L440 122 L600 112 L680 124 L760 108 L840 120 L900 114 L900 150Z" fill="#071407"/>`,
       fundo("#0B1F2E"),
     ),
   aparelhos: (u) =>
@@ -163,7 +171,7 @@ const ARTES: Record<string, (u: string) => string> = {
         .map(([x, y, r]) => ESTRELA(x!, y!, r!))
         .join(
           "",
-        )}<path d="M0 150 L0 125 Q80 105 160 125 T320 120 T480 128 T600 118 L600 150Z" fill="#14081F"/>${ABOBORA(90, 128, 16)}${ABOBORA(150, 134, 10)}${ABOBORA(520, 130, 14)}`,
+        )}<path d="M-300 150 L-300 122 Q-220 108 -150 124 T0 125 Q80 105 160 125 T320 120 T480 128 T600 118 Q680 108 750 124 T900 120 L900 150Z" fill="#14081F"/>${ABOBORA(90, 128, 16)}${ABOBORA(150, 134, 10)}${ABOBORA(520, 130, 14)}`,
     ),
   rosa: (u) =>
     svg(
@@ -210,4 +218,6 @@ export function arteDaCapa(id: string, sufixo: string): string {
 export const CODIGOS_COM_ARTE = Object.keys(ARTES);
 
 /** O enfeite da moldura da Noite das Bruxas (as abóboras e as estrelas em volta da foto). */
-export const ENFEITE_DAS_BRUXAS = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ABOBORA(84, 84, 9)}${ABOBORA(14, 80, 6.5)}${ESTRELA(86, 16, 4.5)}${ESTRELA(10, 22, 3)}${ESTRELA(50, 3, 2.6)}</svg>`;
+// Sobre o próprio anel (a 47 do centro, num quadro de 100): uma abóbora grande embaixo, à esquerda,
+// uma pequena à esquerda, e as estrelas em cima. O canto de baixo, à direita, fica livre para o lápis.
+export const ENFEITE_DAS_BRUXAS = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ABOBORA(17, 83, 10)}${ABOBORA(6, 36, 6)}${ESTRELA(83, 17, 5)}${ESTRELA(50, 3, 3)}${ESTRELA(28, 8, 2.4)}</svg>`;

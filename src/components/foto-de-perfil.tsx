@@ -128,7 +128,9 @@ export function FotoDePerfil({
     }
   }
 
-  const medida = tamanho === "grande" ? "size-24 text-2xl border-2" : "size-10 text-sm border";
+  // Com uma moldura, a foto perde a borda própria (senão, ficam duas molduras, uma dentro da outra).
+  const borda = moldura === "nenhuma" ? (tamanho === "grande" ? "border-2" : "border") : "";
+  const medida = tamanho === "grande" ? `size-24 text-2xl ${borda}` : `size-10 text-sm ${borda}`;
   const circulo = (
     <div
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border-primary bg-secondary font-display font-bold ${medida}`}

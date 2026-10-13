@@ -42,7 +42,12 @@ export function ComMoldura({
 }) {
   if (id === "nenhuma") return <>{children}</>;
   return (
-    <div className="relative inline-flex shrink-0 rounded-full" style={{ padding: espessura + 2 }}>
+    // O anel ABRAÇA a foto: ela entra 1 px por baixo dele (uma folga mostraria o fundo do cartão,
+    // e até a borda exata deixa um fio claro, pelo arredondamento).
+    <div
+      className="relative inline-flex shrink-0 rounded-full"
+      style={{ padding: Math.max(espessura - 1, 1) }}
+    >
       {children}
       <span
         className={`moldura-anel moldura-${id}`}
@@ -51,7 +56,7 @@ export function ComMoldura({
       />
       {id === "bruxas" && (
         <span
-          className="pointer-events-none absolute -inset-1 [&>svg]:size-full"
+          className="pointer-events-none absolute inset-0 [&>svg]:size-full"
           aria-hidden="true"
           dangerouslySetInnerHTML={{ __html: ENFEITE_DAS_BRUXAS }}
         />
