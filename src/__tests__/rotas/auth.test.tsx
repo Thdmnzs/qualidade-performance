@@ -27,7 +27,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() } }));
 
-const { Route } = await import("../auth");
+const { Route } = await import("@/routes/auth");
 const Pagina = (Route as unknown as { options: { component: () => React.ReactElement } }).options
   .component;
 
