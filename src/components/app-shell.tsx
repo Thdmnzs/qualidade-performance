@@ -24,6 +24,7 @@ import { lerMinhasTrocas, lerTrocasParaAprovar } from "@/lib/trocas-api";
 import { apagarRegistros } from "@/lib/expiracao-da-sessao";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
 import { BotaoTema } from "@/components/botao-tema";
+import { CentralDeNotificacoes } from "@/components/central-de-notificacoes";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
 import { areaDoEndereco, itensDoMenu, trocaDeArea, type Area, type Rota } from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
@@ -169,6 +170,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Barra fixa no topo (computador): o menu do usuário fica à direita. */}
         <header className="sticky top-0 z-20 hidden h-14 items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur md:flex">
+          <CentralDeNotificacoes />
           <BotaoTema />
           {menuDoUsuario}
         </header>
@@ -198,6 +200,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <CentralDeNotificacoes />
             <BotaoTema />
             {menuDoUsuario}
           </div>

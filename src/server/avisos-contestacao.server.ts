@@ -98,6 +98,9 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
   // A Central de Turnos (13/10/2026) também recupera, de manhã, os avisos de troca que se perderam.
   const { avisosDeTrocaPendentes } = await import("@/server/central-de-turnos.server");
   const trocas = await avisosDeTrocaPendentes();
+  // A central de notificações (13/10/2026): as novidades com mais de 30 dias são apagadas.
+  const { error: erroDaLimpeza } = await supabaseAdmin.rpc("limpar_notificacoes_antigas");
+  if (erroDaLimpeza) console.error("[notificações] erro na limpeza:", erroDaLimpeza.message);
   if (!slackConfigurado())
     return Response.json({ avisos: 0, trocas, motivo: "Slack não configurado" });
   const { data: pendentes, error } = await supabaseAdmin.rpc("avisos_slack_pendentes");

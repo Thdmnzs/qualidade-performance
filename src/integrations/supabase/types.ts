@@ -1353,6 +1353,9 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      minhas_notificacoes: { Args: never; Returns: Json };
+      marcar_notificacoes_lidas: { Args: { _ids: string[] | null }; Returns: undefined };
+      limpar_notificacoes_antigas: { Args: never; Returns: number };
       dados_do_aviso_de_troca: { Args: { _id: string }; Returns: Json };
       reservar_aviso_de_troca: { Args: { _id: string; _evento: string }; Returns: boolean };
       desfazer_aviso_de_troca: { Args: { _id: string; _evento: string }; Returns: undefined };
