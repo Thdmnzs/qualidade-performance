@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AniversariantesDeHoje } from "@/components/parabens/aniversariantes-de-hoje";
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -218,6 +219,7 @@ function Painel() {
             : "Seus indicadores aparecem aqui quando a quinzena é publicada."
         }
       />
+      <AniversariantesDeHoje />
 
       {publicadas.length === 0 ? (
         <EmptyState

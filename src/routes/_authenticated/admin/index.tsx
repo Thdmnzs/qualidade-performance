@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AniversariantesDeHoje } from "@/components/parabens/aniversariantes-de-hoje";
 
 import { CicloDaQuinzena, CriarProximaQuinzena } from "@/components/ciclo-da-quinzena";
 import { quinzenasDoCiclo, situacaoExibida } from "@/lib/quinzena";
@@ -58,6 +59,7 @@ function AdminHome() {
         <PageHeader titulo="Visão geral" descricao={nomeQuinzena(atual)} />
         <CriarProximaQuinzena />
       </div>
+      <AniversariantesDeHoje />
 
       {/* Um cartão por quinzena ainda não fechada (a anterior pode estar em contestação). */}
       {quinzenasDoCiclo(quinzenas).map((q) => (

@@ -106,3 +106,20 @@ export function textoDoBonus(sequencia: number): string | null {
   const pct = sequencia === 2 ? 10 : sequencia === 3 ? 20 : 25;
   return `${sequencia}ª seguida, bônus de +${pct}%`;
 }
+
+// ---------- As conquistas sazonais (12/10/2026): uma por temporada, uma vez por ano ----------
+/** Os números do catálogo, e o mês e o ícone de cada temporada. Não contam para a FLUKER nem para as Centrais. */
+export const SAZONAIS: Record<number, { mes: number; icone: string }> = {
+  101: { mes: 2, icone: "🎭" }, // Carnaval
+  102: { mes: 6, icone: "🔥" }, // Festa Junina
+  103: { mes: 9, icone: "⭐" }, // Dia do Cliente
+  104: { mes: 10, icone: "🎃" }, // Noite das Bruxas
+  105: { mes: 11, icone: "⚡" }, // Black Friday
+  106: { mes: 12, icone: "🎆" }, // Fim de ano
+};
+export const ehSazonal = (numero: number) => numero in SAZONAIS;
+/** A conquista sazonal de um mês (ou nada, num mês sem temporada). */
+export function sazonalDoMes(mes: number): number | null {
+  const achada = Object.entries(SAZONAIS).find(([, s]) => s.mes === mes);
+  return achada ? Number(achada[0]) : null;
+}

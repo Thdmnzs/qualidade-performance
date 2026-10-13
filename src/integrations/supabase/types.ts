@@ -1353,6 +1353,20 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      aniversariantes_de_hoje: {
+        Args: never;
+        Returns: { employee_id: string; nome: string; sou_eu: boolean; ja_dei: boolean }[];
+      };
+      proximos_aniversarios: {
+        Args: { _dias: number };
+        Returns: { employee_id: string; nome: string; dia: number; mes: number; data: string }[];
+      };
+      dar_parabens: { Args: { _aniversariante: string; _texto: string }; Returns: string };
+      meus_parabens: {
+        Args: never;
+        Returns: { id: string; autor: string; texto: string; criado_em: string }[];
+      };
+      ocultar_parabens: { Args: { _id: string }; Returns: undefined };
       meus_dados_pessoais: { Args: never; Returns: Json };
       salvar_meus_dados_pessoais: {
         Args: {

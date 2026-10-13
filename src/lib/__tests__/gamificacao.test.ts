@@ -74,3 +74,14 @@ describe("subiuDeNivel", () => {
   it("na primeira visita (sem um nível visto), não mostra o aviso", () =>
     expect(subiuDeNivel(13, null)).toBe(false));
 });
+
+describe("as conquistas sazonais", () => {
+  it("o mês de cada uma, e os meses sem temporada", async () => {
+    const { sazonalDoMes, ehSazonal } = await import("../gamificacao");
+    expect(sazonalDoMes(10)).toBe(104);
+    expect(sazonalDoMes(2)).toBe(101);
+    expect(sazonalDoMes(3)).toBeNull();
+    expect(ehSazonal(104)).toBe(true);
+    expect(ehSazonal(62)).toBe(false);
+  });
+});

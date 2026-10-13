@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MuralDosParabens } from "@/components/parabens/mural";
 import { BookOpen, Lock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -33,17 +34,20 @@ import { dataBR, nomeQuinzena } from "@/lib/format";
 import {
   CENTRAIS,
   DESCRICAO_DA_FLUKER,
+  type Dimensao,
   DIMENSOES,
+  ehSazonal,
   ESTAGIOS_DA_QUALIDADE,
   FLUKER,
   MOTIVO_EM_BREVE,
   nivelDe,
   progressoDaCentral,
   raridade,
+  SAZONAIS,
+  sazonalDoMes,
   subiuDeNivel,
   textoDoBonus,
   XP_POR_NIVEL,
-  type Dimensao,
 } from "@/lib/gamificacao";
 import {
   atingiuMeta,
@@ -272,7 +276,20 @@ function Perfil() {
     ...ganhas.filter((g) => g.fortnight_id === ultimaQuinzena).map((g) => g.sequencia),
   );
   const temFluker = porConquista.has(FLUKER);
-  const totalDeConquistas = catalogo.filter((c) => c.numero !== FLUKER).length + 1; // a FLUKER conta, mesmo oculta
+  // As 62 (a FLUKER conta, mesmo oculta); as sazonais ficam fora, como ficam fora da FLUKER.
+  const totalDeConquistas =
+    catalogo.filter((c) => c.numero !== FLUKER && !ehSazonal(c.numero)).length + 1;
+  const ganhasForaAsSazonais = [...porConquista.keys()].filter((n) => !ehSazonal(n)).length;
+  // As sazonais: as edições (os anos) em que cada uma foi ganha.
+  const edicoesSazonais = new Map<number, number[]>();
+  for (const g of ganhas) {
+    if (!ehSazonal(g.conquista)) continue;
+    const ano = (g.fortnights as { ano: number } | null)?.ano ?? new Date(g.ganha_em).getFullYear();
+    edicoesSazonais.set(
+      g.conquista,
+      [...new Set([...(edicoesSazonais.get(g.conquista) ?? []), ano])].sort(),
+    );
+  }
 
   const xpPorDimensao = DIMS.map((d) => ({
     d,
@@ -301,13 +318,15 @@ function Perfil() {
   const visiveis = catalogo.filter(
     (c) =>
       c.numero !== FLUKER &&
+      !ehSazonal(c.numero) &&
       (dimensao === "todas" || c.dimensao === dimensao) &&
       (situacao === "todas" || situacaoDe(c) === situacao),
   );
   const conta = (s: Situacao) =>
     s === "todas"
-      ? catalogo.filter((c) => c.numero !== FLUKER).length
-      : catalogo.filter((c) => c.numero !== FLUKER && situacaoDe(c) === s).length;
+      ? catalogo.filter((c) => c.numero !== FLUKER && !ehSazonal(c.numero)).length
+      : catalogo.filter((c) => c.numero !== FLUKER && !ehSazonal(c.numero) && situacaoDe(c) === s)
+          .length;
 
   return (
     <div className="space-y-5">
@@ -411,7 +430,7 @@ function Perfil() {
               </span>
             )}
             <span className="rounded-full bg-secondary px-3 py-1">
-              🏆 {porConquista.size} de {totalDeConquistas} conquistas
+              🏆 {ganhasForaAsSazonais} de {totalDeConquistas} conquistas
             </span>
           </div>
         </div>
@@ -434,6 +453,45 @@ function Perfil() {
           />
         </>
       )}
+
+      <MuralDosParabens employeeId={employee.id} aniversarioHoje={!!aparencia?.aniversario_hoje} />
+
+      {/* ---------- A temporada do mês (a conquista sazonal) ---------- */}
+      {(() => {
+        const numero = aparencia ? sazonalDoMes(aparencia.mes) : null;
+        const c = numero ? catalogo.find((k) => k.numero === numero && k.ativa) : undefined;
+        if (!numero || !c) return null;
+        const ano = Number(
+          new Date().toLocaleDateString("sv-SE", { timeZone: "America/Fortaleza" }).slice(0, 4),
+        );
+        const ganha = (edicoesSazonais.get(numero) ?? []).includes(ano);
+        return (
+          <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1E1035] via-[#3B1A5C] to-[#7C2D12] p-5 text-[#FDF4E7]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#FDBA74]">
+              Temporada · edição limitada
+            </p>
+            <p className="mt-1 font-display text-xl font-bold">
+              {SAZONAIS[numero]!.icone} {c.nome} {ano}
+            </p>
+            <p className="mt-1 max-w-md text-sm text-[#E9D5FF]">
+              {c.condicao} Você compete só com você mesmo. +100 XP.
+            </p>
+            {ganha ? (
+              <p className="mt-4 inline-block rounded-xl bg-white/10 px-3 py-2 text-sm font-bold">
+                ✓ Conquistada! Ela fica no seu perfil para sempre.
+              </p>
+            ) : (
+              <p className="mt-4 text-xs text-[#E9D5FF]">
+                A temporada é conferida no fechamento da 2ª quinzena de{" "}
+                {MESES[SAZONAIS[numero]!.mes]}.
+              </p>
+            )}
+            <p className="mt-2 text-[11px] text-[#D8B4FE]">
+              De férias em parte do mês? Contam só as quinzenas em que você foi avaliado.
+            </p>
+          </section>
+        );
+      })()}
 
       {/* ---------- Quase lá: as conquistas mais perto ---------- */}
       {proximas.length > 0 && (
@@ -644,6 +702,42 @@ function Perfil() {
           </p>
         </div>
         <CartaoDaFluker ganha={temFluker} quando={porConquista.get(FLUKER)?.primeira ?? null} />
+        {catalogo.some((c) => ehSazonal(c.numero)) && (
+          <div className="rounded-2xl border border-border p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-bold">🗓 Sazonais · edições limitadas</p>
+              <p className="text-xs text-muted-foreground">
+                100 XP cada · não contam para a FLUKER nem para as Centrais
+              </p>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {catalogo
+                .filter((c) => ehSazonal(c.numero))
+                .sort((a, b) => SAZONAIS[a.numero]!.mes - SAZONAIS[b.numero]!.mes)
+                .map((c) => {
+                  const edicoes = edicoesSazonais.get(c.numero) ?? [];
+                  return (
+                    <div
+                      key={c.numero}
+                      title={c.condicao}
+                      className={`rounded-xl border p-3 text-center ${edicoes.length ? "border-[#F97316]/60 bg-[#F97316]/10" : "border-border opacity-60"}`}
+                    >
+                      <IconeDaConquista c={c} />
+                      <p className="mt-1 text-xs font-bold">
+                        {edicoes.length ? "" : "🔒 "}
+                        {c.nome}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {edicoes.length
+                          ? `edição ${edicoes.join(", ")}`
+                          : MESES[SAZONAIS[c.numero]!.mes]}
+                      </p>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {melhores.map((c) => (
             <div
@@ -887,6 +981,12 @@ function Perfil() {
 
 function IconeDaConquista({ c }: { c: { numero: number; dimensao: string } }) {
   if (c.numero === FLUKER) return <img src="/fluke-pill.svg" alt="" className="mx-auto h-7" />;
+  if (ehSazonal(c.numero))
+    return (
+      <span className="text-2xl" aria-hidden="true">
+        {SAZONAIS[c.numero]!.icone}
+      </span>
+    );
   return (
     <span className="text-2xl" aria-hidden="true">
       {DIMENSOES[c.dimensao as Dimensao]?.icone ?? "🏅"}
