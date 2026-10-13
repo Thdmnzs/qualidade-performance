@@ -18,6 +18,7 @@ const sig = (id: string, sigla: string, significado: string, extra = {}) => ({
 const SIGLAS = [
   sig("s-i", "i", "Intercom (atendimento)", { em_atendimento: true }),
   sig("s-p", "P", "Pausa", { conta_como_trabalho: false, cor: "#D9D9D9" }),
+  sig("s-off", "off", "Ausente", { conta_como_trabalho: false, cor: "#E06666" }),
 ];
 const H = (...xs: (string | null)[]) => [...xs, ...Array(16 - xs.length).fill(null)];
 let semana: Record<string, unknown>;
@@ -359,5 +360,100 @@ describe("os pedidos de férias", () => {
       />,
     );
     expect(screen.getByText("Você já tem um pedido aguardando nesses dias.")).toBeTruthy();
+  });
+});
+
+describe("as mudanças rápidas (a semana publicada)", () => {
+  const preparar = () => {
+    semana = {
+      inicio: "2026-10-12",
+      situacao: "publicada",
+      publicada_em: "2026-10-09T12:00:00Z",
+      eu: null,
+      feriados: [],
+      dias: [
+        [
+          {
+            employee_id: "t",
+            nome: "Thiago Dantas",
+            horas: H("s-i", "s-i", "s-i", "s-i", "s-p", "s-i", "s-i", "s-i", "s-i"),
+          },
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+      ],
+    };
+  };
+  const hora = (h: number) =>
+    screen.getByRole("button", { name: new RegExp(`^Thiago Dantas, ${h}h:`) });
+  const gravadas = () =>
+    (
+      api.salvarDia.mock.calls.at(-1) as unknown as [
+        string,
+        number,
+        { employee_id: string; horas: (string | null)[] }[],
+      ]
+    )[2];
+  it("arrastar das 11h às 14h, e escolher 'off' uma vez só", async () => {
+    preparar();
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    await screen.findByRole("button", { name: /^Thiago Dantas, 6h:/ });
+    fireEvent.mouseDown(hora(11), { button: 0 });
+    for (const h of [12, 13, 14]) fireEvent.mouseEnter(hora(h));
+    fireEvent.mouseUp(window);
+    expect(await screen.findByText("Thiago · 11h às 15h · 4 horas")).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: /Ausente/ }));
+    await waitFor(() => expect(api.salvarDia).toHaveBeenCalled(), { timeout: 2000 });
+    expect(gravadas()[0]!.horas.slice(4, 10)).toEqual([
+      "s-p",
+      "s-off",
+      "s-off",
+      "s-off",
+      "s-off",
+      null,
+    ]);
+    expect(
+      document.querySelectorAll("[data-celula].shadow-\\[inset_0_-3px_0_\\#F59E0B\\]").length,
+    ).toBe(4); // a marca nas 4 horas
+  });
+  it("o Shift: clicar numa hora e, com o Shift, em outra", async () => {
+    preparar();
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    await screen.findByRole("button", { name: /^Thiago Dantas, 6h:/ });
+    fireEvent.mouseDown(hora(7), { button: 0 });
+    fireEvent.mouseUp(window);
+    fireEvent.mouseDown(hora(9), { button: 0, shiftKey: true });
+    fireEvent.mouseUp(window);
+    expect(await screen.findByText("Thiago · 7h às 10h · 3 horas")).toBeTruthy();
+  });
+  it("o ⋯: ficar off a partir das 12h", async () => {
+    preparar();
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Mais ações para Thiago Dantas" }));
+    fireEvent.change(screen.getByLabelText("A hora em que fica off"), { target: { value: "6" } }); // 12h
+    fireEvent.click(screen.getAllByRole("button", { name: "Aplicar" })[0]!);
+    await waitFor(() => expect(api.salvarDia).toHaveBeenCalled(), { timeout: 2000 });
+    expect(gravadas()[0]!.horas.slice(4, 10)).toEqual([
+      "s-p",
+      "s-i",
+      "s-off",
+      "s-off",
+      "s-off",
+      null,
+    ]);
+  });
+  it("o ⋯: substituir pela Ruby (com as mesmas horas)", async () => {
+    preparar();
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Mais ações para Thiago Dantas" }));
+    expect((screen.getByLabelText("Quem entra no lugar") as HTMLSelectElement).value).toBe("r");
+    fireEvent.click(screen.getAllByRole("button", { name: "Aplicar" })[1]!);
+    await waitFor(() => expect(api.salvarDia).toHaveBeenCalled(), { timeout: 2000 });
+    expect(gravadas().map((l) => l.employee_id)).toEqual(["r"]);
+    expect(gravadas()[0]!.horas[0]).toBe("s-i");
   });
 });

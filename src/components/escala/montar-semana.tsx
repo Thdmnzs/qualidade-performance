@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Copy, Eye, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Eye, MoreHorizontal, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,23 +20,28 @@ import {
   corDoTexto,
   dataCurta,
   dataDoDia,
-  definirHora,
+  definirHoras,
   DIAS_DA_SEMANA,
   DIAS_POR_EXTENSO,
+  type DiasDaSemana,
   diaTemEscala,
-  HORAS,
+  ficarOffAPartirDe,
   hojeIso,
+  HORAS,
   horasDeTrabalho,
+  intervaloDeHoras,
+  jornada,
+  limparDiaDaPessoa,
+  type LinhaDoDia,
   moverNoDia,
   nomeCurto,
   onlinePorHora,
   periodoDaSemana,
   segundaDaSemana,
-  somarDias,
-  tirarDoDia,
-  type DiasDaSemana,
-  type LinhaDoDia,
   type Sigla,
+  somarDias,
+  substituirNoDia,
+  tirarDoDia,
 } from "@/lib/escala";
 import {
   criarSigla,
@@ -79,16 +84,24 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
   const [estado, setEstado] = useState<{ tipo: "salvo" | "salvando" | "erro"; em?: number }>({
     tipo: "salvo",
   });
+  // A seleção de horas: arrastando pela linha, ou clicando numa e, com o Shift, em outra.
   const [celulaAberta, setCelulaAberta] = useState<{
     linha: number;
-    hora: number;
+    de: number;
+    ate: number;
     ancora: DOMRect;
   } | null>(null);
+  const [arraste, setArraste] = useState<{ linha: number; de: number; ate: number } | null>(null);
+  const baseDoShift = useRef<{ linha: number; hora: number } | null>(null);
+  const [menuDaPessoa, setMenuDaPessoa] = useState<{ linha: number; ancora: DOMRect } | null>(null);
+  // As horas que mudaram nesta visita (a marca laranja), por semana, dia, pessoa e hora.
+  const [mudadas, setMudadas] = useState<Set<string>>(new Set());
   const [janela, setJanela] = useState<null | "publicar" | "apagar" | "copiar-dia" | "ver-time">(
     null,
   );
   const pendentes = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const fecharLista = useCallback(() => setCelulaAberta(null), []);
+  const fecharMenu = useCallback(() => setMenuDaPessoa(null), []);
 
   const { data: siglasLista = [] } = useQuery({ queryKey: ["escala-siglas"], queryFn: lerSiglas });
   const siglas = useMemo(() => new Map(siglasLista.map((s) => [s.id, s])), [siglasLista]);
@@ -120,6 +133,17 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
   /** Mudou um dia: a tela muda na hora, e a gravação acontece um instante depois. */
   function mudarDia(d: number, novas: LinhaDoDia[]) {
     if (!pronta) return;
+    const antes = new Map((dias[d] ?? []).map((l) => [l.employee_id, l.horas]));
+    setMudadas((m) => {
+      const n = new Set(m);
+      for (const l of novas)
+        l.horas.forEach(
+          (h, k) =>
+            (antes.get(l.employee_id)?.[k] ?? null) !== h &&
+            n.add(`${inicio}:${d}:${l.employee_id}:${k}`),
+        );
+      return n;
+    });
     setDias((atual) => atual.map((l, i) => (i === d ? novas : l)));
     setEstado({ tipo: "salvando" });
     clearTimeout(pendentes.current.get(d));
@@ -186,6 +210,23 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
   }
 
   const linhas = dias[dia] ?? SEM_LINHAS;
+  useEffect(() => {
+    if (!arraste) return;
+    const soltar = () => {
+      const a = arraste;
+      setArraste(null);
+      const ancora = document
+        .querySelector(`[data-celula="${a.linha}-${a.ate}"]`)
+        ?.getBoundingClientRect();
+      if (ancora) setCelulaAberta({ ...a, ancora });
+    };
+    window.addEventListener("mouseup", soltar);
+    return () => window.removeEventListener("mouseup", soltar);
+  }, [arraste]);
+  const selecionada = (i: number, k: number) => {
+    const s = arraste ?? celulaAberta;
+    return !!s && s.linha === i && k >= Math.min(s.de, s.ate) && k <= Math.max(s.de, s.ate);
+  };
   const todosOsNomes = useMemo(() => pessoas.map((p) => p.nome), [pessoas]);
   const data = dataDoDia(inicio, dia);
   const feriado = semana?.feriados.includes(data) ?? false;
@@ -391,6 +432,20 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
                         >
                           <X className="size-3" strokeWidth={3} />
                         </button>
+                        <button
+                          type="button"
+                          onClick={(e) =>
+                            setMenuDaPessoa({
+                              linha: i,
+                              ancora: e.currentTarget.getBoundingClientRect(),
+                            })
+                          }
+                          className="flex size-[18px] shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                          aria-label={`Mais ações para ${l.nome}`}
+                          title="Ficar off, substituir ou limpar o dia"
+                        >
+                          <MoreHorizontal className="size-3.5" strokeWidth={3} />
+                        </button>
                         <span className="truncate text-sm font-bold" title={l.nome}>
                           {nomeCurto(l.nome, todosOsNomes)}
                         </span>
@@ -402,7 +457,8 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
                     </td>
                     {l.horas.map((h, k) => {
                       const s = h ? siglas.get(h) : undefined;
-                      const aberta = celulaAberta?.linha === i && celulaAberta.hora === k;
+                      const aberta = selecionada(i, k);
+                      const mudou = mudadas.has(`${inicio}:${dia}:${l.employee_id}:${k}`);
                       return (
                         <td
                           key={k}
@@ -412,14 +468,31 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
                             type="button"
                             aria-label={`${l.nome}, ${HORAS[k]}h: ${s ? s.significado : "vazio"}`}
                             title={s ? s.significado : "vazio: clique para escolher"}
-                            onClick={(e) =>
-                              setCelulaAberta({
-                                linha: i,
-                                hora: k,
-                                ancora: e.currentTarget.getBoundingClientRect(),
-                              })
+                            data-celula={`${i}-${k}`}
+                            onMouseDown={(e) => {
+                              if (e.button !== 0) return;
+                              e.preventDefault();
+                              setCelulaAberta(null);
+                              const base = baseDoShift.current;
+                              const de = e.shiftKey && base && base.linha === i ? base.hora : k;
+                              if (!e.shiftKey || !base || base.linha !== i)
+                                baseDoShift.current = { linha: i, hora: k };
+                              setArraste({ linha: i, de, ate: k });
+                            }}
+                            onMouseEnter={() =>
+                              arraste && arraste.linha === i && setArraste({ ...arraste, ate: k })
                             }
-                            className={`block w-full rounded-[7px] ${aberta ? "outline outline-2 -outline-offset-2 outline-[#2563EB]" : "hover:outline hover:outline-2 hover:-outline-offset-2 hover:outline-[#2563EB]"}`}
+                            onClick={(e) => {
+                              // Pelo teclado (Enter ou espaço), a lista abre para esta hora.
+                              if (e.detail === 0)
+                                setCelulaAberta({
+                                  linha: i,
+                                  de: k,
+                                  ate: k,
+                                  ancora: e.currentTarget.getBoundingClientRect(),
+                                });
+                            }}
+                            className={`block w-full select-none rounded-[7px] ${mudou ? "shadow-[inset_0_-3px_0_#F59E0B]" : ""} ${aberta ? "outline outline-2 -outline-offset-2 outline-[#2563EB] brightness-90" : "hover:outline hover:outline-2 hover:-outline-offset-2 hover:outline-[#2563EB]"}`}
                           >
                             {s ? (
                               <Chip sigla={s} longo={s.sigla.length >= 6} />
@@ -488,21 +561,79 @@ export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
         <ListaDeAtividades
           ancora={celulaAberta.ancora}
           aoFechar={fecharLista}
-          titulo={`${nomeCurto(linhas[celulaAberta.linha]!.nome, todosOsNomes)} · ${HORAS[celulaAberta.hora]}h às ${HORAS[celulaAberta.hora]! + 1}h`}
-          atual={linhas[celulaAberta.linha]!.horas[celulaAberta.hora] ?? null}
+          titulo={(() => {
+            const hs = intervaloDeHoras(celulaAberta.de, celulaAberta.ate);
+            const nome = nomeCurto(linhas[celulaAberta.linha]!.nome, todosOsNomes);
+            return `${nome} · ${HORAS[hs[0]!]}h às ${HORAS[hs[hs.length - 1]!]! + 1}h${hs.length > 1 ? ` · ${hs.length} horas` : ""}`;
+          })()}
+          atual={
+            celulaAberta.de === celulaAberta.ate
+              ? (linhas[celulaAberta.linha]!.horas[celulaAberta.de] ?? null)
+              : undefined
+          }
           siglas={siglasLista}
           aoEscolher={(sigla) => {
-            mudarDia(dia, definirHora(linhas, celulaAberta.linha, celulaAberta.hora, sigla));
+            mudarDia(
+              dia,
+              definirHoras(
+                linhas,
+                celulaAberta.linha,
+                intervaloDeHoras(celulaAberta.de, celulaAberta.ate),
+                sigla,
+              ),
+            );
             setCelulaAberta(null);
           }}
           aoCriar={async (sigla, significado, cor) => {
             const id = await criarSigla(sigla, cor, significado);
             await qc.invalidateQueries({ queryKey: ["escala-siglas"] });
-            mudarDia(dia, definirHora(linhas, celulaAberta.linha, celulaAberta.hora, id));
+            mudarDia(
+              dia,
+              definirHoras(
+                linhas,
+                celulaAberta.linha,
+                intervaloDeHoras(celulaAberta.de, celulaAberta.ate),
+                id,
+              ),
+            );
             setCelulaAberta(null);
             toast.success(
               `A atividade "${sigla}" (${significado}) foi criada, e já aparece na lista de todas as horas.`,
             );
+          }}
+        />
+      )}
+
+      {menuDaPessoa && linhas[menuDaPessoa.linha] && (
+        <MenuDaPessoa
+          ancora={menuDaPessoa.ancora}
+          aoFechar={fecharMenu}
+          linha={linhas[menuDaPessoa.linha]!}
+          dataDoDia={`${DIAS_POR_EXTENSO[dia]}, ${dataCurta(data)}`}
+          foraDoDia={foraDoDia}
+          temOff={siglasLista.some((x) => x.sigla.toLowerCase() === "off")}
+          aoFicarOff={(hora) => {
+            const off = siglasLista.find((x) => x.sigla.toLowerCase() === "off")!;
+            mudarDia(dia, ficarOffAPartirDe(linhas, menuDaPessoa.linha, hora, off.id));
+            toast.success(
+              `${linhas[menuDaPessoa.linha]!.nome.split(" ")[0]} fica off a partir das ${HORAS[hora]}h.`,
+            );
+            setMenuDaPessoa(null);
+          }}
+          aoSubstituir={(p) => {
+            const saiu = linhas[menuDaPessoa.linha]!.nome.split(" ")[0];
+            mudarDia(
+              dia,
+              substituirNoDia(linhas, menuDaPessoa.linha, { employee_id: p.id, nome: p.nome }),
+            );
+            toast.success(
+              `${p.nome.split(" ")[0]} entrou no lugar de ${saiu}, com as mesmas horas. Ajuste o N2, se precisar.`,
+            );
+            setMenuDaPessoa(null);
+          }}
+          aoLimpar={() => {
+            mudarDia(dia, limparDiaDaPessoa(linhas, menuDaPessoa.linha));
+            setMenuDaPessoa(null);
           }}
         />
       )}
@@ -594,7 +725,7 @@ function ListaDeAtividades({
   ancora: DOMRect;
   aoFechar: () => void;
   titulo: string;
-  atual: string | null;
+  atual: string | null | undefined; // undefined: várias horas selecionadas (nenhuma marcada)
   siglas: Sigla[];
   aoEscolher: (sigla: string | null) => void;
   aoCriar: (sigla: string, significado: string, cor: string) => Promise<void>;
@@ -650,9 +781,9 @@ function ListaDeAtividades({
         <button
           type="button"
           role="option"
-          aria-selected={!atual}
+          aria-selected={atual === null}
           onClick={() => aoEscolher(null)}
-          className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-secondary ${!atual ? "bg-secondary" : ""}`}
+          className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-secondary ${atual === null ? "bg-secondary" : ""}`}
         >
           <span className="min-w-[52px] rounded-full border border-dashed border-muted-foreground px-2 py-0.5 text-center text-[11px]">
             vazio
@@ -905,5 +1036,112 @@ function JanelaDeCopiarDia({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** O ⋯ de cada pessoa: ficar off a partir de uma hora, substituir por quem está fora do dia, e limpar o dia. */
+function MenuDaPessoa({
+  ancora,
+  aoFechar,
+  linha,
+  dataDoDia,
+  foraDoDia,
+  temOff,
+  aoFicarOff,
+  aoSubstituir,
+  aoLimpar,
+}: {
+  ancora: DOMRect;
+  aoFechar: () => void;
+  linha: LinhaDoDia;
+  dataDoDia: string;
+  foraDoDia: Pessoa[];
+  temOff: boolean;
+  aoFicarOff: (hora: number) => void;
+  aoSubstituir: (p: Pessoa) => void;
+  aoLimpar: () => void;
+}) {
+  const j = jornada(linha.horas);
+  const horasDaJornada = j ? intervaloDeHoras(j.de, j.ate) : [];
+  const [hora, setHora] = useState(
+    () => horasDaJornada[Math.floor(horasDaJornada.length / 2)] ?? 0,
+  );
+  const [substituto, setSubstituto] = useState(foraDoDia[0]?.id ?? "");
+  const primeiroNome = linha.nome.split(" ")[0];
+  const caixa = "rounded-lg bg-secondary p-2.5";
+  return (
+    <Flutuante ancora={ancora} aoFechar={aoFechar} largura={280}>
+      <p className="px-1.5 pb-1.5 text-[11px] font-bold text-muted-foreground">
+        {primeiroNome} · {dataDoDia}
+      </p>
+      <div className="space-y-2">
+        {temOff && j && (
+          <div className={caixa}>
+            <p className="text-xs font-bold">🚪 Ficar off a partir de</p>
+            <div className="mt-1.5 flex gap-2">
+              <select
+                aria-label="A hora em que fica off"
+                value={hora}
+                onChange={(e) => setHora(Number(e.target.value))}
+                className="h-8 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+              >
+                {horasDaJornada.map((k) => (
+                  <option key={k} value={k}>
+                    {HORAS[k]}h
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" onClick={() => aoFicarOff(hora)}>
+                Aplicar
+              </Button>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              As horas seguintes da jornada viram “off”.
+            </p>
+          </div>
+        )}
+        <div className={caixa}>
+          <p className="text-xs font-bold">⇄ Substituir por</p>
+          {foraDoDia.length ? (
+            <>
+              <div className="mt-1.5 flex gap-2">
+                <select
+                  aria-label="Quem entra no lugar"
+                  value={substituto}
+                  onChange={(e) => setSubstituto(e.target.value)}
+                  className="h-8 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+                >
+                  {foraDoDia.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  onClick={() => aoSubstituir(foraDoDia.find((p) => p.id === substituto)!)}
+                  disabled={!substituto}
+                >
+                  Aplicar
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Entra com as mesmas horas, e {primeiroNome} sai do dia. Ajuste o N2 depois, se
+                precisar.
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-[11px] text-muted-foreground">Todo o time já está neste dia.</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={aoLimpar}
+          className="w-full rounded-lg px-2.5 py-2 text-left text-sm hover:bg-secondary"
+        >
+          🧹 Limpar o dia desta pessoa
+        </button>
+      </div>
+    </Flutuante>
   );
 }

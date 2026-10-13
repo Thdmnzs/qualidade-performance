@@ -214,3 +214,37 @@ describe("os anos das férias", () => {
   it("o último dia que pode ser pedido", () =>
     expect(ultimoDiaDosPedidos("2026-10-11")).toBe("2028-12-31"));
 });
+
+describe("as mudanças rápidas", () => {
+  const dia = [
+    L("Thiago", H("i", "i", "i", "i", "p", "i", "i", "i", "m")),
+    L("Amanda", H(null, null, null, "i", "i")),
+  ];
+  it("várias horas de uma vez (na ordem que for)", async () => {
+    const { definirHoras, intervaloDeHoras } = await import("../escala");
+    expect(intervaloDeHoras(8, 5)).toEqual([5, 6, 7, 8]);
+    const r = definirHoras(dia, 0, intervaloDeHoras(5, 8), "off");
+    expect(r[0]!.horas.slice(4, 10)).toEqual(["p", "off", "off", "off", "off", null]);
+    expect(dia[0]!.horas[5]).toBe("i"); // o dia de antes não mudou
+  });
+  it("ficar off a partir de uma hora (as vazias continuam vazias)", async () => {
+    const { ficarOffAPartirDe } = await import("../escala");
+    const r = ficarOffAPartirDe(dia, 0, 6, "off");
+    expect(r[0]!.horas.slice(4, 10)).toEqual(["p", "i", "off", "off", "off", null]);
+  });
+  it("substituir: entra no lugar, com as mesmas horas; e não duplica quem já está", async () => {
+    const { substituirNoDia } = await import("../escala");
+    const r = substituirNoDia(dia, 1, { employee_id: "Kaio", nome: "Kaio" });
+    expect(r.map((l) => l.nome)).toEqual(["Thiago", "Kaio"]);
+    expect(r[1]!.horas).toEqual(dia[1]!.horas);
+    expect(
+      substituirNoDia(dia, 1, { employee_id: "Thiago", nome: "Thiago" }).map((l) => l.nome),
+    ).toEqual(["Thiago", "Amanda"]);
+  });
+  it("limpar o dia da pessoa, e a jornada", async () => {
+    const { limparDiaDaPessoa, jornada } = await import("../escala");
+    expect(limparDiaDaPessoa(dia, 0)[0]!.horas.every((h) => h === null)).toBe(true);
+    expect(jornada(dia[1]!.horas)).toEqual({ de: 3, ate: 4 });
+    expect(jornada(H())).toBeNull();
+  });
+});

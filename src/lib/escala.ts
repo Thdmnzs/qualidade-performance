@@ -257,3 +257,62 @@ export function anosDasFerias(hoje: string = hojeIso(), comOAnterior = false): n
 /** O último dia que pode ser pedido: o fim do segundo ano seguinte. */
 export const ultimoDiaDosPedidos = (hoje: string = hojeIso()) =>
   `${Number(hoje.slice(0, 4)) + ANOS_A_FRENTE}-12-31`;
+
+// ---------- As mudanças rápidas (12/10/2026): várias horas de uma vez, e os atalhos ----------
+/** As horas entre duas (em qualquer ordem), inclusive as duas. */
+export const intervaloDeHoras = (de: number, ate: number) =>
+  Array.from({ length: Math.abs(ate - de) + 1 }, (_, i) => Math.min(de, ate) + i);
+
+/** Preencher várias horas de uma pessoa com a mesma atividade (ou deixá-las vazias). */
+export function definirHoras(
+  linhas: LinhaDoDia[],
+  linha: number,
+  horas: number[],
+  sigla: string | null,
+): LinhaDoDia[] {
+  const novo = copiaDoDia(linhas);
+  const alvo = novo[linha];
+  if (alvo) for (const k of horas) if (k >= 0 && k < alvo.horas.length) alvo.horas[k] = sigla;
+  return novo;
+}
+/** "Ficar off a partir de": as horas da jornada, dessa em diante, viram off (as vazias continuam vazias). */
+export function ficarOffAPartirDe(
+  linhas: LinhaDoDia[],
+  linha: number,
+  hora: number,
+  off: string,
+): LinhaDoDia[] {
+  const alvo = linhas[linha];
+  if (!alvo) return copiaDoDia(linhas);
+  return definirHoras(
+    linhas,
+    linha,
+    alvo.horas.map((h, k) => (k >= hora && h ? k : -1)).filter((k) => k >= 0),
+    off,
+  );
+}
+/** "Substituir por": a outra pessoa entra no lugar, com as mesmas horas (e quem saiu deixa o dia). */
+export function substituirNoDia(
+  linhas: LinhaDoDia[],
+  linha: number,
+  pessoa: { employee_id: string; nome: string },
+): LinhaDoDia[] {
+  if (linhas.some((l) => l.employee_id === pessoa.employee_id)) return copiaDoDia(linhas);
+  return copiaDoDia(linhas).map((l, i) =>
+    i === linha ? { ...l, employee_id: pessoa.employee_id, nome: pessoa.nome } : l,
+  );
+}
+/** "Limpar o dia desta pessoa": a linha fica vazia, sem tirar a pessoa da escala. */
+export const limparDiaDaPessoa = (linhas: LinhaDoDia[], linha: number) =>
+  definirHoras(
+    linhas,
+    linha,
+    HORAS.map((_, k) => k),
+    null,
+  );
+/** A jornada de uma pessoa: da primeira à última hora preenchida (ou nada, num dia vazio). */
+export function jornada(horas: Horas): { de: number; ate: number } | null {
+  const de = horas.findIndex(Boolean);
+  if (de < 0) return null;
+  return { de, ate: horas.length - 1 - [...horas].reverse().findIndex(Boolean) };
+}
