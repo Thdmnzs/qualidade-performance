@@ -827,47 +827,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      notifications: {
-        Row: {
-          canal: string;
-          created_at: string;
-          employee_id: string | null;
-          enviado_em: string | null;
-          erro: string | null;
-          evento: string;
-          id: string;
-          payload: Json;
-        };
-        Insert: {
-          canal?: string;
-          created_at?: string;
-          employee_id?: string | null;
-          enviado_em?: string | null;
-          erro?: string | null;
-          evento: string;
-          id?: string;
-          payload?: Json;
-        };
-        Update: {
-          canal?: string;
-          created_at?: string;
-          employee_id?: string | null;
-          enviado_em?: string | null;
-          erro?: string | null;
-          evento?: string;
-          id?: string;
-          payload?: Json;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "notifications_employee_id_fkey";
-            columns: ["employee_id"];
-            isOneToOne: false;
-            referencedRelation: "employees";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       perfis_colaborador: {
         Row: {
           atualizado_em: string;

@@ -1,27 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function fetchQuinzenaAtual() {
-  const { data, error } = await supabase
-    .from("fortnights")
-    .select("*")
-    .order("data_inicio", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 export async function fetchQuinzenas() {
   const { data, error } = await supabase
     .from("fortnights")
     .select("*")
     .order("data_inicio", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function fetchIndicadores() {
-  const { data, error } = await supabase.from("indicators").select("*").order("nome");
   if (error) throw error;
   return data ?? [];
 }
@@ -52,22 +35,6 @@ export async function fetchElegibilidade(fortnightId: string, employeeId: string
     .maybeSingle();
   if (error) throw error;
   return data;
-}
-
-export async function fetchRanking(fortnightId: string) {
-  const { data, error } = await supabase
-    .from("rankings")
-    .select("*, employees(nome, foto_url)")
-    .eq("fortnight_id", fortnightId)
-    .order("posicao");
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function fetchPremios() {
-  const { data, error } = await supabase.from("bonus_prizes").select("*").order("posicao");
-  if (error) throw error;
-  return data ?? [];
 }
 
 export async function fetchContestacoes(employeeId?: string) {

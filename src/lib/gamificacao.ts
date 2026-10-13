@@ -4,7 +4,6 @@
  */
 export type Dimensao = "sinal" | "velocidade" | "conexao" | "rede" | "evolucao" | "ranking";
 /** A "dimensão" da FLUKER, que não pertence a nenhuma das seis (08/10/2026). */
-export type DimensaoDoBanco = Dimensao | "suprema";
 
 export const DIMENSOES: Record<Dimensao, { nome: string; icone: string; tema: string }> = {
   sinal: { nome: "Sinal", icone: "📶", tema: "Qualidade" },

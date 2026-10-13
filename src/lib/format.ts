@@ -1,6 +1,3 @@
-export const brl = (value: number | null | undefined) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value ?? 0);
-
 /** "AAAA-MM-DD": data de calendário, sem horário (coluna `date` do Postgres). */
 const DATA_DE_CALENDARIO = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -68,14 +65,6 @@ export const rotuloIndicador: Record<string, string> = {
   sla_chat: "SLA Chat",
   sla_email: "SLA E-mail",
   horas_online: "Horas online",
-};
-
-export const rotuloStatusQuinzena: Record<string, string> = {
-  aberta: "Aberta",
-  em_analise: "Em análise",
-  em_contestacao: "Em contestação",
-  pronta_para_fechamento: "Pronta para fechamento",
-  fechada: "Fechada",
 };
 
 export const rotuloPerfil: Record<string, string> = {
