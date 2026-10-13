@@ -95,7 +95,11 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
     recebido.length === esperado.length &&
     timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado));
   if (!igual) return new Response("Não autorizado.", { status: 401 });
-  if (!slackConfigurado()) return Response.json({ avisos: 0, motivo: "Slack não configurado" });
+  // A Central de Turnos (13/10/2026) também recupera, de manhã, os avisos de troca que se perderam.
+  const { avisosDeTrocaPendentes } = await import("@/server/central-de-turnos.server");
+  const trocas = await avisosDeTrocaPendentes();
+  if (!slackConfigurado())
+    return Response.json({ avisos: 0, trocas, motivo: "Slack não configurado" });
   const { data: pendentes, error } = await supabaseAdmin.rpc("avisos_slack_pendentes");
   if (error) {
     console.error("[avisos] erro ao ler a fila:", error);
@@ -111,5 +115,5 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
       console.error("[avisos] erro na tarefa da manhã:", e instanceof Error ? e.message : e);
     }
   }
-  return Response.json({ avisos: feitos });
+  return Response.json({ avisos: feitos, trocas });
 }

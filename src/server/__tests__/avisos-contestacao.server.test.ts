@@ -151,7 +151,7 @@ describe("a tarefa da manhã", () => {
     c.slack_ts = "ts-abertura";
     c.slack_abertura_em = "antes";
     const r = await tarefaDosAvisos(pedido("Bearer segredo"));
-    expect(await r.json()).toEqual({ avisos: 1 });
+    expect(await r.json()).toEqual({ avisos: 1, trocas: 0 }); // a tarefa da manhã também conta os avisos de troca (13/10/2026);
     expect(postagens[0]).toMatchObject({ thread_ts: "ts-abertura", reply_broadcast: true });
     expect(String(postagens[0]!["text"])).toContain("vence hoje");
   });

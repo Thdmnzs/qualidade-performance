@@ -1,4 +1,5 @@
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { avisarTrocaFn } from "@/lib/avisos-trocas.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -51,6 +52,12 @@ import {
 } from "@/lib/trocas-api";
 
 const primeiro = (nome: string) => nome.split(" ")[0];
+/**
+ * Avisa a Central de Turnos (o Slack) logo depois da ação, sem esperar a resposta: se o
+ * Slack demorar ou falhar, a troca não fica presa, e a tarefa da manhã tenta de novo.
+ */
+const avisarCentralDeTurnos = (trocaId: string) =>
+  void avisarTrocaFn({ data: { trocaId } }).catch(() => {});
 // As datas de uma troca, em ordem e sem repetir (a de "os dois dias" tem quatro, em pares).
 const quando = (inicio: string, dias: number[]) =>
   [...new Set(dias)]
@@ -335,10 +342,10 @@ export function TrocasDoTime() {
               <Button
                 size="sm"
                 onClick={() =>
-                  fazer(
-                    () => responderTroca(t.id, true),
-                    "Você aceitou a troca. Agora ela vai para a supervisão.",
-                  )
+                  fazer(async () => {
+                    await responderTroca(t.id, true);
+                    avisarCentralDeTurnos(t.id);
+                  }, "Você aceitou a troca. Agora ela vai para a supervisão.")
                 }
               >
                 Aceitar a troca
@@ -362,7 +369,10 @@ export function TrocasDoTime() {
                     size="sm"
                     onClick={() =>
                       window.confirm("Cancelar o pedido de troca?") &&
-                      fazer(() => cancelarTroca(t.id), "Pedido de troca cancelado.")
+                      fazer(async () => {
+                        await cancelarTroca(t.id);
+                        avisarCentralDeTurnos(t.id);
+                      }, "Pedido de troca cancelado.")
                     }
                   >
                     Cancelar o pedido
@@ -921,6 +931,7 @@ export function TrocasParaAprovar({
   async function decidir(t: Troca, aprovar: boolean, m: string | null, depois?: () => void) {
     try {
       await decidirTroca(t.id, aprovar, m);
+      avisarCentralDeTurnos(t.id);
       toast.success(
         aprovar
           ? `Troca aprovada: ${primeiro(t.de.nome)} ⇄ ${primeiro(t.para.nome)}. A escala publicada já mudou.`

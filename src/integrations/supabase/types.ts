@@ -1353,6 +1353,11 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      dados_do_aviso_de_troca: { Args: { _id: string }; Returns: Json };
+      reservar_aviso_de_troca: { Args: { _id: string; _evento: string }; Returns: boolean };
+      desfazer_aviso_de_troca: { Args: { _id: string; _evento: string }; Returns: undefined };
+      guardar_mensagem_da_troca: { Args: { _id: string; _ts: string }; Returns: undefined };
+      avisos_de_troca_pendentes: { Args: never; Returns: { id: string; evento: string }[] };
       pedir_troca_no_dia: {
         Args: {
           _data: string;

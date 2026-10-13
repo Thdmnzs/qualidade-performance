@@ -98,6 +98,8 @@ const api = {
 };
 vi.mock("@/lib/escala-api", () => escala);
 vi.mock("@/lib/trocas-api", () => api);
+const avisarTrocaFn = vi.fn(async (..._a: unknown[]) => ({ ok: true }));
+vi.mock("@/lib/avisos-trocas.functions", () => ({ avisarTrocaFn }));
 const { TrocasDoTime, TrocasParaAprovar } = await import("../trocas");
 const abrir = (el: React.ReactElement) =>
   render(
@@ -192,6 +194,7 @@ describe("o colaborador (a aba Trocas)", () => {
     abrir(<TrocasDoTime />);
     fireEvent.click(await screen.findByRole("button", { name: "Aceitar a troca" }));
     await waitFor(() => expect(api.responderTroca).toHaveBeenCalledWith("x1", true));
+    await waitFor(() => expect(avisarTrocaFn).toHaveBeenCalledWith({ data: { trocaId: "x1" } })); // a Central de Turnos avisa o canal
   });
 });
 
@@ -204,6 +207,7 @@ describe("o ADM (as trocas para aprovar)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Aprovar e ajustar" }));
     await waitFor(() => expect(api.decidirTroca).toHaveBeenCalledWith("x1", true, null));
     await waitFor(() => expect(aoAjustar).toHaveBeenCalledWith("2026-10-19", 1));
+    expect(avisarTrocaFn).toHaveBeenCalledWith({ data: { trocaId: "x1" } }); // e a decisão vai na conversa
   });
   it("recusar pede um motivo de 10 caracteres", async () => {
     trocas = [TROCA("aguardando_supervisao")];

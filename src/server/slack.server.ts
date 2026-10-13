@@ -9,20 +9,38 @@ export class ErroDoSlack extends Error {}
 export const slackConfigurado = () =>
   !!process.env["SLACK_BOT_TOKEN"] && !!process.env["SLACK_CANAL_QUALIDADE"];
 
+/**
+ * Qual robô posta, e onde. O padrão é o Radar da Qualidade (no canal de qualidade).
+ * A Central de Turnos (13/10/2026) tem o próprio token e o próprio canal (o de escala).
+ */
+export type Robo = { token: string | undefined; canal: string | undefined };
+const RADAR = (): Robo => ({
+  token: process.env["SLACK_BOT_TOKEN"],
+  canal: process.env["SLACK_CANAL_QUALIDADE"],
+});
+export const CENTRAL_DE_TURNOS = (): Robo => ({
+  token: process.env["SLACK_TURNOS_TOKEN"],
+  canal: process.env["SLACK_CANAL_ESCALA"],
+});
+export const centralDeTurnosConfigurada = () =>
+  !!CENTRAL_DE_TURNOS().token && !!CENTRAL_DE_TURNOS().canal;
+
 /** Posta e devolve o "ts" da mensagem (a identificação dela no Slack). */
 export async function postarNoSlack(p: {
   texto: string;
   naConversaDe?: string | null;
   tambemNoCanal?: boolean;
+  robo?: Robo;
 }): Promise<string> {
+  const robo = p.robo ?? RADAR();
   const r = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: {
-      authorization: `Bearer ${process.env["SLACK_BOT_TOKEN"] ?? ""}`,
+      authorization: `Bearer ${robo.token ?? ""}`,
       "content-type": "application/json; charset=utf-8",
     },
     body: JSON.stringify({
-      channel: process.env["SLACK_CANAL_QUALIDADE"],
+      channel: robo.canal,
       text: p.texto,
       mrkdwn: true,
       unfurl_links: false, // sem pré-visualização do link do QualityHUB
