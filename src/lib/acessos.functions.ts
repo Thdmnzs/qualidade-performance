@@ -9,6 +9,7 @@
  * importada DENTRO do handler, como recomenda o client.server.ts, para não
  * arrastar nada dela para o bundle do navegador.
  */
+import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -35,7 +36,7 @@ async function comErrosSeguros<T>(operacao: () => Promise<T>): Promise<T> {
 }
 
 export const criarAcessoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("criar_acesso", 30, 3600)])
   .validator(z.object({ employeeId: z.string().uuid(), perfil: perfilSchema }))
   .handler(async ({ data, context }) =>
     comErrosSeguros(async () => {
@@ -45,7 +46,7 @@ export const criarAcessoFn = createServerFn({ method: "POST" })
   );
 
 export const gerarLinkDeSenhaFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("link_de_senha", 30, 3600)])
   .validator(z.object({ employeeId: z.string().uuid() }))
   .handler(async ({ data, context }) =>
     comErrosSeguros(async () => {
@@ -55,7 +56,7 @@ export const gerarLinkDeSenhaFn = createServerFn({ method: "POST" })
   );
 
 export const alterarStatusFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("alterar_status", 60, 3600)])
   .validator(z.object({ employeeId: z.string().uuid(), ativo: z.boolean() }))
   .handler(async ({ data, context }) =>
     comErrosSeguros(async () => {
@@ -66,7 +67,7 @@ export const alterarStatusFn = createServerFn({ method: "POST" })
   );
 
 export const excluirColaboradorFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("excluir_colaborador", 20, 3600)])
   .validator(z.object({ employeeId: z.string().uuid(), confirmacao: z.string().min(1).max(200) }))
   .handler(async ({ data, context }) =>
     comErrosSeguros(async () => {

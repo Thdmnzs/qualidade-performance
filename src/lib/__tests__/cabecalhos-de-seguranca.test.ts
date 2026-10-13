@@ -30,3 +30,23 @@ describe("os cabeçalhos de segurança", () => {
     expect(r.headers.get("content-type")).toBe("text/plain");
   });
 });
+
+describe("os arquivos estáticos (o vercel.json)", () => {
+  it("recebem exatamente os mesmos cabeçalhos do servidor", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { CABECALHOS_DE_SEGURANCA } = await import("../cabecalhos-de-seguranca");
+    const v = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: { source: string; headers: { key: string; value: string }[] }[];
+    };
+    expect(v.headers.length).toBeGreaterThan(0);
+    for (const grupo of v.headers)
+      expect(Object.fromEntries(grupo.headers.map((h) => [h.key, h.value]))).toEqual(
+        CABECALHOS_DE_SEGURANCA,
+      );
+  });
+  it("e só nos caminhos dos arquivos estáticos (as páginas recebem pelo servidor, sem repetir)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const v = JSON.parse(readFileSync("vercel.json", "utf8")) as { headers: { source: string }[] };
+    for (const g of v.headers) expect(g.source).not.toBe("/(.*)");
+  });
+});

@@ -2,6 +2,7 @@
  * A ponte da conferência de senhas vazadas: só quem está logado (a tela de definir a
  * senha já tem a sessão do convite). Recebe só o prefixo de 5 caracteres.
  */
+import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -10,7 +11,7 @@ import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 import { PREFIXO_VALIDO } from "@/lib/senha-vazada";
 
 export const conferirPrefixoDeSenhaFn = createServerFn({ method: "POST" })
-  .middleware([enviarTokenDaSessao, requireSupabaseAuth])
+  .middleware([enviarTokenDaSessao, requireSupabaseAuth, limiteDeUso("conferir_senha", 30, 600)])
   .validator(z.object({ prefixo: z.string().regex(PREFIXO_VALIDO) }))
   .handler(async ({ data }) => {
     const { consultarPrefixo } = await import("@/server/senha.server");

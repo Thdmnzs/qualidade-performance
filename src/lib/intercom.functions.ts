@@ -2,6 +2,7 @@
  * Server functions da integração com o Intercom. O corpo de `.handler()` roda
  * só no servidor; o token nunca chega ao navegador.
  */
+import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -11,7 +12,7 @@ import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 const autenticado = [enviarTokenDaSessao, requireSupabaseAuth] as const;
 
 export const verificarIntercomFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("testar_intercom", 20, 3600)])
   .handler(async ({ context }) => {
     const { verificarIntercom, ErroDoIntercom } = await import("@/server/intercom.server");
     try {
@@ -35,7 +36,7 @@ const deErroDoIntercom = async <T>(fn: () => Promise<T>): Promise<T> => {
 };
 
 export const sortearContatoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("intercom", 60, 600)])
   .validator(
     z.object({
       employeeId: z.string().uuid(),
@@ -52,7 +53,7 @@ export const sortearContatoFn = createServerFn({ method: "POST" })
 
 /** O contato sorteado em aberto (ou null), para o cartão mostrar ao abrir. */
 export const contatoEmAbertoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("intercom_leitura", 120, 600)])
   .validator(
     z.object({
       employeeId: z.string().uuid(),
@@ -68,7 +69,7 @@ export const contatoEmAbertoFn = createServerFn({ method: "POST" })
   );
 
 export const buscarContatoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("intercom", 60, 600)])
   .validator(
     z.object({
       employeeId: z.string().uuid(),
@@ -85,7 +86,7 @@ export const buscarContatoFn = createServerFn({ method: "POST" })
   );
 
 export const descartarContatoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("intercom", 60, 600)])
   .validator(z.object({ sorteioId: z.string().uuid(), motivo: z.string().min(1).max(500) }))
   .handler(async ({ data, context }) =>
     deErroDoIntercom(async () => {

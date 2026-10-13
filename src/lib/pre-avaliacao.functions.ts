@@ -3,6 +3,7 @@
  * ao navegador. A pré-avaliação nunca quebra a ficha: a ponte devolve sempre um
  * estado ("pronta", "indisponivel" ou "falhou"), com um motivo legível.
  */
+import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -12,7 +13,7 @@ import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 const autenticado = [enviarTokenDaSessao, requireSupabaseAuth] as const;
 
 export const preAvaliarFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("pre_avaliacao", 30, 3600)])
   .validator(
     z.object({
       employeeId: z.string().uuid(),

@@ -1312,6 +1312,11 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      consumir_limite_de_uso: {
+        Args: { _chave: string; _maximo: number; _janela_em_segundos: number };
+        Returns: boolean;
+      };
+      limpar_limites_de_uso: { Args: never; Returns: number };
       minhas_notificacoes: { Args: never; Returns: Json };
       marcar_notificacoes_lidas: { Args: { _ids: string[] | null }; Returns: undefined };
       limpar_notificacoes_antigas: { Args: never; Returns: number };

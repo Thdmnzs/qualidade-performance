@@ -1,6 +1,7 @@
 /**
  * Cabeçalhos de segurança, aplicados a TODAS as respostas do servidor
- * (src/server.ts). ISO/IEC 27002:2022 8.9 e 8.26; OWASP: configuração insegura.
+ * (src/server.ts), e, pelo vercel.json, aos arquivos estáticos (que a Vercel entrega sem passar
+ * pelo servidor). Um teste confere que as duas listas são iguais. ISO/IEC 27002:2022 8.9 e 8.26; OWASP: configuração insegura.
  *
  * O site não carrega nada de fora: só fala com o próprio domínio e com o Supabase.
  */
@@ -30,6 +31,8 @@ export const CABECALHOS_DE_SEGURANCA: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // A plataforma não usa câmera, microfone, localização, pagamento nem USB.
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  // Uma janela aberta a partir de outro site não consegue mexer na do QualityHUB (13/10/2026).
+  "Cross-Origin-Opener-Policy": "same-origin",
   // Só HTTPS por 2 anos, inclusive nos subdomínios.
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
   // A CSP BLOQUEIA (desde 09/10/2026, depois do período só observando): scripts, conexões

@@ -2,6 +2,7 @@
  * Server functions da sincronização com o Notion. O corpo de `.handler()` roda
  * só no servidor; o token do Notion nunca chega ao navegador.
  */
+import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -22,7 +23,7 @@ const comErroDoNotion = async <T>(fn: () => Promise<T>): Promise<T> => {
 };
 
 export const testarNotionFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("testar_notion", 20, 3600)])
   .handler(async ({ context }) =>
     comErroDoNotion(async () =>
       (await import("@/server/notion.server")).testarNotion(context.userId),
@@ -30,7 +31,7 @@ export const testarNotionFn = createServerFn({ method: "POST" })
   );
 
 export const iniciarSincronizacaoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("sincronizar_notion", 10, 3600)])
   .handler(async ({ context }) =>
     comErroDoNotion(async () =>
       (await import("@/server/notion.server")).iniciarSincronizacao(context.userId),
@@ -38,7 +39,7 @@ export const iniciarSincronizacaoFn = createServerFn({ method: "POST" })
   );
 
 export const continuarSincronizacaoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado])
+  .middleware([...autenticado, limiteDeUso("sincronizar_notion_lote", 300, 3600)])
   .validator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) =>
     comErroDoNotion(async () =>
