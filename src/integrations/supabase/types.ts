@@ -1380,10 +1380,6 @@ export type Database = {
       aplicar_trocas_da_semana: { Args: { _inicio: string }; Returns: number };
       minhas_trocas: { Args: never; Returns: Json };
       trocas_para_aprovar: { Args: never; Returns: Json };
-      pedir_troca: {
-        Args: { _inicio: string; _tipo: string; _dias: number[]; _com: string; _mensagem: string };
-        Returns: string;
-      };
       responder_troca: { Args: { _troca: string; _aceitar: boolean }; Returns: undefined };
       cancelar_troca: { Args: { _troca: string }; Returns: undefined };
       decidir_troca: {

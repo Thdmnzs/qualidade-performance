@@ -88,7 +88,6 @@ const TIME = [
 const api = {
   lerMinhasTrocas: vi.fn(async () => trocas),
   lerTrocasParaAprovar: vi.fn(async () => trocas),
-  pedirTroca: vi.fn(async (..._a: unknown[]) => {}),
   pedirTrocaNoDia: vi.fn(async (..._a: unknown[]) => {}),
   lerFolgasFixas: vi.fn(async () => TIME),
   definirFolgaFixa: vi.fn(async (..._a: unknown[]) => {}),

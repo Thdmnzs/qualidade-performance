@@ -40,22 +40,6 @@ export async function lerTrocasParaAprovar(): Promise<Troca[]> {
   falhar(error);
   return (data as unknown as Troca[]) ?? [];
 }
-export async function pedirTroca(
-  inicio: string,
-  tipo: TipoDeTroca,
-  dias: number[],
-  com: string,
-  mensagem: string,
-) {
-  const { error } = await supabase.rpc("pedir_troca", {
-    _inicio: inicio,
-    _tipo: tipo,
-    _dias: dias,
-    _com: com,
-    _mensagem: mensagem,
-  });
-  falhar(error);
-}
 export async function responderTroca(id: string, aceitar: boolean) {
   const { error } = await supabase.rpc("responder_troca", { _troca: id, _aceitar: aceitar });
   falhar(error);
