@@ -101,7 +101,8 @@ export function ComoFica({
     <>
       {HORAS.map((_, k) => {
         const s = horas?.[k] ? siglas.get(horas[k]!) : undefined;
-        const mudou = antes !== undefined && (antes?.[k] ?? null) !== (horas?.[k] ?? null);
+        // O contorno marca só as horas COM atividade que mudaram (as que ficaram vazias, não).
+        const mudou = antes !== undefined && !!s && (antes?.[k] ?? null) !== (horas?.[k] ?? null);
         return (
           <td key={k} className="px-px">
             <div
@@ -150,7 +151,16 @@ export function ComoFica({
                 {[troca.de, troca.para].map((x) => (
                   <tr key={`a-${x.id}`}>
                     <td className="truncate pr-1 text-[11px] font-bold">{primeiro(x.nome)}</td>
-                    <Celulas horas={linhaDe(dias, d, x.id)} />
+                    {linhaDe(dias, d, x.id) ? (
+                      <Celulas horas={linhaDe(dias, d, x.id)} />
+                    ) : (
+                      <td
+                        colSpan={HORAS.length}
+                        className="px-1 text-[11px] italic text-muted-foreground"
+                      >
+                        fora da escala neste dia
+                      </td>
+                    )}
                   </tr>
                 ))}
                 <tr>
@@ -161,7 +171,16 @@ export function ComoFica({
                 {[troca.de, troca.para].map((x) => (
                   <tr key={`d-${x.id}`}>
                     <td className="truncate pr-1 text-[11px] font-bold">{primeiro(x.nome)}</td>
-                    <Celulas horas={linhaDe(depois, d, x.id)} antes={linhaDe(dias, d, x.id)} />
+                    {linhaDe(depois, d, x.id) ? (
+                      <Celulas horas={linhaDe(depois, d, x.id)} antes={linhaDe(dias, d, x.id)} />
+                    ) : (
+                      <td
+                        colSpan={HORAS.length}
+                        className="px-1 text-[11px] italic text-muted-foreground"
+                      >
+                        sai da escala neste dia
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -429,7 +448,8 @@ function JanelaDePedirTroca({
   const seletor = "h-9 w-full rounded-lg border border-input bg-background px-2 text-sm";
   return (
     <Dialog open={aberta} onOpenChange={(a) => !a && fechar()}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-auto">
+      {/* A janela é uma GRADE: sem o min-w-0 nos itens, a tabela do "Como fica" a empurraria para os lados. */}
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto overflow-x-hidden [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Pedir uma troca</DialogTitle>
           <DialogDescription>A colega precisa aceitar, e a supervisão, aprovar.</DialogDescription>
@@ -473,7 +493,7 @@ function JanelaDePedirTroca({
                 </select>
               </label>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 md:grid-cols-3">
               {(Object.keys(TIPOS) as TipoDeTroca[]).map((t) => (
                 <label
                   key={t}
