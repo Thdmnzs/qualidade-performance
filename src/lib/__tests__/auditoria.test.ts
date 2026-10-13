@@ -203,6 +203,29 @@ describe("as frases da escala", () => {
     ).toBe("corrigiu o endereço e o contato de emergência de Ana Colab");
     expect(categoriaDe("dados_pessoais_corrigir")).toBe("Acessos e cadastros");
   });
+  it("a folga fixa, e a troca de dois dias aplicada ao montar (as datas sem repetir)", () => {
+    expect(
+      texto({
+        acao: "escala_folga_fixa",
+        alvo: null,
+        valor_novo: { colaborador: "Thiago Dantas", dias: [2, 6] },
+      }),
+    ).toBe("definiu a folga fixa de Thiago Dantas: quarta e domingo");
+    expect(
+      texto({
+        acao: "escala_troca_aplicar",
+        valor_novo: {
+          de: "Thiago Dantas",
+          para: "Amanda Lima",
+          dias: [2, 3, 6, 5],
+          inicio: "2026-10-19",
+        },
+      }),
+    ).toBe(
+      "aplicou, ao montar a semana, a troca de escala de Thiago Dantas e Amanda Lima: quarta, 21/10 e quinta, 22/10 e sábado, 24/10 e domingo, 25/10",
+    );
+    expect(categoriaDe("escala_folga_fixa")).toBe("Escala");
+  });
   it("as trocas de escala", () => {
     expect(
       texto({

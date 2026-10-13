@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,32 +18,45 @@ import {
   DIAS_POR_EXTENSO,
   HORAS,
   hojeIso,
-  periodoDaSemana,
+  segundaDaSemana,
+  somarDias,
   type DiasDaSemana,
   type Sigla,
 } from "@/lib/escala";
-import { lerSemana, lerSemanas, lerSiglas } from "@/lib/escala-api";
+import { lerFerias, lerSemana, lerSemanas, lerSiglas } from "@/lib/escala-api";
 import {
   aplicarTroca,
+  comoFicamAsFolgas,
+  diaServe,
+  diasDaTroca,
+  estadoNoDia,
+  feriadosComigo,
   papeisDasSiglas,
-  problemaDaTroca,
   resumoDaJornada,
+  segundosDias,
   TIPOS,
+  type ContextoDasTrocas,
+  type ModoDaFolga,
   type TipoDeTroca,
 } from "@/lib/trocas";
 import {
   cancelarTroca,
   decidirTroca,
+  lerFolgasFixas,
   lerMinhasTrocas,
   lerTrocasParaAprovar,
-  pedirTroca,
+  pedirTrocaNoDia,
   responderTroca,
   type Troca,
 } from "@/lib/trocas-api";
 
 const primeiro = (nome: string) => nome.split(" ")[0];
+// As datas de uma troca, em ordem e sem repetir (a de "os dois dias" tem quatro, em pares).
 const quando = (inicio: string, dias: number[]) =>
-  dias.map((d) => `${DIAS_POR_EXTENSO[d]}, ${dataCurta(dataDoDia(inicio, d))}`).join(" e ");
+  [...new Set(dias)]
+    .sort((a, b) => a - b)
+    .map((d) => `${DIAS_POR_EXTENSO[d]}, ${dataCurta(dataDoDia(inicio, d))}`)
+    .join(" e ");
 const SITUACAO: Record<Troca["situacao"], { texto: (t: Troca) => string; classe: string }> = {
   aguardando_colega: {
     texto: (t) => `aguardando ${primeiro(t.para.nome)}`,
@@ -53,7 +66,10 @@ const SITUACAO: Record<Troca["situacao"], { texto: (t: Troca) => string; classe:
     texto: () => "aguardando a supervisão",
     classe: "bg-[#E0ECFF] text-[#1E40AF] dark:bg-[#13234A] dark:text-[#9CC0FF]",
   },
-  aprovada: { texto: () => "aprovada", classe: "bg-primary/10 text-primary" },
+  aprovada: {
+    texto: (t) => (t.aplicada ? "aprovada" : "aprovada · entra ao montar a semana"),
+    classe: "bg-primary/10 text-primary",
+  },
   recusada_colega: {
     texto: (t) => `recusada por ${primeiro(t.para.nome)}`,
     classe: "bg-destructive/10 text-destructive",
@@ -232,16 +248,17 @@ function CartaoDaTroca({ t, children }: { t: Troca; children?: React.ReactNode }
           {SITUACAO[t.situacao].texto(t)}
         </span>
       </div>
-      {semana && ["aguardando_colega", "aguardando_supervisao"].includes(t.situacao) && (
-        <button
-          type="button"
-          onClick={() => setAberto(!aberto)}
-          className="mt-1 text-xs font-bold text-primary"
-          aria-expanded={aberto}
-        >
-          {aberto ? "Esconder" : "Ver como fica a escala"}
-        </button>
-      )}
+      {semana?.situacao === "publicada" &&
+        ["aguardando_colega", "aguardando_supervisao"].includes(t.situacao) && (
+          <button
+            type="button"
+            onClick={() => setAberto(!aberto)}
+            className="mt-1 text-xs font-bold text-primary"
+            aria-expanded={aberto}
+          >
+            {aberto ? "Esconder" : "Ver como fica a escala"}
+          </button>
+        )}
       {aberto && semana && (
         <div className="mt-2">
           <ComoFica inicio={t.inicio} dias={semana.dias} troca={t} siglas={siglas} />
@@ -375,67 +392,118 @@ function JanelaDePedirTroca({
 }) {
   const siglas = useSiglas();
   const hoje = hojeIso();
+  const ano = Number(hoje.slice(0, 4));
+  // O que o formulário lê: o time (com as folgas fixas), os feriados (e quem sou eu), e as semanas publicadas.
+  const { data: time = [] } = useQuery({
+    queryKey: ["folgas-fixas"],
+    queryFn: lerFolgasFixas,
+    enabled: aberta,
+  });
+  const { data: feriasDoAno } = useQuery({
+    queryKey: ["escala-ferias", ano],
+    queryFn: () => lerFerias(ano),
+    enabled: aberta,
+  });
+  const { data: feriasDoProximo } = useQuery({
+    queryKey: ["escala-ferias", ano + 1],
+    queryFn: () => lerFerias(ano + 1),
+    enabled: aberta,
+  });
   const { data: semanas = [] } = useQuery({
     queryKey: ["escala-semanas"],
     queryFn: lerSemanas,
     enabled: aberta,
   });
-  const abertas = semanas
-    .filter((s) => s.situacao === "publicada" && dataDoDia(s.inicio, 6) >= hoje)
-    .sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
-  const [inicio, setInicio] = useState<string | null>(null);
-  const semanaEscolhida = inicio ?? abertas[0]?.inicio ?? null;
-  const { data: semana } = useQuery({
-    queryKey: ["escala-semana", semanaEscolhida],
-    queryFn: () => lerSemana(semanaEscolhida!),
-    enabled: aberta && !!semanaEscolhida,
+  const limite = somarDias(hoje, 92);
+  const publicadasNoPeriodo = semanas.filter(
+    (x) => x.situacao === "publicada" && dataDoDia(x.inicio, 6) >= hoje && x.inicio <= limite,
+  );
+  const lidas = useQueries({
+    queries: publicadasNoPeriodo.map((x) => ({
+      queryKey: ["escala-semana", x.inicio],
+      queryFn: () => lerSemana(x.inicio),
+      enabled: aberta,
+    })),
   });
-  const [tipo, setTipo] = useState<TipoDeTroca>("horarios");
-  const [com, setCom] = useState("");
-  const [d1, setD1] = useState<number | null>(null);
-  const [d2, setD2] = useState<number | null>(null);
+  const eu = feriasDoAno?.eu ?? null;
+  const ctx: ContextoDasTrocas = useMemo(
+    () => ({
+      hoje,
+      folgas: new Map(time.map((p) => [p.employee_id, p.dias])),
+      publicadas: new Map(
+        lidas.flatMap((r) => (r.data ? [[r.data.inicio, r.data.dias] as const] : [])),
+      ),
+      feriados: new Set([...(feriasDoAno?.feriados ?? []), ...(feriasDoProximo?.feriados ?? [])]),
+      siglas,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hoje, time, siglas, feriasDoAno, feriasDoProximo, lidas.map((r) => r.dataUpdatedAt).join(",")],
+  );
+  const colegas = time.filter((p) => p.employee_id !== eu && !p.supervisao);
+  const minhasFolgas = time.find((p) => p.employee_id === eu)?.dias ?? [];
+
+  // As respostas (escolher só marca; quem avança é o Continuar).
+  const [passo, setPasso] = useState(1);
+  const [com, setCom] = useState<string | null>(null);
+  const [tipo, setTipo] = useState<TipoDeTroca | null>(null);
+  const [modo, setModo] = useState<ModoDaFolga>("um");
+  const [dia, setDia] = useState<string | null>(null);
+  const [dia2, setDia2] = useState<string | null>(null);
+  const [mes, setMes] = useState(hoje.slice(0, 7));
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const eu = semana?.eu ?? null;
-  const colegas = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const d of semana?.dias ?? [])
-      for (const l of d) if (l.employee_id !== eu) m.set(l.employee_id, l.nome);
-    return [...m.entries()]
-      .map(([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [semana, eu]);
-  const diasAbertos = semanaEscolhida
-    ? [0, 1, 2, 3, 4, 5, 6].filter((d) => dataDoDia(semanaEscolhida, d) >= hoje)
-    : [];
-  const dia1 = d1 ?? diasAbertos[0] ?? 0;
-  const dia2 = d2 ?? diasAbertos.find((d) => d !== dia1) ?? dia1;
-  const dias = tipo === "folgas" ? [dia1, dia2] : [dia1];
-  const pessoa = colegas.find((c) => c.id === com) ?? null;
-  const problema =
-    semana && eu && semanaEscolhida
-      ? problemaDaTroca(
-          semana.dias,
-          { de: eu, para: pessoa?.id ?? null, dias, tipo },
-          dias.map((d) => dataDoDia(semanaEscolhida, d)),
-          hoje,
-        )
-      : null;
+  const pessoa = colegas.find((c) => c.employee_id === com) ?? null;
+  const comFeriado =
+    !!eu && !!com && feriadosComigo(ctx, eu).some((s) => estadoNoDia(ctx, com, s) === "fora");
+  const completo = !!(com && tipo && dia && (tipo !== "folgas" || modo === "dois" || dia2));
+  const podeIr = (n: number) =>
+    n === 1 || (n === 2 && !!com) || (n === 3 && !!com && !!tipo) || (n === 4 && completo);
+  const escolhendo2 = tipo === "folgas" && modo === "um" && !!dia;
   const fechar = () => {
-    setCom("");
+    setPasso(1);
+    setCom(null);
+    setTipo(null);
+    setModo("um");
+    setDia(null);
+    setDia2(null);
     setMensagem("");
-    setD1(null);
-    setD2(null);
-    setTipo("horarios");
+    setMes(hoje.slice(0, 7));
     aoFechar();
   };
+  const curta = (iso: string) =>
+    `${DIAS_DA_SEMANA[(new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7]!.toLowerCase()} ${dataCurta(iso)}`;
+  const resumo = (n: number) =>
+    n === 1
+      ? (pessoa?.nome.split(" ")[0] ?? "—")
+      : n === 2
+        ? tipo
+          ? tipo === "folgas"
+            ? `As folgas · ${modo === "um" ? "um dia" : "os dois dias"}`
+            : TIPOS[tipo]
+          : "—"
+        : n === 3
+          ? !dia
+            ? "—"
+            : tipo === "folgas" && modo === "dois"
+              ? `a semana de ${dataCurta(segundaDaSemana(dia))}`
+              : `${curta(dia)}${dia2 ? ` e ${curta(dia2)}` : ""}`
+          : completo
+            ? "pronto"
+            : "—";
   async function enviar() {
-    if (!semanaEscolhida || !pessoa || problema) return;
+    if (!completo || !com || !tipo || !dia) return;
     setEnviando(true);
     try {
-      await pedirTroca(semanaEscolhida, tipo, dias, pessoa.id, mensagem.trim());
+      await pedirTrocaNoDia(
+        dia,
+        tipo,
+        com,
+        tipo === "folgas" ? modo : null,
+        tipo === "folgas" && modo === "um" ? dia2 : null,
+        mensagem.trim(),
+      );
       toast.success(
-        `Pedido enviado para ${primeiro(pessoa.nome)}. Quando ela aceitar, ele vai para a supervisão.`,
+        `Pedido enviado para ${pessoa?.nome.split(" ")[0]}. Quando ela aceitar, ele vai para a supervisão.`,
       );
       await aoEnviar();
       fechar();
@@ -445,127 +513,362 @@ function JanelaDePedirTroca({
       setEnviando(false);
     }
   }
-  const seletor = "h-9 w-full rounded-lg border border-input bg-background px-2 text-sm";
+  // O calendário do mês, com os dias que servem
+  const [anoDoMes, numMes] = mes.split("-").map(Number) as [number, number];
+  const primeiroDoMes = `${mes}-01`;
+  const diasNoMes = new Date(Date.UTC(anoDoMes, numMes, 0)).getUTCDate();
+  const vazios = (new Date(`${primeiroDoMes}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const segundos = eu && com && dia && escolhendo2 ? segundosDias(ctx, eu, com, dia) : [];
+  const mudarMes = (n: number) => {
+    const d = new Date(Date.UTC(anoDoMes, numMes - 1 + n, 1));
+    setMes(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  };
+  const PASSOS = ["Com quem", "A troca", "O dia", "Revisão"];
+  const opcao = (on: boolean) =>
+    `flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left text-sm ${on ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:border-primary"}`;
   return (
     <Dialog open={aberta} onOpenChange={(a) => !a && fechar()}>
-      {/* A janela é uma GRADE: sem o min-w-0 nos itens, a tabela do "Como fica" a empurraria para os lados. */}
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto overflow-x-hidden [&>*]:min-w-0">
+      {/* A janela é uma GRADE: sem o min-w-0 nos itens, o conteúdo a empurraria para os lados. */}
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-2xl overflow-y-auto overflow-x-hidden [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Pedir uma troca</DialogTitle>
-          <DialogDescription>A colega precisa aceitar, e a supervisão, aprovar.</DialogDescription>
+          <DialogDescription>A colega aceita, e a supervisão aprova.</DialogDescription>
         </DialogHeader>
-        {!abertas.length ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhuma semana publicada com dias a partir de hoje.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-sm font-bold">
-                A semana
-                <select
-                  aria-label="A semana"
-                  className={`mt-1 ${seletor}`}
-                  value={semanaEscolhida ?? ""}
-                  onChange={(e) => setInicio(e.target.value)}
+        <nav className="flex gap-1.5" aria-label="Os passos">
+          {PASSOS.map((t, i) => (
+            <button
+              key={t}
+              type="button"
+              disabled={!podeIr(i + 1)}
+              aria-current={passo === i + 1 ? "step" : undefined}
+              onClick={() => setPasso(i + 1)}
+              className={`min-w-0 flex-1 rounded-xl border px-2.5 py-1.5 text-left disabled:opacity-40 ${passo === i + 1 ? "border-primary ring-1 ring-primary" : i + 1 < passo ? "border-border bg-primary/10" : "border-border"}`}
+            >
+              <span className="block text-[11px] font-bold text-muted-foreground">
+                {i + 1}. {t}
+              </span>
+              <span className="block truncate text-xs font-bold">{resumo(i + 1)}</span>
+            </button>
+          ))}
+        </nav>
+
+        {passo === 1 && (
+          <div>
+            <p className="font-bold">Com quem você quer trocar?</p>
+            <p className="text-xs text-muted-foreground">
+              {minhasFolgas.length
+                ? `Você folga: ${minhasFolgas.map((d) => DIAS_DA_SEMANA[d]!.toLowerCase()).join(" e ")}. `
+                : ""}
+              A supervisão não entra nas trocas.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {colegas.map((c) => (
+                <button
+                  key={c.employee_id}
+                  type="button"
+                  className={opcao(c.employee_id === com)}
+                  onClick={() => {
+                    if (c.employee_id !== com) {
+                      setCom(c.employee_id);
+                      setDia(null);
+                      setDia2(null);
+                      if (tipo === "feriado") setTipo(null);
+                    }
+                  }}
                 >
-                  {abertas.map((s) => (
-                    <option key={s.inicio} value={s.inicio}>
-                      {periodoDaSemana(s.inicio)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm font-bold">
-                Trocar com
-                <select
-                  aria-label="Trocar com"
-                  className={`mt-1 ${seletor}`}
-                  value={com}
-                  onChange={(e) => setCom(e.target.value)}
-                >
-                  <option value="">Escolha a pessoa</option>
-                  {colegas.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="grid gap-2 md:grid-cols-3">
-              {(Object.keys(TIPOS) as TipoDeTroca[]).map((t) => (
-                <label
-                  key={t}
-                  className={`cursor-pointer rounded-xl border p-2.5 text-sm ${tipo === t ? "border-primary ring-1 ring-primary" : "border-border"}`}
-                >
-                  <input
-                    type="radio"
-                    name="tipo-da-troca"
-                    className="mr-1 accent-primary"
-                    checked={tipo === t}
-                    onChange={() => setTipo(t)}
-                  />
-                  <b>{TIPOS[t]}</b>
-                </label>
+                  <b className="truncate">{c.nome}</b>
+                  <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold">
+                    {c.dias.length
+                      ? `folga ${c.dias.map((d) => DIAS_DA_SEMANA[d]!.toLowerCase()).join(" e ")}`
+                      : "sem folga fixa"}
+                  </span>
+                </button>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm font-bold">
-                {tipo === "folgas" ? "O primeiro dia" : "O dia"}
-                <select
-                  aria-label="O dia"
-                  className={`mt-1 ${seletor}`}
-                  value={dia1}
-                  onChange={(e) => setD1(Number(e.target.value))}
+          </div>
+        )}
+
+        {passo === 2 && pessoa && (
+          <div>
+            <p className="font-bold">Que troca você quer fazer com {pessoa.nome.split(" ")[0]}?</p>
+            <div className="mt-3 space-y-2">
+              {(
+                [
+                  [
+                    "horarios",
+                    "Você fica com o horário dela, e ela com o seu, num dia em que as duas trabalham.",
+                  ],
+                  ["folgas", "Você folga num dia dela, e ela num dia seu."],
+                  ...(comFeriado
+                    ? ([
+                        [
+                          "feriado",
+                          "Num feriado em que você está escalado, ela entra no seu lugar.",
+                        ],
+                      ] as const)
+                    : []),
+                ] as [TipoDeTroca, string][]
+              ).map(([t, d]) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={opcao(tipo === t)}
+                  onClick={() => {
+                    if (tipo !== t) {
+                      setTipo(t);
+                      setDia(null);
+                      setDia2(null);
+                    }
+                  }}
                 >
-                  {diasAbertos.map((d) => (
-                    <option key={d} value={d}>
-                      {DIAS_DA_SEMANA[d]} {dataCurta(dataDoDia(semanaEscolhida!, d))}
-                      {semana?.feriados.includes(dataDoDia(semanaEscolhida!, d))
-                        ? " · feriado"
-                        : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {tipo === "folgas" && (
-                <label className="text-sm font-bold">
-                  O segundo dia
-                  <select
-                    aria-label="O segundo dia"
-                    className={`mt-1 ${seletor}`}
-                    value={dia2}
-                    onChange={(e) => setD2(Number(e.target.value))}
-                  >
-                    {diasAbertos.map((d) => (
-                      <option key={d} value={d}>
-                        {DIAS_DA_SEMANA[d]} {dataCurta(dataDoDia(semanaEscolhida!, d))}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+                  <span>
+                    <b>{TIPOS[t]}</b>
+                    <span className="block text-xs text-muted-foreground">{d}</span>
+                  </span>
+                  {tipo === t && <span aria-hidden="true">✓</span>}
+                </button>
+              ))}
             </div>
-            {problema ? (
-              <p className="text-sm font-medium text-destructive">{problema}</p>
-            ) : (
-              semana &&
-              eu &&
-              pessoa && (
-                <div className="rounded-xl border border-border p-3">
-                  <p className="mb-2 text-sm font-bold">Como fica a escala</p>
+            {tipo === "folgas" && (
+              <div className="mt-3">
+                <p className="text-sm font-bold">Quantos dias de folga?</p>
+                <div className="mt-1.5 inline-flex rounded-lg border border-border p-0.5 text-sm font-bold">
+                  {(["um", "dois"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={modo === m}
+                      onClick={() => {
+                        if (modo !== m) {
+                          setModo(m);
+                          setDia(null);
+                          setDia2(null);
+                        }
+                      }}
+                      className={`rounded-md px-3 py-1.5 ${modo === m ? "bg-primary text-primary-foreground" : ""}`}
+                    >
+                      {m === "um" ? "Um dia de folga" : "Os dois dias"}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {modo === "um"
+                    ? "Você troca uma das suas folgas por uma das dela, na mesma semana."
+                    : "Você troca as suas folgas da semana pelas dela (um dia que as duas já folgam continua igual)."}
+                </p>
+              </div>
+            )}
+            {!comFeriado && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                A troca de feriado aparece quando a escala de um feriado for publicada, com você
+                escalado e ela fora.
+              </p>
+            )}
+          </div>
+        )}
+
+        {passo === 3 && eu && com && tipo && (
+          <div>
+            <p className="font-bold">
+              {tipo === "horarios"
+                ? "Em que dia vocês trocam os horários?"
+                : tipo === "feriado"
+                  ? "Em que feriado?"
+                  : modo === "dois"
+                    ? "Em que semana?"
+                    : escolhendo2
+                      ? estadoNoDia(ctx, eu, dia!) === "folga"
+                        ? `E em que dia você folga no lugar de ${pessoa?.nome.split(" ")[0]}?`
+                        : `E em que dia ${pessoa?.nome.split(" ")[0]} folga no seu lugar?`
+                      : "Qual folga vocês trocam?"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {tipo === "horarios"
+                ? "Os destacados são os dias em que as duas trabalham."
+                : tipo === "feriado"
+                  ? "Os destacados são os feriados publicados em que você está escalado e ela, não."
+                  : modo === "dois"
+                    ? "Clique em qualquer dia de uma semana destacada."
+                    : escolhendo2
+                      ? "Os destacados em azul são os dias da mesma semana em que a troca volta."
+                      : "Os destacados são os dias em que uma de vocês folga e a outra trabalha."}
+            </p>
+            <div className="mt-3 flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="O mês anterior"
+                disabled={mes <= hoje.slice(0, 7)}
+                onClick={() => mudarMes(-1)}
+              >
+                ‹
+              </Button>
+              <p className="text-sm font-bold capitalize">
+                {new Date(`${primeiroDoMes}T12:00:00Z`).toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                  timeZone: "UTC",
+                })}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="O próximo mês"
+                disabled={`${mes}-01` > limite.slice(0, 7) + "-00"}
+                onClick={() => mudarMes(1)}
+              >
+                ›
+              </Button>
+            </div>
+            <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-muted-foreground">
+              {DIAS_DA_SEMANA.map((d) => (
+                <span key={d}>{d}</span>
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-7 gap-1">
+              {Array.from({ length: vazios }, (_, i) => (
+                <span key={`v${i}`} />
+              ))}
+              {Array.from({ length: diasNoMes }, (_, i) => {
+                const s = `${mes}-${String(i + 1).padStart(2, "0")}`;
+                const naSemana =
+                  tipo === "folgas" &&
+                  modo === "dois" &&
+                  !!dia &&
+                  segundaDaSemana(s) === segundaDaSemana(dia);
+                const ok =
+                  s <= limite &&
+                  (escolhendo2
+                    ? segundos.includes(s) || s === dia
+                    : diaServe(ctx, eu, com, tipo, modo, s));
+                const publicada = ctx.publicadas.has(segundaDaSemana(s));
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={!ok && !naSemana}
+                    aria-label={`${curta(s)}${ctx.feriados.has(s) ? " (feriado)" : ""}`}
+                    aria-pressed={s === dia || s === dia2}
+                    onClick={() => {
+                      if (escolhendo2) {
+                        if (s !== dia) setDia2(s);
+                      } else {
+                        setDia(s);
+                        const seg =
+                          tipo === "folgas" && modo === "um" ? segundosDias(ctx, eu, com, s) : [];
+                        setDia2(seg.length === 1 ? seg[0]! : null);
+                      }
+                    }}
+                    className={`relative h-11 rounded-lg border text-sm font-bold disabled:cursor-not-allowed disabled:opacity-25 ${
+                      s === dia
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : s === dia2
+                          ? "border-[#2563EB] bg-[#2563EB] text-white"
+                          : escolhendo2 && segundos.includes(s)
+                            ? "border-border shadow-[inset_0_0_0_2px_#2563EB]"
+                            : naSemana
+                              ? "border-border bg-primary/10"
+                              : ok
+                                ? "border-border shadow-[inset_0_0_0_2px_#13A403]"
+                                : "border-border"
+                    }`}
+                  >
+                    {i + 1}
+                    {ctx.feriados.has(s) && (
+                      <span className="absolute right-0.5 top-0 text-[9px]">🎉</span>
+                    )}
+                    <span
+                      className={`absolute bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full ${publicada ? "bg-[#13A403]" : ""}`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              <span>
+                <span className="inline-block size-3 rounded shadow-[inset_0_0_0_2px_#13A403]" />{" "}
+                serve para a troca
+              </span>
+              <span>
+                <span className="inline-block size-2 rounded-full bg-[#13A403]" /> escala publicada
+              </span>
+            </div>
+            {escolhendo2 && (
+              <button
+                type="button"
+                className="mt-2 text-xs font-bold text-primary underline"
+                onClick={() => {
+                  setDia(null);
+                  setDia2(null);
+                }}
+              >
+                ↺ escolher outra folga
+              </button>
+            )}
+          </div>
+        )}
+
+        {passo === 4 && eu && com && tipo && dia && pessoa && (
+          <div className="space-y-3">
+            <p className="font-bold">Confira e envie</p>
+            <div className="rounded-xl border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                Com <b className="text-foreground">{pessoa.nome}</b> · {resumo(2)} · {resumo(3)}
+              </p>
+              <div className="mt-2 text-sm">
+                {tipo === "folgas" ? (
+                  (() => {
+                    const r = comoFicamAsFolgas(ctx, eu, com, modo, dia, dia2);
+                    const lista = (xs: string[]) => xs.map(curta).join(" e ") || "nenhuma";
+                    return (
+                      <>
+                        <p className="font-bold">Como ficam as folgas da semana</p>
+                        <p>
+                          <b>Você:</b> {lista(r.antesMinhas)} → <b>{lista(r.depoisMinhas)}</b>
+                        </p>
+                        <p>
+                          <b>{pessoa.nome.split(" ")[0]}:</b> {lista(r.antesDelas)} →{" "}
+                          <b>{lista(r.depoisDelas)}</b>
+                        </p>
+                      </>
+                    );
+                  })()
+                ) : tipo === "horarios" ? (
+                  <p>
+                    <b>Trocar os horários</b> de {curta(dia)}: você fica com o horário de{" "}
+                    {pessoa.nome.split(" ")[0]}, e ela com o seu. As atividades de N2 acompanham
+                    cada uma.
+                  </p>
+                ) : (
+                  <p>
+                    <b>Sair da escala</b> no feriado de {curta(dia)}: {pessoa.nome.split(" ")[0]}{" "}
+                    entra no seu lugar, com o seu horário.
+                  </p>
+                )}
+              </div>
+              {ctx.publicadas.has(segundaDaSemana(dia)) ? (
+                <div className="mt-3">
                   <ComoFica
-                    inicio={semanaEscolhida!}
-                    dias={semana.dias}
-                    troca={{ de: { id: eu, nome: "Você" }, para: pessoa, dias, tipo }}
+                    inicio={segundaDaSemana(dia)}
+                    dias={ctx.publicadas.get(segundaDaSemana(dia))!}
+                    troca={{
+                      de: { id: eu, nome: "Você" },
+                      para: { id: com, nome: pessoa.nome },
+                      dias: diasDaTroca(ctx, eu, com, tipo, modo, dia, dia2),
+                      tipo,
+                    }}
                     siglas={siglas}
                   />
                 </div>
-              )
-            )}
+              ) : (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  A escala dessa semana ainda não foi publicada: as horas de cada uma aparecem
+                  quando ela for. A supervisão aplica a troca ao montar a semana.
+                </p>
+              )}
+            </div>
             <label className="block text-sm font-bold">
-              Mensagem para {pessoa ? primeiro(pessoa.nome) : "a colega"} (opcional)
+              Mensagem para {pessoa.nome.split(" ")[0]} (opcional)
               <textarea
                 value={mensagem}
                 onChange={(e) => setMensagem(e.target.value)}
@@ -577,13 +880,24 @@ function JanelaDePedirTroca({
             </label>
           </div>
         )}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={fechar}>
-            Cancelar
+
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="outline"
+            className={passo === 1 ? "invisible" : ""}
+            onClick={() => setPasso(Math.max(1, passo - 1))}
+          >
+            ‹ Voltar
           </Button>
-          <Button onClick={enviar} disabled={!pessoa || !!problema || enviando || !abertas.length}>
-            {enviando ? "Enviando..." : "Enviar o pedido"}
-          </Button>
+          {passo < 4 ? (
+            <Button disabled={!podeIr(passo + 1)} onClick={() => setPasso(passo + 1)}>
+              Continuar ›
+            </Button>
+          ) : (
+            <Button disabled={!completo || enviando} onClick={enviar}>
+              {enviando ? "Enviando..." : "Enviar o pedido"}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

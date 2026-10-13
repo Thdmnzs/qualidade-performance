@@ -1353,6 +1353,23 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      pedir_troca_no_dia: {
+        Args: {
+          _data: string;
+          _tipo: string;
+          _com: string;
+          _modo: string | null;
+          _segundo: string | null;
+          _mensagem: string;
+        };
+        Returns: string;
+      };
+      folgas_fixas_do_time: {
+        Args: never;
+        Returns: { employee_id: string; nome: string; dias: number[]; supervisao: boolean }[];
+      };
+      definir_folga_fixa: { Args: { _employee_id: string; _dias: number[] }; Returns: undefined };
+      aplicar_trocas_da_semana: { Args: { _inicio: string }; Returns: number };
       minhas_trocas: { Args: never; Returns: Json };
       trocas_para_aprovar: { Args: never; Returns: Json };
       pedir_troca: {

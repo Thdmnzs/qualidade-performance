@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { aplicarTrocasDaSemana, lerTrocasParaAprovar } from "@/lib/trocas-api";
 import { ChevronDown, ChevronUp, Copy, Eye, MoreHorizontal, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -141,6 +142,45 @@ export function MontarSemana({
     ]);
   };
 
+  // As trocas aprovadas desta semana que esperavam a escala ser montada (13/10/2026).
+  const { data: trocasDoAdm = [] } = useQuery({
+    queryKey: ["trocas-para-aprovar"],
+    queryFn: lerTrocasParaAprovar,
+  });
+  const aAplicar = trocasDoAdm.filter(
+    (t) => t.inicio === inicio && t.situacao === "aprovada" && !t.aplicada,
+  );
+  const [aplicando, setAplicando] = useState(false);
+  async function aplicarTrocas() {
+    // Antes, as gravações da própria montagem precisam terminar (senão, uma delas gravaria por cima da troca).
+    if (pendentes.current.size > 0 || estado.tipo === "salvando") {
+      toast.info("Aguarde um instante: a montagem ainda está salvando.");
+      return;
+    }
+    setAplicando(true);
+    try {
+      const n = await aplicarTrocasDaSemana(inicio);
+      if (n > 0)
+        toast.success(
+          n === 1
+            ? "A troca aprovada foi aplicada na escala."
+            : `${n} trocas aprovadas foram aplicadas na escala.`,
+        );
+      else
+        toast.info(
+          "A escala dos dias da troca ainda não está montada para as duas pessoas: monte esses dias, e aplique de novo.",
+        );
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAplicando(false);
+      await Promise.all([
+        recarregar(),
+        qc.invalidateQueries({ queryKey: ["trocas-para-aprovar"] }),
+      ]);
+    }
+  }
+
   /** Mudou um dia: a tela muda na hora, e a gravação acontece um instante depois. */
   function mudarDia(d: number, novas: LinhaDoDia[]) {
     if (!pronta) return;
@@ -255,6 +295,28 @@ export function MontarSemana({
 
   return (
     <div className="space-y-4">
+      {aAplicar.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2563EB]/40 bg-[#2563EB]/10 px-4 py-3 text-sm">
+          <div>
+            <p className="font-bold">
+              🔁{" "}
+              {aAplicar.length === 1
+                ? "1 troca aprovada espera"
+                : `${aAplicar.length} trocas aprovadas esperam`}{" "}
+              esta semana ser montada
+            </p>
+            <p className="text-xs">
+              {aAplicar
+                .map((t) => `${t.de.nome.split(" ")[0]} ⇄ ${t.para.nome.split(" ")[0]}`)
+                .join(" · ")}
+              . Monte os dias da troca, e aplique: a escala das duas pessoas troca na hora.
+            </p>
+          </div>
+          <Button size="sm" disabled={aplicando || !pronta} onClick={aplicarTrocas}>
+            {aplicando ? "Aplicando..." : "Aplicar as trocas aprovadas"}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-semibold">Montar a semana</h2>

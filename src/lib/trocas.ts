@@ -11,7 +11,14 @@
  *   * A troca de folgas (dois dias): cada um leva as atividades do dia que DEIXOU de trabalhar.
  *   * Sair da escala (feriado): quem entra recebe o horário só com atendimento.
  */
-import type { DiasDaSemana, Horas, LinhaDoDia, Sigla } from "@/lib/escala";
+import {
+  dataDoDia,
+  segundaDaSemana,
+  type DiasDaSemana,
+  type Horas,
+  type LinhaDoDia,
+  type Sigla,
+} from "@/lib/escala";
 
 export type TipoDeTroca = "horarios" | "folgas" | "feriado";
 export const TIPOS: Record<TipoDeTroca, string> = {
@@ -93,9 +100,15 @@ export function aplicarTroca(
   const avisos: string[] = [];
   const linhaDe = (d: number, id: string) =>
     dias[d]?.find((l) => l.employee_id === id)?.horas ?? null;
-  const [d1, d2] = troca.dias;
+  // Nas folgas, os dias vêm em pares (de dois em dois): cada dia tem o "outro" do par.
+  const outroDe = new Map<number, number>();
+  if (troca.tipo === "folgas")
+    for (let i = 0; i + 1 < troca.dias.length; i += 2) {
+      outroDe.set(troca.dias[i]!, troca.dias[i + 1]!);
+      outroDe.set(troca.dias[i + 1]!, troca.dias[i]!);
+    }
   for (const d of troca.dias) {
-    const outro = troca.tipo === "folgas" ? (d === d1 ? d2! : d1!) : d;
+    const outro = troca.tipo === "folgas" ? (outroDe.get(d) ?? d) : d;
     const a = redistribuir(
       linhaDe(d, troca.para.id),
       troca.tipo === "feriado" ? null : linhaDe(outro, troca.de.id),
@@ -165,4 +178,128 @@ export function resumoDaJornada(
     return nomeDaFaixa(horas.find(Boolean)!)?.toLowerCase() ?? "fora";
   const ks = horas.map((h, k) => (h ? k : -1)).filter((k) => k >= 0);
   return `${6 + ks[0]!}h às ${6 + ks[ks.length - 1]! + 1}h`;
+}
+
+// ---------- O pedido pelo dia (13/10/2026): o que cada pessoa faz num dia, e os dias que servem ----------
+export type Estado = "trabalha" | "folga" | "fora";
+export type ContextoDasTrocas = {
+  hoje: string;
+  /** A folga fixa de cada pessoa (seg = 0 ... dom = 6). */
+  folgas: Map<string, number[]>;
+  /** As semanas publicadas (pelo início), com a escala de cada dia. */
+  publicadas: Map<string, DiasDaSemana>;
+  feriados: Set<string>;
+  siglas: Map<string, Sigla>;
+};
+export type ModoDaFolga = "um" | "dois";
+const diaDaSemana = (iso: string) => (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
+export const diasDaSemanaDe = (iso: string) =>
+  Array.from({ length: 7 }, (_, i) => dataDoDia(segundaDaSemana(iso), i));
+
+/** Numa semana publicada, a escala; nas outras, a folga fixa (a MESMA regra do banco). */
+export function estadoNoDia(ctx: ContextoDasTrocas, emp: string, data: string): Estado {
+  const semana = ctx.publicadas.get(segundaDaSemana(data));
+  if (semana) {
+    const linha = semana[diaDaSemana(data)]?.find((l) => l.employee_id === emp);
+    if (!linha) return "fora";
+    const p = papeisDasSiglas(ctx.siglas);
+    return linha.horas.some((h) => h && (p.trabalho.has(h) || h === p.pausa))
+      ? "trabalha"
+      : "folga";
+  }
+  return (ctx.folgas.get(emp) ?? []).includes(diaDaSemana(data)) ? "folga" : "trabalha";
+}
+/** As folgas "de um lado só" na semana: as minhas que ela não tem, e as dela que eu não tenho. */
+export function folgasExclusivas(ctx: ContextoDasTrocas, eu: string, ela: string, data: string) {
+  const dias = diasDaSemanaDe(data);
+  return {
+    minhas: dias.filter(
+      (x) => estadoNoDia(ctx, eu, x) === "folga" && estadoNoDia(ctx, ela, x) === "trabalha",
+    ),
+    delas: dias.filter(
+      (x) => estadoNoDia(ctx, ela, x) === "folga" && estadoNoDia(ctx, eu, x) === "trabalha",
+    ),
+  };
+}
+/** Os feriados (a partir de hoje) com a escala publicada, em que eu estou escalado. */
+export const feriadosComigo = (ctx: ContextoDasTrocas, eu: string) =>
+  [...ctx.feriados]
+    .filter(
+      (s) =>
+        s >= ctx.hoje &&
+        ctx.publicadas.has(segundaDaSemana(s)) &&
+        estadoNoDia(ctx, eu, s) === "trabalha",
+    )
+    .sort();
+/** As opções do segundo dia, na folga de um dia. */
+export function segundosDias(ctx: ContextoDasTrocas, eu: string, ela: string, dia: string) {
+  const { minhas, delas } = folgasExclusivas(ctx, eu, ela, dia);
+  return (estadoNoDia(ctx, eu, dia) === "folga" ? delas : minhas).filter((x) => x >= ctx.hoje);
+}
+/** O dia serve para esse tipo de troca, com essa pessoa? (as mesmas regras do banco) */
+export function diaServe(
+  ctx: ContextoDasTrocas,
+  eu: string,
+  ela: string,
+  tipo: TipoDeTroca,
+  modo: ModoDaFolga,
+  data: string,
+): boolean {
+  if (data < ctx.hoje) return false;
+  const a = estadoNoDia(ctx, eu, data);
+  const b = estadoNoDia(ctx, ela, data);
+  if (tipo === "horarios") return a === "trabalha" && b === "trabalha";
+  if (tipo === "feriado") return feriadosComigo(ctx, eu).includes(data) && b === "fora";
+  if (!((a === "folga" && b === "trabalha") || (a === "trabalha" && b === "folga"))) return false;
+  if (modo === "um") return segundosDias(ctx, eu, ela, data).length > 0;
+  const { minhas, delas } = folgasExclusivas(ctx, eu, ela, data);
+  return (
+    minhas.length > 0 &&
+    minhas.length === delas.length &&
+    [...minhas, ...delas].every((x) => x >= ctx.hoje)
+  );
+}
+/** Como ficam as folgas da semana (as datas de cada uma, antes e depois). */
+export function comoFicamAsFolgas(
+  ctx: ContextoDasTrocas,
+  eu: string,
+  ela: string,
+  modo: ModoDaFolga,
+  dia: string,
+  dia2: string | null,
+) {
+  const dias = diasDaSemanaDe(dia);
+  const antesMinhas = dias.filter((x) => estadoNoDia(ctx, eu, x) === "folga");
+  const antesDelas = dias.filter((x) => estadoNoDia(ctx, ela, x) === "folga");
+  const { minhas, delas } = folgasExclusivas(ctx, eu, ela, dia);
+  if (modo === "dois")
+    return {
+      antesMinhas,
+      antesDelas,
+      depoisMinhas: [...antesMinhas.filter((x) => !minhas.includes(x)), ...delas].sort(),
+      depoisDelas: [...antesDelas.filter((x) => !delas.includes(x)), ...minhas].sort(),
+    };
+  const euFolgo = estadoNoDia(ctx, eu, dia) === "folga";
+  const [minha, dela] = euFolgo ? [dia, dia2] : [dia2, dia];
+  return {
+    antesMinhas,
+    antesDelas,
+    depoisMinhas: antesMinhas.map((x) => (x === minha && dela ? dela : x)).sort(),
+    depoisDelas: antesDelas.map((x) => (x === dela && minha ? minha : x)).sort(),
+  };
+}
+/** Os dias da troca (para o "Como fica" de uma semana publicada): nas folgas, em pares. */
+export function diasDaTroca(
+  ctx: ContextoDasTrocas,
+  eu: string,
+  ela: string,
+  tipo: TipoDeTroca,
+  modo: ModoDaFolga,
+  dia: string,
+  dia2: string | null,
+): number[] {
+  if (tipo !== "folgas") return [diaDaSemana(dia)];
+  if (modo === "um") return dia2 ? [diaDaSemana(dia), diaDaSemana(dia2)] : [];
+  const { minhas, delas } = folgasExclusivas(ctx, eu, ela, dia);
+  return minhas.flatMap((x, i) => [diaDaSemana(x), diaDaSemana(delas[i]!)]);
 }

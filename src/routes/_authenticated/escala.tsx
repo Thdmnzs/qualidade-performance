@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FolgasFixas } from "@/components/escala/folgas-fixas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrocasDoTime, TrocasParaAprovar } from "@/components/escala/trocas";
 import { useCallback, useMemo, useState } from "react";
@@ -84,7 +85,7 @@ function Escala() {
 
 // ---------- O ADM: monta a semana e lança as férias ----------
 function MontagemDoAdm() {
-  const [aba, setAba] = useState<"semana" | "ferias" | "trocas">("semana");
+  const [aba, setAba] = useState<"semana" | "ferias" | "trocas" | "folgas">("semana");
   const [ajuste, setAjuste] = useState<{ inicio: string; dia: number } | null>(null);
   const { data: cadastros = [] } = useQuery({
     queryKey: ["colaboradores"],
@@ -109,6 +110,7 @@ function MontagemDoAdm() {
           ["semana", "Montar a semana"],
           ["ferias", "Férias"],
           ["trocas", "Trocas"],
+          ["folgas", "Folgas fixas"],
         ]}
         atual={aba}
         aoTrocar={setAba}
@@ -125,6 +127,8 @@ function MontagemDoAdm() {
         />
       ) : aba === "ferias" ? (
         <MontarFerias pessoas={pessoas} />
+      ) : aba === "folgas" ? (
+        <FolgasFixas />
       ) : (
         <TrocasParaAprovar
           aoAjustar={(inicio, dia) => {

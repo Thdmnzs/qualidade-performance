@@ -48,6 +48,8 @@ export const CATEGORIAS: Record<string, string[]> = {
     "ferias_recusar",
     "escala_troca_aprovar",
     "escala_troca_recusar",
+    "escala_troca_aplicar",
+    "escala_folga_fixa",
   ],
 };
 
@@ -234,10 +236,26 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
           : (partes[0] ?? "os dados pessoais");
       return [q("corrigiu "), q(lista), q(" de "), b(alvo)];
     }
-    case "escala_troca_aprovar":
-    case "escala_troca_recusar": {
-      const ini = String(n["inicio"] ?? "");
+    case "escala_folga_fixa": {
       const dias = Array.isArray(n["dias"]) ? (n["dias"] as number[]) : [];
+      return [
+        q("definiu a folga fixa de "),
+        b(alvo),
+        q(
+          dias.length
+            ? `: ${dias.map((d) => DIAS_DA_SEMANA_AUD[d] ?? "?").join(" e ")}`
+            : ": sem folga fixa",
+        ),
+      ];
+    }
+    case "escala_troca_aprovar":
+    case "escala_troca_recusar":
+    case "escala_troca_aplicar": {
+      const ini = String(n["inicio"] ?? "");
+      // As datas sem repetir e em ordem (a troca de "os dois dias" guarda quatro, em pares).
+      const dias = Array.isArray(n["dias"])
+        ? [...new Set(n["dias"] as number[])].sort((a, b) => a - b)
+        : [];
       const quando = dias
         .map(
           (d) =>
@@ -248,7 +266,9 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         q(
           r.acao === "escala_troca_aprovar"
             ? "aprovou a troca de escala de "
-            : "recusou a troca de escala de ",
+            : r.acao === "escala_troca_aplicar"
+              ? "aplicou, ao montar a semana, a troca de escala de "
+              : "recusou a troca de escala de ",
         ),
         b(`${txt(n["de"]) ?? ""} e ${txt(n["para"]) ?? ""}`),
         q(`: ${quando}`),

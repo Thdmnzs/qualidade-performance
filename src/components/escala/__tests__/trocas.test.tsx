@@ -73,11 +73,25 @@ const escala = {
   lerSiglas: vi.fn(async () => SIGLAS),
   lerSemanas: vi.fn(async () => [{ inicio: "2026-10-19", situacao: "publicada" }]),
   lerSemana: vi.fn(async (..._a: unknown[]) => SEMANA),
+  lerFerias: vi.fn(async (ano: number) => ({
+    ano,
+    eu: "t",
+    feriados: new Set<string>(),
+    porDia: new Map(),
+  })),
 };
+const TIME = [
+  { employee_id: "t", nome: "Thiago Dantas", dias: [2, 6], supervisao: false },
+  { employee_id: "s", nome: "Suelen Rocha", dias: [3, 6], supervisao: false },
+  { employee_id: "c", nome: "Carol Supervisora", dias: [5, 6], supervisao: true },
+];
 const api = {
   lerMinhasTrocas: vi.fn(async () => trocas),
   lerTrocasParaAprovar: vi.fn(async () => trocas),
   pedirTroca: vi.fn(async (..._a: unknown[]) => {}),
+  pedirTrocaNoDia: vi.fn(async (..._a: unknown[]) => {}),
+  lerFolgasFixas: vi.fn(async () => TIME),
+  definirFolgaFixa: vi.fn(async (..._a: unknown[]) => {}),
   responderTroca: vi.fn(async (..._a: unknown[]) => {}),
   cancelarTroca: vi.fn(async (..._a: unknown[]) => {}),
   decidirTroca: vi.fn(async (..._a: unknown[]) => {}),
@@ -104,21 +118,73 @@ afterEach(() => {
 });
 
 describe("o colaborador (a aba Trocas)", () => {
-  it("pede a troca dos horários da terça, vendo o como fica antes", async () => {
+  const continuar = () => fireEvent.click(screen.getByRole("button", { name: "Continuar ›" }));
+  const abrirFormulario = async () => {
     trocas = [];
     abrir(<TrocasDoTime />);
     fireEvent.click(await screen.findByRole("button", { name: "+ Pedir uma troca" }));
-    const janela = await screen.findByRole("dialog");
-    await waitFor(() =>
-      expect(within(janela).getAllByRole("option", { name: "Suelen Rocha" }).length).toBe(1),
-    );
-    fireEvent.change(within(janela).getByLabelText("Trocar com"), { target: { value: "s" } });
-    fireEvent.change(within(janela).getByLabelText("O dia"), { target: { value: "1" } });
-    expect(await within(janela).findByText("Como fica a escala")).toBeTruthy();
-    expect(within(janela).getByText(/Você: 6h às 15h → 13h às 22h/)).toBeTruthy();
+    return screen.findByRole("dialog");
+  };
+  it("passo a passo: com quem, a troca, o dia (numa semana publicada) e o envio", async () => {
+    const janela = await abrirFormulario();
+    fireEvent.click(await within(janela).findByRole("button", { name: /Suelen Rocha/ }));
+    expect(within(janela).queryByRole("button", { name: /Carol/ })).toBeNull(); // a supervisão, fora
+    continuar();
+    fireEvent.click(within(janela).getByRole("button", { name: /Trocar os horários de um dia/ }));
+    continuar();
+    expect(within(janela).getByText("Em que dia vocês trocam os horários?")).toBeTruthy();
+    fireEvent.click(await within(janela).findByRole("button", { name: "ter 20/10" }));
+    continuar();
+    expect(within(janela).getByText("Confira e envie")).toBeTruthy();
+    expect(await within(janela).findByText(/Você: 6h às 15h → 13h às 22h/)).toBeTruthy(); // o como fica, com as horas
     fireEvent.click(within(janela).getByRole("button", { name: "Enviar o pedido" }));
     await waitFor(() =>
-      expect(api.pedirTroca).toHaveBeenCalledWith("2026-10-19", "horarios", [1], "s", ""),
+      expect(api.pedirTrocaNoDia).toHaveBeenCalledWith(
+        "2026-10-20",
+        "horarios",
+        "s",
+        null,
+        null,
+        "",
+      ),
+    );
+  });
+  it("escolher só marca: quem avança é o Continuar", async () => {
+    const janela = await abrirFormulario();
+    const passo = () => janela.querySelector('[aria-current="step"]')!.textContent;
+    fireEvent.click(await within(janela).findByRole("button", { name: /Suelen Rocha/ }));
+    fireEvent.click(within(janela).getByRole("button", { name: /Suelen Rocha/ }));
+    expect(passo()).toContain("1. Com quem");
+    continuar();
+    fireEvent.click(within(janela).getByRole("button", { name: /Trocar as folgas/ }));
+    fireEvent.click(within(janela).getByRole("button", { name: /Trocar os horários de um dia/ }));
+    expect(passo()).toContain("2. A troca");
+  });
+  it("a folga de um dia numa semana não publicada (pela folga fixa), com o segundo dia sozinho", async () => {
+    const janela = await abrirFormulario();
+    fireEvent.click(await within(janela).findByRole("button", { name: /Suelen Rocha/ }));
+    continuar();
+    fireEvent.click(within(janela).getByRole("button", { name: /Trocar as folgas/ }));
+    continuar();
+    // a quarta 28/10: o Thiago folga; a Suelen folga só na quinta (o domingo, as duas): o segundo dia é a quinta
+    fireEvent.click(await within(janela).findByRole("button", { name: "qua 28/10" }));
+    expect(
+      within(janela).getByRole("button", { name: "qui 29/10" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    continuar();
+    expect(janela.textContent).toContain("Você: qua 28/10 e dom 01/11 → qui 29/10 e dom 01/11");
+    expect(janela.textContent).toContain("Suelen: qui 29/10 e dom 01/11 → qua 28/10 e dom 01/11");
+    expect(within(janela).getByText(/A escala dessa semana ainda não foi publicada/)).toBeTruthy();
+    fireEvent.click(within(janela).getByRole("button", { name: "Enviar o pedido" }));
+    await waitFor(() =>
+      expect(api.pedirTrocaNoDia).toHaveBeenCalledWith(
+        "2026-10-28",
+        "folgas",
+        "s",
+        "um",
+        "2026-10-29",
+        "",
+      ),
     );
   });
   it("a colega aceita o pedido que chegou para ela", async () => {
@@ -157,5 +223,15 @@ describe("o ADM (as trocas para aprovar)", () => {
     await waitFor(() =>
       expect(api.decidirTroca).toHaveBeenCalledWith("x1", false, "Pouca gente às 6h nesse dia."),
     );
+  });
+});
+
+describe("as folgas fixas (o ADM)", () => {
+  it("ligar um dia salva as folgas em ordem; e a supervisão aparece marcada", async () => {
+    const { FolgasFixas } = await import("../folgas-fixas");
+    abrir(<FolgasFixas />);
+    expect(await screen.findByText("supervisão · fora das trocas")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Thiago Dantas, SEG: trabalha" }));
+    await waitFor(() => expect(api.definirFolgaFixa).toHaveBeenCalledWith("t", [0, 2, 6]));
   });
 });

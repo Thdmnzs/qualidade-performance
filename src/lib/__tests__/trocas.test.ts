@@ -179,3 +179,75 @@ describe("problemaDaTroca (as mesmas regras do banco)", () => {
     ).toBeNull();
   });
 });
+
+describe("o pedido pelo dia (a folga fixa e a escala publicada)", async () => {
+  const { estadoNoDia, diaServe, segundosDias, comoFicamAsFolgas, diasDaTroca, feriadosComigo } =
+    await import("../trocas");
+  // A semana de 19/10 (sem escala publicada); a de 02/11, publicada (com o feriado de Finados).
+  const ctx = {
+    hoje: "2026-10-13",
+    folgas: new Map([
+      ["t", [2, 6]],
+      ["a", [3, 5]],
+      ["s", [3, 6]],
+      ["k", [0, 6]],
+    ]),
+    publicadas: new Map([["2026-11-02", [[L("t", thiago6)], [], [], [], [], [], []]]]),
+    feriados: new Set(["2026-11-02"]),
+    siglas: SIGLAS,
+  };
+  it("o que cada uma faz: pela folga fixa, e, numa semana publicada, pela escala", () => {
+    expect(estadoNoDia(ctx, "t", "2026-10-21")).toBe("folga"); // a quarta do Thiago
+    expect(estadoNoDia(ctx, "a", "2026-10-21")).toBe("trabalha");
+    expect(estadoNoDia(ctx, "k", "2026-11-02")).toBe("fora"); // o Kaio está fora da escala do feriado
+    expect(estadoNoDia(ctx, "t", "2026-11-02")).toBe("trabalha");
+  });
+  it("os dias que servem para cada tipo", () => {
+    expect(diaServe(ctx, "t", "a", "horarios", "um", "2026-10-19")).toBe(true); // a segunda: as duas trabalham
+    expect(diaServe(ctx, "t", "a", "horarios", "um", "2026-10-21")).toBe(false); // a quarta: o Thiago folga
+    expect(diaServe(ctx, "t", "a", "folgas", "um", "2026-10-21")).toBe(true);
+    expect(diaServe(ctx, "t", "a", "folgas", "dois", "2026-10-21")).toBe(true);
+    expect(diaServe(ctx, "t", "a", "horarios", "um", "2026-10-12")).toBe(false); // o passado
+    expect(diaServe(ctx, "t", "k", "feriado", "um", "2026-11-02")).toBe(true);
+    expect(diaServe(ctx, "t", "a", "feriado", "um", "2026-10-21")).toBe(false);
+    expect(feriadosComigo(ctx, "t")).toEqual(["2026-11-02"]);
+  });
+  it("o segundo dia, e como ficam as folgas (um dia e os dois)", () => {
+    expect(segundosDias(ctx, "t", "a", "2026-10-21")).toEqual(["2026-10-22", "2026-10-24"]);
+    const um = comoFicamAsFolgas(ctx, "t", "a", "um", "2026-10-21", "2026-10-22");
+    expect(um.depoisMinhas).toEqual(["2026-10-22", "2026-10-25"]);
+    expect(um.depoisDelas).toEqual(["2026-10-21", "2026-10-24"]);
+    const dois = comoFicamAsFolgas(ctx, "t", "a", "dois", "2026-10-21", null);
+    expect(dois.depoisMinhas).toEqual(["2026-10-22", "2026-10-24"]);
+    expect(dois.depoisDelas).toEqual(["2026-10-21", "2026-10-25"]);
+    expect(diasDaTroca(ctx, "t", "a", "folgas", "dois", "2026-10-21", null)).toEqual([2, 3, 6, 5]); // os pares, como o banco
+    const domingoIgual = comoFicamAsFolgas(ctx, "t", "s", "dois", "2026-10-22", null);
+    expect(domingoIgual.depoisMinhas).toEqual(["2026-10-22", "2026-10-25"]); // o domingo, que as duas folgam, continua
+  });
+  it("aplicarTroca com os dois pares de folga", () => {
+    const dias = [
+      [],
+      [],
+      [L("t", F()), L("a", amanda9)],
+      [L("t", thiago6), L("a", F())],
+      [],
+      [L("t", thiago6), L("a", F())],
+      [L("t", F()), L("a", amanda9)],
+    ];
+    const r = aplicarTroca(
+      dias,
+      { de: pessoa("t"), para: pessoa("a"), dias: [2, 3, 6, 5], tipo: "folgas" },
+      SIGLAS,
+    );
+    expect(
+      r.dias[2]!.find((l) => l.employee_id === "t")!.horas.filter((h) => h === "cxtech"),
+    ).toHaveLength(2);
+    expect(
+      r.dias[6]!.find((l) => l.employee_id === "t")!.horas.filter((h) => h === "cxtech"),
+    ).toHaveLength(2);
+    expect(
+      r.dias[5]!.find((l) => l.employee_id === "a")!.horas.filter((h) => h === "rede"),
+    ).toHaveLength(2);
+    expect(r.dias[5]!.find((l) => l.employee_id === "t")!.horas).toEqual(F());
+  });
+});
