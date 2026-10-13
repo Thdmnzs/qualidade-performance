@@ -203,6 +203,22 @@ describe("as frases da escala", () => {
     ).toBe("corrigiu o endereço e o contato de emergência de Ana Colab");
     expect(categoriaDe("dados_pessoais_corrigir")).toBe("Acessos e cadastros");
   });
+  it("as trocas de escala", () => {
+    expect(
+      texto({
+        acao: "escala_troca_aprovar",
+        valor_novo: {
+          de: "Thiago Dantas",
+          para: "Amanda Lima",
+          dias: [2, 3],
+          inicio: "2026-10-12",
+        },
+      }),
+    ).toBe(
+      "aprovou a troca de escala de Thiago Dantas e Amanda Lima: quarta, 14/10 e quinta, 15/10",
+    );
+    expect(categoriaDe("escala_troca_recusar")).toBe("Escala");
+  });
   it("tudo na categoria Escala", () => {
     for (const a of ["escala_publicar", "escala_mudar_dia", "ferias_marcar", "feriado_tirar"])
       expect(categoriaDe(a)).toBe("Escala");

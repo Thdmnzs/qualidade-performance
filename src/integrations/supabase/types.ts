@@ -1353,6 +1353,18 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      minhas_trocas: { Args: never; Returns: Json };
+      trocas_para_aprovar: { Args: never; Returns: Json };
+      pedir_troca: {
+        Args: { _inicio: string; _tipo: string; _dias: number[]; _com: string; _mensagem: string };
+        Returns: string;
+      };
+      responder_troca: { Args: { _troca: string; _aceitar: boolean }; Returns: undefined };
+      cancelar_troca: { Args: { _troca: string }; Returns: undefined };
+      decidir_troca: {
+        Args: { _troca: string; _aprovar: boolean; _motivo: string };
+        Returns: undefined;
+      };
       aniversariantes_de_hoje: {
         Args: never;
         Returns: { employee_id: string; nome: string; sou_eu: boolean; ja_dei: boolean }[];

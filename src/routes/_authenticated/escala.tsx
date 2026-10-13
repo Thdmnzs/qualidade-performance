@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TrocasDoTime, TrocasParaAprovar } from "@/components/escala/trocas";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -83,7 +84,8 @@ function Escala() {
 
 // ---------- O ADM: monta a semana e lança as férias ----------
 function MontagemDoAdm() {
-  const [aba, setAba] = useState<"semana" | "ferias">("semana");
+  const [aba, setAba] = useState<"semana" | "ferias" | "trocas">("semana");
+  const [ajuste, setAjuste] = useState<{ inicio: string; dia: number } | null>(null);
   const { data: cadastros = [] } = useQuery({
     queryKey: ["colaboradores"],
     queryFn: fetchColaboradores,
@@ -106,6 +108,7 @@ function MontagemDoAdm() {
         abas={[
           ["semana", "Montar a semana"],
           ["ferias", "Férias"],
+          ["trocas", "Trocas"],
         ]}
         atual={aba}
         aoTrocar={setAba}
@@ -113,25 +116,48 @@ function MontagemDoAdm() {
       {pessoas.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum colaborador ativo no cadastro ainda.</p>
       )}
-      {aba === "semana" ? <MontarSemana pessoas={pessoas} /> : <MontarFerias pessoas={pessoas} />}
+      {aba === "semana" ? (
+        <MontarSemana
+          key={ajuste ? `${ajuste.inicio}-${ajuste.dia}` : "semana"}
+          pessoas={pessoas}
+          inicioInicial={ajuste?.inicio}
+          diaInicial={ajuste?.dia}
+        />
+      ) : aba === "ferias" ? (
+        <MontarFerias pessoas={pessoas} />
+      ) : (
+        <TrocasParaAprovar
+          aoAjustar={(inicio, dia) => {
+            setAjuste({ inicio, dia });
+            setAba("semana");
+          }}
+        />
+      )}
     </div>
   );
 }
 
 // ---------- O time: vê a semana publicada e as férias ----------
 function EscalaDoTime() {
-  const [aba, setAba] = useState<"semana" | "ferias">("semana");
+  const [aba, setAba] = useState<"semana" | "ferias" | "trocas">("semana");
   return (
     <div className="space-y-5">
       <Abas
         abas={[
           ["semana", "Semana"],
           ["ferias", "Férias"],
+          ["trocas", "Trocas"],
         ]}
         atual={aba}
         aoTrocar={setAba}
       />
-      {aba === "semana" ? <SemanaPublicada /> : <FeriasDoTime />}
+      {aba === "semana" ? (
+        <SemanaPublicada />
+      ) : aba === "ferias" ? (
+        <FeriasDoTime />
+      ) : (
+        <TrocasDoTime />
+      )}
     </div>
   );
 }

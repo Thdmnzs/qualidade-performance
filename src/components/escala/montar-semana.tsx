@@ -73,12 +73,23 @@ const vazia = (): DiasDaSemana => Array.from({ length: 7 }, () => []);
 /** Uma lista vazia FIXA: `?? []` criaria uma nova a cada desenho, e o React recalcularia à toa. */
 const SEM_LINHAS: LinhaDoDia[] = [];
 
-export function MontarSemana({ pessoas }: { pessoas: Pessoa[] }) {
+export function MontarSemana({
+  pessoas,
+  inicioInicial,
+  diaInicial,
+}: {
+  pessoas: Pessoa[];
+  /** O "Aprovar e ajustar" das trocas abre a montagem já na semana e no dia da troca. */
+  inicioInicial?: string | undefined;
+  diaInicial?: number | undefined;
+}) {
   const qc = useQueryClient();
   const estaSemana = segundaDaSemana(hojeIso());
-  const [inicio, setInicio] = useState(estaSemana);
-  const [dia, setDia] = useState(() =>
-    Math.max(0, Array.from({ length: 7 }, (_, i) => dataDoDia(estaSemana, i)).indexOf(hojeIso())),
+  const [inicio, setInicio] = useState(inicioInicial ?? estaSemana);
+  const [dia, setDia] = useState(
+    () =>
+      diaInicial ??
+      Math.max(0, Array.from({ length: 7 }, (_, i) => dataDoDia(estaSemana, i)).indexOf(hojeIso())),
   );
   const [dias, setDias] = useState<DiasDaSemana>(vazia());
   const [estado, setEstado] = useState<{ tipo: "salvo" | "salvando" | "erro"; em?: number }>({

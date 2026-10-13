@@ -46,6 +46,8 @@ export const CATEGORIAS: Record<string, string[]> = {
     "ferias_cancelar_pedido",
     "ferias_aprovar",
     "ferias_recusar",
+    "escala_troca_aprovar",
+    "escala_troca_recusar",
   ],
 };
 
@@ -231,6 +233,26 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
           ? `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`
           : (partes[0] ?? "os dados pessoais");
       return [q("corrigiu "), q(lista), q(" de "), b(alvo)];
+    }
+    case "escala_troca_aprovar":
+    case "escala_troca_recusar": {
+      const ini = String(n["inicio"] ?? "");
+      const dias = Array.isArray(n["dias"]) ? (n["dias"] as number[]) : [];
+      const quando = dias
+        .map(
+          (d) =>
+            `${DIAS_DA_SEMANA_AUD[d] ?? "um dia"}, ${dataBRCurta(ini ? somaDias(ini, d) : "")}`,
+        )
+        .join(" e ");
+      return [
+        q(
+          r.acao === "escala_troca_aprovar"
+            ? "aprovou a troca de escala de "
+            : "recusou a troca de escala de ",
+        ),
+        b(`${txt(n["de"]) ?? ""} e ${txt(n["para"]) ?? ""}`),
+        q(`: ${quando}`),
+      ];
     }
     case "feriado_marcar":
       return [q("marcou o feriado de "), b(dataBRCurta(n["data"]))];

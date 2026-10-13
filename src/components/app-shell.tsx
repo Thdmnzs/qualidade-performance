@@ -20,6 +20,7 @@ import { useRef, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lerPedidos } from "@/lib/escala-api";
+import { lerMinhasTrocas, lerTrocasParaAprovar } from "@/lib/trocas-api";
 import { apagarRegistros } from "@/lib/expiracao-da-sessao";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
 import { BotaoTema } from "@/components/botao-tema";
@@ -78,20 +79,37 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const itens = itensDoMenu(perfil, area).map((to) => ({ to, ...NAV[to] }));
-  // O selo da Escala, para o ADM: quantos pedidos de férias aguardam uma decisão.
+  // O selo da Escala: para o ADM, os pedidos de férias e as trocas que aguardam a decisão dele.
   const { data: pedidosDeFerias = [] } = useQuery({
     queryKey: ["escala-pedidos"],
     queryFn: lerPedidos,
     enabled: perfil === "adm",
     refetchInterval: 5 * 60_000,
   });
+  // As trocas: para o ADM, as que aguardam a supervisão; para o colaborador, os pedidos para ele.
+  const { data: trocasDoAdm = [] } = useQuery({
+    queryKey: ["trocas-para-aprovar"],
+    queryFn: lerTrocasParaAprovar,
+    enabled: perfil === "adm",
+    refetchInterval: 5 * 60_000,
+  });
+  const { data: minhasTrocas = [] } = useQuery({
+    queryKey: ["minhas-trocas"],
+    queryFn: lerMinhasTrocas,
+    enabled: !!employee && perfil !== "adm",
+    refetchInterval: 5 * 60_000,
+  });
   const aguardando =
-    perfil === "adm" ? pedidosDeFerias.filter((p) => p.situacao === "aguardando").length : 0;
+    perfil === "adm"
+      ? pedidosDeFerias.filter((p) => p.situacao === "aguardando").length +
+        trocasDoAdm.filter((t) => t.situacao === "aguardando_supervisao").length
+      : minhasTrocas.filter((t) => t.situacao === "aguardando_colega" && t.para.id === employee?.id)
+          .length;
   const selo = (to: string) =>
     to === "/escala" && aguardando > 0 ? (
       <span
         className="ml-auto rounded-full bg-[#C2410C] px-1.5 text-[10px] font-bold text-white"
-        aria-label={`${aguardando} pedidos de férias aguardando`}
+        aria-label={`${aguardando} ${aguardando === 1 ? "pedido aguardando" : "pedidos aguardando"} você`}
       >
         {aguardando}
       </span>
