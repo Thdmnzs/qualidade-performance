@@ -214,6 +214,7 @@ export function MontarSemana({
           f?.porDia.get(data)?.some((x) => x.employee_id === id),
         ),
       protegidos,
+      feriados: new Set(semana?.feriados ?? []),
     });
     setConflitosDeFolga(r.conflitos);
     setSemHorario(r.semHorario);
@@ -226,6 +227,8 @@ export function MontarSemana({
       r.horarios &&
         `${r.horarios} ${r.horarios === 1 ? "horário atribuído" : "horários atribuídos"}`,
       r.folgas && `${r.folgas} ${r.folgas === 1 ? "folga atribuída" : "folgas atribuídas"}`,
+      r.retiradas &&
+        `${r.retiradas} ${r.retiradas === 1 ? "folga tirada" : "folgas tiradas"} do fim de semana ou do feriado`,
     ].filter(Boolean);
     await gravarVariosDias(
       Object.fromEntries(r.mudados.map((d: number) => [d, r.dias[d]!])),

@@ -295,6 +295,10 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
   pessoa, "ficar off a partir de", "substituir por" e "limpar o dia".
 - **Quem entra na escala:** toda pessoa ativa, **inclusive a supervisão** (o ADM). Ficar fora das trocas
   não impede ninguém de ser escalado.
+- **Nos fins de semana e nos feriados, quem folga fica fora da escala:** a escala desses dias mostra só quem
+  trabalha (uma linha só de folga não é gravada, venha de onde vier: a montagem, a cópia, o botão ou uma
+  troca). As férias e as ausências continuam aparecendo. Numa semana publicada, não estar na escala de um
+  sábado ou domingo significa folga; num feriado, significa estar fora da escala do feriado.
 - **O time vê** a semana publicada (a grade do time e o "Meu dia").
 
 ### 10.2 As férias e os feriados
@@ -317,7 +321,9 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
   atendimento, com a pausa na hora dela). Depois, o ADM só ajusta as tarefas. Num dia da folga fixa em que a
   pessoa já tem horário, o horário **fica**, e o ADM vê o conflito (com o "Pôr a folga" e o "Manter o
   horário"); quem não tem horário cadastrado fica com os dias de trabalho vazios, com um aviso. O que já foi
-  montado, as férias do calendário e os dias de uma troca aplicada não são tocados.
+  montado, as férias do calendário e os dias de uma troca aplicada não são tocados. No fim, cada dia fica
+  **em ordem de horário**: primeiro quem entra mais cedo (na mesma entrada, quem sai primeiro), e quem não
+  trabalha no dia por último.
 
 ### 10.4 As trocas de escala
 
@@ -443,3 +449,4 @@ contagens do limite de uso.
 | 13/10/2026 | A supervisão (o ADM) passa a entrar na escala e nas férias; continua fora das trocas. |
 | 13/10/2026 | O botão "Atribuir folgas fixas", na montagem da semana. |
 | 13/10/2026 | O horário de trabalho de cada pessoa, e o botão passa a "Atribuir folgas e horários". |
+| 14/10/2026 | Nos fins de semana e nos feriados, quem folga fica fora da escala. |

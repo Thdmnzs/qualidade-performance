@@ -19,6 +19,7 @@ import {
   type LinhaDoDia,
   type Sigla,
 } from "@/lib/escala";
+import { linhaSoDeFolga } from "@/lib/escala";
 
 export type TipoDeTroca = "horarios" | "folgas" | "feriado";
 export const TIPOS: Record<TipoDeTroca, string> = {
@@ -137,6 +138,10 @@ export function aplicarTroca(
     if (posB < 0 && posA >= 0 && novoA && novoB) resultado.push(novoB);
     novos[d] = resultado.filter((l): l is LinhaDoDia => !!l);
   }
+  // Nos fins de semana, quem passa a folgar fica fora da escala (a mesma regra do banco, 14/10/2026).
+  const folga = [...siglas.values()].find((s) => s.sigla.toLowerCase() === "folga")?.id;
+  for (const d of troca.dias)
+    if (d >= 5) novos[d] = novos[d]!.filter((l) => !linhaSoDeFolga(l.horas, folga));
   return { dias: novos, avisos: [...new Set(avisos)] };
 }
 
@@ -201,7 +206,8 @@ export function estadoNoDia(ctx: ContextoDasTrocas, emp: string, data: string): 
   const semana = ctx.publicadas.get(segundaDaSemana(data));
   if (semana) {
     const linha = semana[diaDaSemana(data)]?.find((l) => l.employee_id === emp);
-    if (!linha) return "fora";
+    // Sem linha num fim de semana (sem feriado) é folga: quem folga fica fora da escala (14/10/2026).
+    if (!linha) return diaDaSemana(data) >= 5 && !ctx.feriados.has(data) ? "folga" : "fora";
     const p = papeisDasSiglas(ctx.siglas);
     return linha.horas.some((h) => h && (p.trabalho.has(h) || h === p.pausa))
       ? "trabalha"

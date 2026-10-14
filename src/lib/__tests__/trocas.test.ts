@@ -248,6 +248,22 @@ describe("o pedido pelo dia (a folga fixa e a escala publicada)", async () => {
     expect(
       r.dias[5]!.find((l) => l.employee_id === "a")!.horas.filter((h) => h === "rede"),
     ).toHaveLength(2);
-    expect(r.dias[5]!.find((l) => l.employee_id === "t")!.horas).toEqual(F());
+    expect(r.dias[5]!.some((l) => l.employee_id === "t")).toBe(false); // o Thiago passa a folgar no sábado: fica fora da escala
+  });
+});
+
+describe("a leitura do dia, numa semana publicada, no fim de semana", async () => {
+  const { estadoNoDia } = await import("../trocas");
+  const ctx = {
+    hoje: "2026-10-13",
+    folgas: new Map<string, number[]>(),
+    publicadas: new Map([["2026-11-02", [[], [], [], [], [], [], []]]]),
+    feriados: new Set(["2026-11-07"]),
+    siglas: SIGLAS,
+  };
+  it("sem linha: no domingo, é folga; num dia de semana ou num sábado de feriado, é fora", () => {
+    expect(estadoNoDia(ctx, "t", "2026-11-08")).toBe("folga"); // o domingo
+    expect(estadoNoDia(ctx, "t", "2026-11-03")).toBe("fora"); // a terça
+    expect(estadoNoDia(ctx, "t", "2026-11-07")).toBe("fora"); // o sábado, feriado
   });
 });

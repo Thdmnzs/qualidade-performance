@@ -359,6 +359,8 @@ export type FolgasEHorariosAtribuidos = {
   dias: DiasDaSemana;
   mudados: number[];
   folgas: number;
+  /** As linhas de folga tiradas dos fins de semana e dos feriados. */
+  retiradas: number;
   horarios: number;
   conflitos: ConflitoDeFolga[];
   semHorario: { employee_id: string; nome: string }[];
@@ -373,6 +375,9 @@ export type FolgasEHorariosAtribuidos = {
  *   * Um dia que já tem algo (montado à mão, uma folga extra, as férias, a ausência) fica como está.
  *     Se for um dia da folga fixa com horário, vira um conflito, para o ADM decidir.
  *   * As férias do calendário e os dias de uma troca aplicada têm prioridade: não são tocados.
+ *   * Nos fins de semana e nos feriados, quem folga fica FORA da escala (14/10/2026): a folga não é
+ *     posta, e uma linha que é só de folga é tirada (a mesma regra do banco).
+ *   * No fim, cada dia fica em ordem de horário (14/10/2026): primeiro quem entra mais cedo.
  */
 export function atribuirFolgasEHorarios(p: {
   inicio: string;
@@ -383,6 +388,7 @@ export function atribuirFolgasEHorarios(p: {
   siglas: Sigla[];
   emFerias: (employeeId: string, data: string) => boolean;
   protegidos: Set<string>; // "employee_id:dia" (os dias de uma troca aplicada)
+  feriados?: Set<string>;
 }): FolgasEHorariosAtribuidos {
   const achar = (nome: string) => p.siglas.find((s) => s.sigla.toLowerCase() === nome)?.id;
   const folga = achar("folga");
@@ -397,6 +403,17 @@ export function atribuirFolgasEHorarios(p: {
   const semHorario = new Map<string, string>();
   let folgas = 0;
   let horarios = 0;
+  let retiradas = 0;
+  // Nos fins de semana e nos feriados, as linhas que são só de folga saem.
+  for (let d = 0; d < 7; d++) {
+    if (!diaSemFolgaNaEscala(p.inicio, d, p.feriados)) continue;
+    const antes = dias[d]!.length;
+    dias[d] = dias[d]!.filter((l) => !linhaSoDeFolga(l.horas, folga));
+    if (dias[d]!.length < antes) {
+      retiradas += antes - dias[d]!.length;
+      mudados.add(d);
+    }
+  }
   for (const pessoa of p.pessoas) {
     const diasDeFolga = p.folgas.get(pessoa.id) ?? [];
     const horario = p.horarios.get(pessoa.id);
@@ -414,7 +431,8 @@ export function atribuirFolgasEHorarios(p: {
       }
       let novas: Horas | null = null;
       if (ehFolga) {
-        if (folga) novas = horasVazias().map(() => folga);
+        if (folga && !diaSemFolgaNaEscala(p.inicio, d, p.feriados))
+          novas = horasVazias().map(() => folga);
       } else if (horario && atendimento && pausa) {
         novas = horasDoHorario(horario, atendimento, pausa);
       } else if (!horario) {
@@ -428,12 +446,51 @@ export function atribuirFolgasEHorarios(p: {
       mudados.add(d);
     }
   }
+  // Cada dia em ordem de horário: se a ordem mudar, o dia também é gravado.
+  for (let d = 0; d < 7; d++) {
+    const ordenadas = ordenarPeloHorario(dias[d]!, trabalho, pausa);
+    if (ordenadas.some((l, i) => l.employee_id !== dias[d]![i]!.employee_id)) mudados.add(d);
+    dias[d] = ordenadas;
+  }
   return {
     dias,
     mudados: [...mudados].sort((a, b) => a - b),
     folgas,
+    retiradas,
     horarios,
     conflitos,
     semHorario: [...semHorario].map(([employee_id, nome]) => ({ employee_id, nome })),
   };
+}
+
+/** O dia é de fim de semana ou de feriado? Nesses dias, quem folga fica fora da escala (14/10/2026). */
+export const diaSemFolgaNaEscala = (inicio: string, d: number, feriados?: Set<string>) =>
+  d >= 5 || !!feriados?.has(dataDoDia(inicio, d));
+/** A linha é só de folga (tem a folga, e nada além dela)? */
+export const linhaSoDeFolga = (horas: Horas, folga: string | undefined) =>
+  !!folga && horas.some((h) => h === folga) && horas.every((h) => h === null || h === folga);
+
+/**
+ * O dia em ordem de horário (14/10/2026): primeiro quem entra mais cedo; na mesma entrada, quem sai
+ * primeiro; e, se for igual, pelo nome. Quem não trabalha no dia (as férias, a ausência, a folga) fica
+ * no fim, pelo nome.
+ */
+export function ordenarPeloHorario(
+  linhas: LinhaDoDia[],
+  trabalho: Set<string>,
+  pausa: string | undefined,
+): LinhaDoDia[] {
+  const conta = (h: string | null) => h !== null && (trabalho.has(h) || h === pausa);
+  const janela = (l: LinhaDoDia) => {
+    const primeira = l.horas.findIndex(conta);
+    if (primeira < 0) return [Infinity, Infinity];
+    let ultima = l.horas.length - 1;
+    while (!conta(l.horas[ultima] ?? null)) ultima--;
+    return [primeira, ultima];
+  };
+  return [...linhas].sort((a, b) => {
+    const [ea, sa] = janela(a);
+    const [eb, sb] = janela(b);
+    return ea !== eb ? ea! - eb! : sa !== sb ? sa! - sb! : a.nome.localeCompare(b.nome, "pt-BR");
+  });
 }

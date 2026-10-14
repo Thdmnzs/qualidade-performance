@@ -325,7 +325,8 @@ describe("atribuir as folgas e os horários", async () => {
     expect(linha(r, 0, "r")).toEqual(
       horasDoHorario({ entrada: 8, saida: 17, pausa: 12 }, "i", "P"),
     );
-    expect(r.folgas).toBe(6);
+    expect(r.folgas).toBe(3); // as quartas da Rachel e do Thiago, e a segunda do Kaio (no domingo, quem folga fica fora)
+    expect(r.dias[6]!.some((l) => ["r", "k", "t"].includes(l.employee_id))).toBe(false);
     expect(r.horarios).toBe(10); // a Rachel e o Thiago: 5 dias de trabalho cada
     expect(r.semHorario).toEqual([{ employee_id: "k", nome: "Kaio" }]); // o Kaio não tem horário
     expect(linha(r, 1, "k")).toBeUndefined(); // e os dias de trabalho dele ficam vazios
@@ -362,5 +363,138 @@ describe("atribuir as folgas e os horários", async () => {
     const duas = atribuirFolgasEHorarios(base(uma.dias));
     expect(duas.mudados).toEqual([]);
     expect(duas.folgas + duas.horarios).toBe(0);
+  });
+});
+
+describe("nos fins de semana e nos feriados, quem folga fica fora da escala", async () => {
+  const { atribuirFolgasEHorarios, horasVazias, diaSemFolgaNaEscala, linhaSoDeFolga } =
+    await import("../escala");
+  const SIG = [
+    { id: "i", sigla: "i", conta_como_trabalho: true, em_atendimento: true, ordem: 1 },
+    { id: "P", sigla: "P", conta_como_trabalho: false, em_atendimento: false, ordem: 2 },
+    { id: "folga", sigla: "folga", conta_como_trabalho: false, em_atendimento: false, ordem: 3 },
+    { id: "ferias", sigla: "férias", conta_como_trabalho: false, em_atendimento: false, ordem: 4 },
+  ] as never[];
+  const vazia = () =>
+    Array.from(
+      { length: 7 },
+      () => [] as { employee_id: string; nome: string; horas: (string | null)[] }[],
+    );
+  const F = () => horasVazias().map(() => "folga");
+  it("os dias: o sábado, o domingo e os feriados", () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map((d) => diaSemFolgaNaEscala("2026-10-19", d))).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+    ]);
+    expect(diaSemFolgaNaEscala("2026-10-19", 3, new Set(["2026-10-22"]))).toBe(true); // a quinta, feriado
+    expect(linhaSoDeFolga(F(), "folga")).toBe(true);
+    expect(
+      linhaSoDeFolga(
+        horasVazias().map(() => "ferias"),
+        "folga",
+      ),
+    ).toBe(false); // as férias não são folga
+  });
+  it("o botão tira as linhas de folga do sábado, do domingo e do feriado (e deixa as férias)", () => {
+    const dias = vazia();
+    dias[5]!.push({ employee_id: "a", nome: "Ana", horas: F() });
+    dias[6]!.push({ employee_id: "b", nome: "Beto", horas: horasVazias().map(() => "ferias") });
+    dias[3]!.push({ employee_id: "a", nome: "Ana", horas: F() });
+    dias[2]!.push({ employee_id: "a", nome: "Ana", horas: F() });
+    const r = atribuirFolgasEHorarios({
+      inicio: "2026-10-19",
+      dias,
+      pessoas: [],
+      siglas: SIG,
+      folgas: new Map(),
+      horarios: new Map(),
+      emFerias: () => false,
+      protegidos: new Set(),
+      feriados: new Set(["2026-10-22"]),
+    });
+    expect(r.dias[5]).toEqual([]); // o sábado
+    expect(r.dias[3]).toEqual([]); // o feriado
+    expect(r.dias[2]).toHaveLength(1); // a quarta (um dia de semana) fica
+    expect(r.dias[6]).toHaveLength(1); // as férias de domingo ficam
+    expect(r.retiradas).toBe(2);
+    expect(r.mudados).toEqual([3, 5]);
+  });
+});
+
+describe("a ordem pelos horários", async () => {
+  const { atribuirFolgasEHorarios, horasDoHorario, horasVazias, ordenarPeloHorario } =
+    await import("../escala");
+  const SIG = [
+    { id: "i", sigla: "i", conta_como_trabalho: true, em_atendimento: true, ordem: 1 },
+    { id: "P", sigla: "P", conta_como_trabalho: false, em_atendimento: false, ordem: 2 },
+    { id: "folga", sigla: "folga", conta_como_trabalho: false, em_atendimento: false, ordem: 3 },
+    { id: "ferias", sigla: "férias", conta_como_trabalho: false, em_atendimento: false, ordem: 4 },
+  ] as never[];
+  const h = (entrada: number, saida: number, pausa: number) =>
+    horasDoHorario({ entrada, saida, pausa }, "i", "P");
+  it("primeiro quem entra mais cedo; na mesma entrada, quem sai primeiro; quem não trabalha, no fim", () => {
+    const linhas = [
+      { employee_id: "a", nome: "Amanda", horas: h(9, 18, 13) },
+      { employee_id: "z", nome: "Zé", horas: horasVazias().map(() => "ferias") },
+      { employee_id: "k", nome: "Kaio", horas: h(13, 22, 17) },
+      { employee_id: "t", nome: "Thiago", horas: h(6, 15, 10) },
+      { employee_id: "b", nome: "Bia", horas: h(6, 12, 9) },
+      { employee_id: "r", nome: "Rachel", horas: h(9, 18, 13) },
+    ];
+    expect(ordenarPeloHorario(linhas, new Set(["i"]), "P").map((l) => l.nome)).toEqual([
+      "Bia",
+      "Thiago",
+      "Amanda",
+      "Rachel",
+      "Kaio",
+      "Zé",
+    ]);
+  });
+  it("o botão deixa a semana nessa ordem (e não na alfabética)", () => {
+    const r = atribuirFolgasEHorarios({
+      inicio: "2026-10-19",
+      dias: Array.from({ length: 7 }, () => []),
+      pessoas: [
+        { id: "a", nome: "Amanda" },
+        { id: "k", nome: "Kaio" },
+        { id: "t", nome: "Thiago" },
+      ],
+      folgas: new Map(),
+      horarios: new Map([
+        ["a", { entrada: 9, saida: 18, pausa: 13 }],
+        ["k", { entrada: 13, saida: 22, pausa: 17 }],
+        ["t", { entrada: 6, saida: 15, pausa: 10 }],
+      ]),
+      siglas: SIG,
+      emFerias: () => false,
+      protegidos: new Set(),
+    });
+    expect(r.dias[0]!.map((l) => l.nome)).toEqual(["Thiago", "Amanda", "Kaio"]);
+  });
+  it("uma semana já em ordem: nada a gravar", () => {
+    const dias = Array.from(
+      { length: 7 },
+      () => [] as { employee_id: string; nome: string; horas: (string | null)[] }[],
+    );
+    dias[0] = [
+      { employee_id: "t", nome: "Thiago", horas: h(6, 15, 10) },
+      { employee_id: "a", nome: "Amanda", horas: h(9, 18, 13) },
+    ];
+    const r = atribuirFolgasEHorarios({
+      inicio: "2026-10-19",
+      dias,
+      pessoas: [],
+      folgas: new Map(),
+      horarios: new Map(),
+      siglas: SIG,
+      emFerias: () => false,
+      protegidos: new Set(),
+    });
+    expect(r.mudados).toEqual([]);
   });
 });
