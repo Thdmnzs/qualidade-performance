@@ -1314,7 +1314,16 @@ export type Database = {
       minha_aparencia: { Args: never; Returns: Json };
       horarios_de_trabalho: {
         Args: never;
-        Returns: { employee_id: string; entrada: number; saida: number; pausa: number }[];
+        Returns: {
+          employee_id: string;
+          entrada: number;
+          saida: number;
+          pausa: number;
+          fds_dias: number[] | null;
+          fds_entrada: number | null;
+          fds_saida: number | null;
+          fds_pausa: number | null;
+        }[];
       };
       definir_horario_de_trabalho: {
         Args: {
@@ -1322,6 +1331,10 @@ export type Database = {
           _entrada: number | null;
           _saida: number | null;
           _pausa: number | null;
+          _fds_dias: number[] | null;
+          _fds_entrada: number | null;
+          _fds_saida: number | null;
+          _fds_pausa: number | null;
         };
         Returns: undefined;
       };

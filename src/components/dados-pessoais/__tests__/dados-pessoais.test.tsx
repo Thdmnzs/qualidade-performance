@@ -125,7 +125,60 @@ describe("o horário de trabalho, na ficha do ADM", () => {
         entrada: 8,
         saida: 17,
         pausa: 13,
+        fimDeSemana: null,
       }),
     );
+  });
+});
+
+describe("o horário do fim de semana, na ficha do ADM", () => {
+  it("marcar o fim de semana: o sábado às 6h, e salvar os dois horários", async () => {
+    abrir(<FichaDoAdm pessoa={{ id: "a", nome: "Ana Colab" }} aoFechar={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Preencher o horário/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Entrada (a semana)" }), {
+      target: { value: "13" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Saída (a semana)" }), {
+      target: { value: "22" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Pausa (a semana)" }), {
+      target: { value: "17" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Horário diferente aos fins de semana" }));
+    expect(screen.getByRole("button", { name: "Sábado" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    ); // o sábado já vem marcado
+    fireEvent.change(screen.getByRole("combobox", { name: "Entrada (o fim de semana)" }), {
+      target: { value: "6" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Saída (o fim de semana)" }), {
+      target: { value: "15" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Pausa (o fim de semana)" }), {
+      target: { value: "14" },
+    });
+    expect(screen.getByText(/A pausa do fim de semana precisa ficar dentro/)).toBeTruthy(); // a pausa na última hora
+    fireEvent.change(screen.getByRole("combobox", { name: "Pausa (o fim de semana)" }), {
+      target: { value: "10" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar o horário" }));
+    await waitFor(() =>
+      expect(escalaApi.definirHorarioDeTrabalho).toHaveBeenCalledWith("a", {
+        entrada: 13,
+        saida: 22,
+        pausa: 17,
+        fimDeSemana: { dias: [5], entrada: 6, saida: 15, pausa: 10 },
+      }),
+    );
+  });
+  it("o fim de semana sem nenhum dia escolhido é recusado", async () => {
+    abrir(<FichaDoAdm pessoa={{ id: "a", nome: "Ana Colab" }} aoFechar={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Preencher o horário/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Horário diferente aos fins de semana" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sábado" })); // desmarca o sábado
+    expect(screen.getByText("Escolha o sábado, o domingo ou os dois.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Salvar o horário" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 });

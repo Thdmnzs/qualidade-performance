@@ -244,7 +244,11 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
       return [
         q("definiu o horário de trabalho de "),
         b(alvo),
-        q(e == null ? ": sem horário" : `: das ${e}h às ${s}h, com a pausa às ${p}h`),
+        q(
+          e == null
+            ? ": sem horário"
+            : `: das ${e}h às ${s}h, com a pausa às ${p}h${fimDeSemanaNoHistorico(n)}`,
+        ),
       ];
     }
     case "escala_folga_fixa": {
@@ -339,4 +343,12 @@ export function detalhesDoRegistro(r: Registro): Detalhe[] {
       lista.push({ rotulo: "Registros apagados", antes: null, depois: partes.join(", ") });
   }
   return lista;
+}
+
+/** O horário do fim de semana, no Histórico: "; sábado: das 6h às 15h, com a pausa às 10h". */
+function fimDeSemanaNoHistorico(n: Record<string, unknown>): string {
+  const dias = Array.isArray(n["fds_dias"]) ? (n["fds_dias"] as number[]) : [];
+  if (!dias.length) return "";
+  const nomes = dias.map((d) => (d === 5 ? "sábado" : "domingo")).join(" e ");
+  return `; ${nomes}: das ${String(n["fds_entrada"])}h às ${String(n["fds_saida"])}h, com a pausa às ${String(n["fds_pausa"])}h`;
 }

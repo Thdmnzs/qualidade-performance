@@ -330,7 +330,21 @@ export function pessoasDaEscala(cadastros: { id: string; nome: string; status: s
 }
 
 // ---------- O horário de trabalho (13/10/2026) ----------
-export type HorarioDeTrabalho = { entrada: number; saida: number; pausa: number };
+export type HorarioDeTrabalho = {
+  entrada: number;
+  saida: number;
+  pausa: number;
+  /** Opcional (14/10/2026): um horário diferente no sábado (5), no domingo (6) ou nos dois. */
+  fimDeSemana?: { dias: number[]; entrada: number; saida: number; pausa: number } | null;
+};
+
+/** O horário de um dia: o do fim de semana nos dias escolhidos; o da semana nos outros. */
+export function horarioDoDia(h: HorarioDeTrabalho, dia: number): HorarioDeTrabalho {
+  const f = h.fimDeSemana;
+  return f && f.dias.includes(dia)
+    ? { entrada: f.entrada, saida: f.saida, pausa: f.pausa }
+    : { entrada: h.entrada, saida: h.saida, pausa: h.pausa };
+}
 
 /** O que há de errado no horário (as mesmas regras do banco), ou null. */
 export function problemaDoHorario(h: HorarioDeTrabalho): string | null {
@@ -434,7 +448,7 @@ export function atribuirFolgasEHorarios(p: {
         if (folga && !diaSemFolgaNaEscala(p.inicio, d, p.feriados))
           novas = horasVazias().map(() => folga);
       } else if (horario && atendimento && pausa) {
-        novas = horasDoHorario(horario, atendimento, pausa);
+        novas = horasDoHorario(horarioDoDia(horario, d), atendimento, pausa);
       } else if (!horario) {
         semHorario.set(pessoa.id, pessoa.nome);
       }
@@ -448,7 +462,7 @@ export function atribuirFolgasEHorarios(p: {
   }
   // Cada dia em ordem de horário: se a ordem mudar, o dia também é gravado.
   for (let d = 0; d < 7; d++) {
-    const ordenadas = ordenarPeloHorario(dias[d]!, trabalho, pausa);
+    const ordenadas = ordenarPeloHorario(dias[d]!, trabalho, pausa, p.horarios, d);
     if (ordenadas.some((l, i) => l.employee_id !== dias[d]![i]!.employee_id)) mudados.add(d);
     dias[d] = ordenadas;
   }
@@ -472,18 +486,26 @@ export const linhaSoDeFolga = (horas: Horas, folga: string | undefined) =>
 
 /**
  * O dia em ordem de horário (14/10/2026): primeiro quem entra mais cedo; na mesma entrada, quem sai
- * primeiro; e, se for igual, pelo nome. Quem não trabalha no dia (as férias, a ausência, a folga) fica
- * no fim, pelo nome.
+ * primeiro; e, se for igual, pelo nome. Quem não trabalha no dia (a folga, as férias, a ausência) fica na
+ * posição do SEU horário de trabalho, com a atividade do dia; só quem não tem horário cadastrado vai
+ * para o fim, pelo nome.
  */
 export function ordenarPeloHorario(
   linhas: LinhaDoDia[],
   trabalho: Set<string>,
   pausa: string | undefined,
+  horarios?: Map<string, HorarioDeTrabalho>,
+  dia = 0,
 ): LinhaDoDia[] {
   const conta = (h: string | null) => h !== null && (trabalho.has(h) || h === pausa);
   const janela = (l: LinhaDoDia) => {
     const primeira = l.horas.findIndex(conta);
-    if (primeira < 0) return [Infinity, Infinity];
+    if (primeira < 0) {
+      // Sem trabalho no dia: a posição do horário de trabalho da pessoa, se houver.
+      const todo = horarios?.get(l.employee_id);
+      const h = todo ? horarioDoDia(todo, dia) : null;
+      return h ? [h.entrada - HORA_INICIAL, h.saida - HORA_INICIAL - 1] : [Infinity, Infinity];
+    }
     let ultima = l.horas.length - 1;
     while (!conta(l.horas[ultima] ?? null)) ultima--;
     return [primeira, ultima];

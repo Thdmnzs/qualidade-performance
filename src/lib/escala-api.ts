@@ -173,20 +173,43 @@ export async function decidirPedido(id: string, aprovar: boolean, motivo: string
 export async function lerHorariosDeTrabalho(): Promise<Map<string, HorarioDeTrabalho>> {
   const { data, error } = await supabase.rpc("horarios_de_trabalho");
   falhar(error);
+  type Linha = {
+    employee_id: string;
+    entrada: number;
+    saida: number;
+    pausa: number;
+    fds_dias: number[] | null;
+    fds_entrada: number | null;
+    fds_saida: number | null;
+    fds_pausa: number | null;
+  };
   return new Map(
-    ((data ?? []) as ({ employee_id: string } & HorarioDeTrabalho)[]).map((h) => [
+    ((data ?? []) as Linha[]).map((h) => [
       h.employee_id,
-      { entrada: h.entrada, saida: h.saida, pausa: h.pausa },
+      {
+        entrada: h.entrada,
+        saida: h.saida,
+        pausa: h.pausa,
+        fimDeSemana:
+          h.fds_dias?.length && h.fds_entrada != null && h.fds_saida != null && h.fds_pausa != null
+            ? { dias: h.fds_dias, entrada: h.fds_entrada, saida: h.fds_saida, pausa: h.fds_pausa }
+            : null,
+      },
     ]),
   );
 }
-/** Define o horário (ou o apaga, com null). */
+/** Define o horário da semana e, se houver, o do fim de semana (ou apaga tudo, com null). */
 export async function definirHorarioDeTrabalho(employeeId: string, h: HorarioDeTrabalho | null) {
+  const f = h?.fimDeSemana ?? null;
   const { error } = await supabase.rpc("definir_horario_de_trabalho", {
     _employee_id: employeeId,
     _entrada: h?.entrada ?? null,
     _saida: h?.saida ?? null,
     _pausa: h?.pausa ?? null,
+    _fds_dias: f?.dias ?? null,
+    _fds_entrada: f?.entrada ?? null,
+    _fds_saida: f?.saida ?? null,
+    _fds_pausa: f?.pausa ?? null,
   });
   falhar(error);
 }

@@ -1,3 +1,4 @@
+import type { HorarioDeTrabalho } from "../escala";
 import { describe, expect, it } from "vitest";
 import {
   adicionarAoDia,
@@ -496,5 +497,118 @@ describe("a ordem pelos horários", async () => {
       protegidos: new Set(),
     });
     expect(r.mudados).toEqual([]);
+  });
+});
+
+describe("quem folga fica na posição do seu horário", async () => {
+  const { atribuirFolgasEHorarios, horasDoHorario, horasVazias, ordenarPeloHorario } =
+    await import("../escala");
+  const SIG = [
+    { id: "i", sigla: "i", conta_como_trabalho: true, em_atendimento: true, ordem: 1 },
+    { id: "P", sigla: "P", conta_como_trabalho: false, em_atendimento: false, ordem: 2 },
+    { id: "folga", sigla: "folga", conta_como_trabalho: false, em_atendimento: false, ordem: 3 },
+    { id: "ferias", sigla: "férias", conta_como_trabalho: false, em_atendimento: false, ordem: 4 },
+  ] as never[];
+  const HOR = new Map([
+    ["ru", { entrada: 6, saida: 15, pausa: 10 }],
+    ["t", { entrada: 6, saida: 15, pausa: 10 }],
+    ["a", { entrada: 9, saida: 18, pausa: 13 }],
+    ["k", { entrada: 13, saida: 22, pausa: 17 }],
+  ]);
+  it("a Ruby (6h) e o Kaio (13h) de folga ficam na posição dos seus horários; sem horário, no fim", () => {
+    const F = () => horasVazias().map(() => "folga");
+    const linhas = [
+      { employee_id: "k", nome: "Kaio", horas: F() },
+      { employee_id: "x", nome: "Xica", horas: F() }, // sem horário cadastrado
+      {
+        employee_id: "a",
+        nome: "Amanda",
+        horas: horasDoHorario({ entrada: 9, saida: 18, pausa: 13 }, "i", "P"),
+      },
+      {
+        employee_id: "t",
+        nome: "Thiago",
+        horas: horasDoHorario({ entrada: 6, saida: 15, pausa: 10 }, "i", "P"),
+      },
+      { employee_id: "ru", nome: "Ruby", horas: F() },
+    ];
+    expect(ordenarPeloHorario(linhas, new Set(["i"]), "P", HOR).map((l) => l.nome)).toEqual([
+      "Ruby",
+      "Thiago",
+      "Amanda",
+      "Kaio",
+      "Xica",
+    ]);
+  });
+  it("o botão: na segunda, a Ruby e o Kaio de folga, cada um na posição do seu horário", () => {
+    const r = atribuirFolgasEHorarios({
+      inicio: "2026-10-19",
+      dias: Array.from({ length: 7 }, () => []),
+      pessoas: [
+        { id: "a", nome: "Amanda" },
+        { id: "k", nome: "Kaio" },
+        { id: "ru", nome: "Ruby" },
+        { id: "t", nome: "Thiago" },
+      ],
+      folgas: new Map([
+        ["ru", [0]],
+        ["k", [0]],
+      ]),
+      horarios: HOR,
+      siglas: SIG,
+      emFerias: () => false,
+      protegidos: new Set(),
+    });
+    const segunda = r.dias[0]!;
+    expect(segunda.map((l) => l.nome)).toEqual(["Ruby", "Thiago", "Amanda", "Kaio"]);
+    expect(segunda[0]!.horas.every((h) => h === "folga")).toBe(true); // a Ruby, às 6h, com a folga
+    expect(segunda[3]!.horas.every((h) => h === "folga")).toBe(true); // o Kaio, às 13h, com a folga
+  });
+});
+
+describe("o horário do fim de semana", async () => {
+  const { atribuirFolgasEHorarios, horarioDoDia, horasDoHorario } = await import("../escala");
+  const SIG = [
+    { id: "i", sigla: "i", conta_como_trabalho: true, em_atendimento: true, ordem: 1 },
+    { id: "P", sigla: "P", conta_como_trabalho: false, em_atendimento: false, ordem: 2 },
+    { id: "folga", sigla: "folga", conta_como_trabalho: false, em_atendimento: false, ordem: 3 },
+  ] as never[];
+  // O Kaio entra às 13h na semana, e às 6h no sábado; a Amanda, às 9h todos os dias.
+  const kaio = {
+    entrada: 13,
+    saida: 22,
+    pausa: 17,
+    fimDeSemana: { dias: [5], entrada: 6, saida: 15, pausa: 10 },
+  };
+  it("o horário de cada dia", () => {
+    expect(horarioDoDia(kaio, 0)).toEqual({ entrada: 13, saida: 22, pausa: 17 }); // a segunda
+    expect(horarioDoDia(kaio, 5)).toEqual({ entrada: 6, saida: 15, pausa: 10 }); // o sábado
+    expect(horarioDoDia(kaio, 6)).toEqual({ entrada: 13, saida: 22, pausa: 17 }); // o domingo (não escolhido)
+  });
+  it("o botão usa o horário do dia, e a ordem do sábado segue o horário do sábado", () => {
+    const r = atribuirFolgasEHorarios({
+      inicio: "2026-10-19",
+      dias: Array.from({ length: 7 }, () => []),
+      pessoas: [
+        { id: "a", nome: "Amanda" },
+        { id: "k", nome: "Kaio" },
+      ],
+      folgas: new Map(),
+      horarios: new Map<string, HorarioDeTrabalho>([
+        ["a", { entrada: 9, saida: 18, pausa: 13 }],
+        ["k", kaio],
+      ]),
+      siglas: SIG,
+      emFerias: () => false,
+      protegidos: new Set(),
+    });
+    expect(r.dias[0]!.map((l) => l.nome)).toEqual(["Amanda", "Kaio"]); // a segunda: 9h, depois 13h
+    expect(r.dias[5]!.map((l) => l.nome)).toEqual(["Kaio", "Amanda"]); // o sábado: o Kaio às 6h, primeiro
+    expect(r.dias[5]![0]!.horas).toEqual(
+      horasDoHorario({ entrada: 6, saida: 15, pausa: 10 }, "i", "P"),
+    );
+    expect(r.dias[1]!.find((l) => l.employee_id === "k")!.horas).toEqual(
+      horasDoHorario({ entrada: 13, saida: 22, pausa: 17 }, "i", "P"),
+    );
   });
 });

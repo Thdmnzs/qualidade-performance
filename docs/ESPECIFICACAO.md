@@ -315,15 +315,18 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
   semana). O pedido de troca usa as folgas fixas nas semanas que ainda não foram publicadas.
 - **O horário de trabalho** de cada pessoa (a entrada, a saída e a hora da pausa, o mesmo para todos os dias
   de trabalho), preenchido pelo ADM na ficha, em Colaboradores. Até 10 horas, das 6h às 22h, e a pausa nem
-  na primeira nem na última hora. Fica à parte dos dados pessoais (não é um dado sensível), e só o ADM o lê.
+  na primeira nem na última hora. Opcionalmente, um **horário diferente aos fins de semana** (no sábado, no
+  domingo ou nos dois), com as mesmas regras. Fica à parte dos dados pessoais (não é um dado sensível), e só
+  o ADM o lê.
 - **O botão "Atribuir folgas e horários"**, na montagem, preenche os dias **vazios** da semana, só nas
   semanas **não publicadas**: nos dias da folga fixa, a folga; nos outros, o horário de trabalho (o
   atendimento, com a pausa na hora dela). Depois, o ADM só ajusta as tarefas. Num dia da folga fixa em que a
   pessoa já tem horário, o horário **fica**, e o ADM vê o conflito (com o "Pôr a folga" e o "Manter o
   horário"); quem não tem horário cadastrado fica com os dias de trabalho vazios, com um aviso. O que já foi
   montado, as férias do calendário e os dias de uma troca aplicada não são tocados. No fim, cada dia fica
-  **em ordem de horário**: primeiro quem entra mais cedo (na mesma entrada, quem sai primeiro), e quem não
-  trabalha no dia por último.
+  **em ordem de horário**: primeiro quem entra mais cedo (na mesma entrada, quem sai primeiro). Quem não
+  trabalha no dia (a folga num dia de semana, as férias, a ausência) fica na posição do **seu** horário de
+  trabalho, com a atividade do dia; só quem não tem horário cadastrado vai para o fim.
 
 ### 10.4 As trocas de escala
 
@@ -450,3 +453,4 @@ contagens do limite de uso.
 | 13/10/2026 | O botão "Atribuir folgas fixas", na montagem da semana. |
 | 13/10/2026 | O horário de trabalho de cada pessoa, e o botão passa a "Atribuir folgas e horários". |
 | 14/10/2026 | Nos fins de semana e nos feriados, quem folga fica fora da escala. |
+| 14/10/2026 | O horário diferente aos fins de semana (o botão e a ordem usam o horário de cada dia). |
