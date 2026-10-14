@@ -248,3 +248,18 @@ describe("as mudanças rápidas", () => {
     expect(jornada(H())).toBeNull();
   });
 });
+
+describe("quem entra na escala", () => {
+  it("toda pessoa ativa, inclusive a supervisão (que só fica fora das trocas); os inativos, não", async () => {
+    const { pessoasDaEscala } = await import("../escala");
+    // Os cadastros vêm com o perfil: a supervisão (o ADM) entra mesmo assim.
+    const cadastros = [
+      { id: "1", nome: "Vitor de Almeida", status: "ativo", perfil: "adm" },
+      { id: "2", nome: "Ana Lima", status: "ativo", perfil: "colaborador" },
+      { id: "3", nome: "Carol Confort", status: "ativo", perfil: "adm" },
+      { id: "4", nome: "Ivo Inativo", status: "inativo", perfil: "colaborador" },
+    ];
+    const r = pessoasDaEscala(cadastros);
+    expect(r.map((p) => p.nome)).toEqual(["Ana Lima", "Carol Confort", "Vitor de Almeida"]);
+  });
+});

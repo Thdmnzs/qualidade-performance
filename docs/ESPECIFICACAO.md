@@ -48,8 +48,8 @@ quinzena, a gamificação, a escala de trabalho, as trocas de escala e as féria
 
 - **O avaliador também é colaborador:** a mesma conta dá acesso às duas áreas. Os avaliadores são
   avaliados só pelo ADM.
-- **O ADM não é colaborador:** usa só a área de gestão. Por isso, **a supervisão (o perfil ADM) não entra
-  nas trocas de escala** (nem pede, nem aparece na lista de quem pode trocar).
+- **O ADM não é colaborador:** usa só a área de gestão. Ele **pode entrar na escala** (a supervisão também
+  cobre turnos), mas **não entra nas trocas de escala** (nem pede, nem aparece na lista de quem pode trocar).
 - **Quem pode atuar sobre quem** é decidido pelo banco (a função `pode_atuar_sobre`), e vale para a
   avaliação, o sorteio de contatos e a resposta das contestações.
 
@@ -293,6 +293,8 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
   para o time. Cada mudança numa semana publicada aparece na hora e vai para o Histórico.
 - **As mudanças rápidas:** selecionar várias horas de uma vez (arrastando ou com o Shift), e, para cada
   pessoa, "ficar off a partir de", "substituir por" e "limpar o dia".
+- **Quem entra na escala:** toda pessoa ativa, **inclusive a supervisão** (o ADM). Ficar fora das trocas
+  não impede ninguém de ser escalado.
 - **O time vê** a semana publicada (a grade do time e o "Meu dia").
 
 ### 10.2 As férias e os feriados
@@ -429,3 +431,4 @@ contagens do limite de uso.
 |---|---|
 | 30/09/2026 | O documento original de requisitos (o "prompt mestre"), hoje em `docs/historico/`. |
 | 13/10/2026 | Reescrito para descrever o sistema como ele é hoje: os perfis, as quinzenas, as avaliações, as contestações, os indicadores, o ranking, a gamificação, o perfil, a escala, as trocas, as notificações, as integrações e a segurança. |
+| 13/10/2026 | A supervisão (o ADM) passa a entrar na escala e nas férias; continua fora das trocas. |

@@ -1,3 +1,4 @@
+import { pessoasDaEscala } from "@/lib/escala";
 import { createFileRoute } from "@tanstack/react-router";
 import { FolgasFixas } from "@/components/escala/folgas-fixas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,14 +92,7 @@ function MontagemDoAdm() {
     queryKey: ["colaboradores"],
     queryFn: fetchColaboradores,
   });
-  const pessoas = useMemo(
-    () =>
-      cadastros
-        .filter((c) => c.status === "ativo" && c.perfil !== "adm")
-        .map((c) => ({ id: c.id, nome: c.nome }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
-    [cadastros],
-  );
+  const pessoas = useMemo(() => pessoasDaEscala(cadastros), [cadastros]);
   return (
     <div className="space-y-5">
       <PageHeader

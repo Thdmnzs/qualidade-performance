@@ -316,3 +316,15 @@ export function jornada(horas: Horas): { de: number; ate: number } | null {
   if (de < 0) return null;
   return { de, ate: horas.length - 1 - [...horas].reverse().findIndex(Boolean) };
 }
+
+/**
+ * Quem entra na escala (a montagem e as férias): toda pessoa ativa, INCLUSIVE a supervisão (o ADM),
+ * que também cobre turnos (13/10/2026). Quem fica fora das TROCAS é decidido no banco, pelo
+ * perfil de ADM, e não aqui. Em ordem alfabética.
+ */
+export function pessoasDaEscala(cadastros: { id: string; nome: string; status: string }[]) {
+  return cadastros
+    .filter((c) => c.status === "ativo")
+    .map((c) => ({ id: c.id, nome: c.nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
