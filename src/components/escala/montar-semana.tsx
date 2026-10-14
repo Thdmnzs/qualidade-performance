@@ -1,6 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { aplicarTrocasDaSemana, lerTrocasParaAprovar } from "@/lib/trocas-api";
-import { ChevronDown, ChevronUp, Copy, Eye, MoreHorizontal, Trash2, X } from "lucide-react";
+import { aplicarTrocasDaSemana, lerFolgasFixas, lerTrocasParaAprovar } from "@/lib/trocas-api";
+import {
+  CalendarCheck,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Eye,
+  MoreHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +25,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   adicionarAoDia,
+  atribuirFolgasEHorarios,
   avisoDaPessoa,
+  type ConflitoDeFolga,
   copiarDia,
   corDoTexto,
   dataCurta,
@@ -46,6 +57,8 @@ import {
 } from "@/lib/escala";
 import {
   criarSigla,
+  lerFerias,
+  lerHorariosDeTrabalho,
   lerSemana,
   lerSemanas,
   lerSiglas,
@@ -151,6 +164,88 @@ export function MontarSemana({
     (t) => t.inicio === inicio && t.situacao === "aprovada" && !t.aplicada,
   );
   const [aplicando, setAplicando] = useState(false);
+  // ---------- Atribuir as folgas fixas (13/10/2026): só nas semanas não publicadas ----------
+  const { data: folgasFixas = [] } = useQuery({
+    queryKey: ["folgas-fixas"],
+    queryFn: lerFolgasFixas,
+  });
+  const anosDaSemana = [...new Set([inicio.slice(0, 4), somarDias(inicio, 6).slice(0, 4)])].map(
+    Number,
+  );
+  const { data: feriasDoAno } = useQuery({
+    queryKey: ["escala-ferias", anosDaSemana[0]],
+    queryFn: () => lerFerias(anosDaSemana[0]!),
+  });
+  const { data: feriasDoOutroAno } = useQuery({
+    queryKey: ["escala-ferias", anosDaSemana[1] ?? anosDaSemana[0]],
+    queryFn: () => lerFerias(anosDaSemana[1] ?? anosDaSemana[0]!),
+    enabled: anosDaSemana.length > 1,
+  });
+  const { data: horariosDeTrabalho = new Map() } = useQuery({
+    queryKey: ["horarios-de-trabalho"],
+    queryFn: lerHorariosDeTrabalho,
+  });
+  const [conflitosDeFolga, setConflitosDeFolga] = useState<ConflitoDeFolga[]>([]);
+  const [semHorario, setSemHorario] = useState<{ employee_id: string; nome: string }[]>([]);
+  useEffect(() => {
+    setConflitosDeFolga([]);
+    setSemHorario([]);
+  }, [inicio]);
+  async function atribuirFolgas() {
+    if (pendentes.current.size > 0 || estado.tipo === "salvando") {
+      toast.info("Aguarde um instante: a montagem ainda está salvando.");
+      return;
+    }
+    // Os dias de uma troca já aplicada nesta semana não são tocados (a troca tem prioridade).
+    const protegidos = new Set(
+      trocasDoAdm
+        .filter((t) => t.inicio === inicio && t.situacao === "aprovada" && t.aplicada)
+        .flatMap((t) => t.dias.flatMap((d) => [`${t.de.id}:${d}`, `${t.para.id}:${d}`])),
+    );
+    const r = atribuirFolgasEHorarios({
+      inicio,
+      dias,
+      pessoas,
+      folgas: new Map(folgasFixas.map((f) => [f.employee_id, f.dias])),
+      horarios: horariosDeTrabalho,
+      siglas: [...siglas.values()],
+      emFerias: (id: string, data: string) =>
+        [feriasDoAno, feriasDoOutroAno].some((f) =>
+          f?.porDia.get(data)?.some((x) => x.employee_id === id),
+        ),
+      protegidos,
+    });
+    setConflitosDeFolga(r.conflitos);
+    setSemHorario(r.semHorario);
+    if (r.mudados.length === 0) {
+      if (r.conflitos.length === 0 && r.semHorario.length === 0)
+        toast.info("As folgas e os horários já estão nesta semana.");
+      return;
+    }
+    const partes = [
+      r.horarios &&
+        `${r.horarios} ${r.horarios === 1 ? "horário atribuído" : "horários atribuídos"}`,
+      r.folgas && `${r.folgas} ${r.folgas === 1 ? "folga atribuída" : "folgas atribuídas"}`,
+    ].filter(Boolean);
+    await gravarVariosDias(
+      Object.fromEntries(r.mudados.map((d: number) => [d, r.dias[d]!])),
+      `${partes.join(" e ")}.`,
+    );
+  }
+  function porAFolga(c: ConflitoDeFolga) {
+    const folga = [...siglas.values()].find((s) => s.sigla.toLowerCase() === "folga")?.id;
+    if (!folga) return;
+    mudarDia(
+      c.dia,
+      (dias[c.dia] ?? []).map((l) =>
+        l.employee_id === c.employee_id ? { ...l, horas: l.horas.map(() => folga) } : l,
+      ),
+    );
+    setConflitosDeFolga((x) =>
+      x.filter((y) => !(y.employee_id === c.employee_id && y.dia === c.dia)),
+    );
+  }
+
   async function aplicarTrocas() {
     // Antes, as gravações da própria montagem precisam terminar (senão, uma delas gravaria por cima da troca).
     if (pendentes.current.size > 0 || estado.tipo === "salvando") {
@@ -356,6 +451,18 @@ export function MontarSemana({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={atribuirFolgas}
+            disabled={!pronta || semana?.situacao === "publicada"}
+            title={
+              semana?.situacao === "publicada"
+                ? "A semana publicada não recebe as folgas fixas sozinha."
+                : "Põe a folga fixa e o horário de trabalho de cada pessoa nos dias vazios desta semana."
+            }
+          >
+            <CalendarCheck className="size-4" /> Atribuir folgas e horários
+          </Button>
           <Button variant="outline" onClick={copiarSemanaAnterior} disabled={!pronta}>
             <Copy className="size-4" /> Copiar a semana anterior
           </Button>
@@ -376,6 +483,80 @@ export function MontarSemana({
         </div>
       </div>
 
+      {semHorario.length > 0 && (
+        <div
+          className="rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 text-sm"
+          role="status"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p>
+              ⚠️ <b>{semHorario.map((p) => p.nome).join(", ")}</b>{" "}
+              {semHorario.length === 1 ? "ainda não tem" : "ainda não têm"} horário de trabalho: os
+              dias de trabalho ficaram vazios. Preencha na ficha, em Colaboradores (🔒 Dados
+              pessoais).
+            </p>
+            <button
+              type="button"
+              className="text-muted-foreground"
+              aria-label="Fechar o aviso"
+              onClick={() => setSemHorario([])}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      {conflitosDeFolga.length > 0 && (
+        <div
+          className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
+          role="alert"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-bold text-destructive">
+              ⚠️{" "}
+              {conflitosDeFolga.length === 1
+                ? "1 conflito"
+                : `${conflitosDeFolga.length} conflitos`}{" "}
+              com as folgas fixas
+            </p>
+            <button
+              type="button"
+              className="text-muted-foreground"
+              aria-label="Fechar o aviso"
+              onClick={() => setConflitosDeFolga([])}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          {conflitosDeFolga.map((c) => (
+            <div
+              key={`${c.employee_id}-${c.dia}`}
+              className="mt-2 flex flex-wrap items-center justify-between gap-2"
+            >
+              <span>
+                <b>{c.nome}</b> tem horário na {DIAS_POR_EXTENSO[c.dia]},{" "}
+                {dataCurta(dataDoDia(inicio, c.dia))}, que é um dia da folga fixa.
+              </span>
+              <span className="flex gap-2">
+                <Button size="sm" onClick={() => porAFolga(c)}>
+                  Pôr a folga
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setConflitosDeFolga((x) =>
+                      x.filter((y) => !(y.employee_id === c.employee_id && y.dia === c.dia)),
+                    )
+                  }
+                >
+                  Manter o horário
+                </Button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Dia">
         {DIAS_DA_SEMANA.map((d, i) => {
           const dt = dataDoDia(inicio, i);

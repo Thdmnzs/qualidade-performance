@@ -31,6 +31,12 @@ const api = {
   lerSituacaoDosDados: vi.fn(async () => new Map()),
 };
 vi.mock("@/lib/dados-pessoais-api", () => api);
+// O horário de trabalho (13/10/2026): ainda não preenchido.
+const escalaApi = {
+  lerHorariosDeTrabalho: vi.fn(async () => new Map()),
+  definirHorarioDeTrabalho: vi.fn(async (..._a: unknown[]) => {}),
+};
+vi.mock("@/lib/escala-api", () => escalaApi);
 const { EditarPerfil } = await import("../editar-perfil");
 const { FichaDoAdm } = await import("../ficha-do-adm");
 const abrir = (el: React.ReactElement) =>
@@ -97,5 +103,29 @@ describe("a ficha do ADM", () => {
     await waitFor(() => expect(api.corrigirDadosDe).toHaveBeenCalled());
     expect(api.corrigirDadosDe.mock.calls[0]![0]).toBe("a");
     expect((api.corrigirDadosDe.mock.calls[0]![1] as { cep: string }).cep).toBe("01310-100");
+  });
+});
+
+describe("o horário de trabalho, na ficha do ADM", () => {
+  it("preencher: confere a pausa e salva o horário", async () => {
+    abrir(<FichaDoAdm pessoa={{ id: "a", nome: "Ana Colab" }} aoFechar={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Preencher o horário/ }));
+    const [entrada, saida, pausa] = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    expect([entrada!.value, saida!.value, pausa!.value]).toEqual(["8", "17", "12"]); // a sugestão inicial
+    fireEvent.change(pausa!, { target: { value: "16" } }); // a pausa na última hora
+    expect(screen.getByText(/A pausa precisa ficar dentro do horário/)).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Salvar o horário" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.change(pausa!, { target: { value: "13" } });
+    expect(screen.getByText("9 horas na escala, com 1 hora de pausa.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar o horário" }));
+    await waitFor(() =>
+      expect(escalaApi.definirHorarioDeTrabalho).toHaveBeenCalledWith("a", {
+        entrada: 8,
+        saida: 17,
+        pausa: 13,
+      }),
+    );
   });
 });

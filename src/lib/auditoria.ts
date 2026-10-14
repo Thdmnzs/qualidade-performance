@@ -50,6 +50,7 @@ export const CATEGORIAS: Record<string, string[]> = {
     "escala_troca_recusar",
     "escala_troca_aplicar",
     "escala_folga_fixa",
+    "escala_horario_de_trabalho",
   ],
 };
 
@@ -235,6 +236,16 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
           ? `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`
           : (partes[0] ?? "os dados pessoais");
       return [q("corrigiu "), q(lista), q(" de "), b(alvo)];
+    }
+    case "escala_horario_de_trabalho": {
+      const e = n["entrada"],
+        s = n["saida"],
+        p = n["pausa"];
+      return [
+        q("definiu o horário de trabalho de "),
+        b(alvo),
+        q(e == null ? ": sem horário" : `: das ${e}h às ${s}h, com a pausa às ${p}h`),
+      ];
     }
     case "escala_folga_fixa": {
       const dias = Array.isArray(n["dias"]) ? (n["dias"] as number[]) : [];

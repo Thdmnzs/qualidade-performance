@@ -19,6 +19,7 @@ const SIGLAS = [
   sig("s-i", "i", "Intercom (atendimento)", { em_atendimento: true }),
   sig("s-p", "P", "Pausa", { conta_como_trabalho: false, cor: "#D9D9D9" }),
   sig("s-off", "off", "Ausente", { conta_como_trabalho: false, cor: "#E06666" }),
+  sig("s-folga", "folga", "Folga", { conta_como_trabalho: false, cor: "#FF9900", faixa: true }),
 ];
 const H = (...xs: (string | null)[]) => [...xs, ...Array(16 - xs.length).fill(null)];
 let semana: Record<string, unknown>;
@@ -53,8 +54,21 @@ const api = {
     },
   ]),
   decidirPedido: vi.fn(async (..._a: unknown[]) => {}),
+  // O horário de trabalho (13/10/2026): só a Ruby tem, das 8h às 17h, com a pausa às 12h.
+  lerHorariosDeTrabalho: vi.fn(async () => new Map([["r", { entrada: 8, saida: 17, pausa: 12 }]])),
+  definirHorarioDeTrabalho: vi.fn(async (..._a: unknown[]) => {}),
 };
 vi.mock("@/lib/escala-api", () => api);
+// As folgas fixas (13/10/2026): a Ruby folga na quarta; o Thiago, na segunda.
+const trocasApi = {
+  lerFolgasFixas: vi.fn(async () => [
+    { employee_id: "r", nome: "Ruby Lima", dias: [2], supervisao: false },
+    { employee_id: "t", nome: "Thiago Dantas", dias: [0], supervisao: false },
+  ]),
+  lerTrocasParaAprovar: vi.fn(async () => []),
+  aplicarTrocasDaSemana: vi.fn(async () => 0),
+};
+vi.mock("@/lib/trocas-api", () => trocasApi);
 const { MontarSemana } = await import("../montar-semana");
 const { MontarFerias } = await import("../montar-ferias");
 const { SemanaDoTime } = await import("../semana-do-time");
@@ -455,5 +469,77 @@ describe("as mudanças rápidas (a semana publicada)", () => {
     await waitFor(() => expect(api.salvarDia).toHaveBeenCalled(), { timeout: 2000 });
     expect(gravadas().map((l) => l.employee_id)).toEqual(["r"]);
     expect(gravadas()[0]!.horas[0]).toBe("s-i");
+  });
+});
+
+describe("atribuir as folgas e os horários", () => {
+  it("a folga entra no dia vazio; o dia com horário vira um conflito, com o aviso", async () => {
+    semana = {
+      inicio: "2026-10-12",
+      situacao: "rascunho",
+      publicada_em: null,
+      eu: null,
+      feriados: [],
+      dias: [
+        [{ employee_id: "t", nome: "Thiago Dantas", horas: H("s-i", "s-i", "s-p") }],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+      ],
+    };
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    const botao = await screen.findByRole("button", { name: /Atribuir folgas e horários/ });
+    await waitFor(() => expect((botao as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(botao);
+    await waitFor(() => expect(api.salvarDias).toHaveBeenCalled());
+    const [ini, novos] = api.salvarDias.mock.calls.at(-1) as [
+      string,
+      Record<string, { employee_id: string; horas: (string | null)[] }[]>,
+    ];
+    expect(ini).toBe("2026-10-12");
+    // a quarta da Ruby (a folga fixa) e os outros dias dela (o horário); a segunda do Thiago tem horário à mão
+    expect(Object.keys(novos)).toEqual(["0", "1", "2", "3", "4", "5", "6"]);
+    expect(
+      novos["2"]!.find((l) => l.employee_id === "r")!.horas.every((h) => h === "s-folga"),
+    ).toBe(true);
+    const ruby = novos["1"]!.find((l) => l.employee_id === "r")!.horas;
+    expect(ruby.slice(2, 11)).toEqual([
+      "s-i",
+      "s-i",
+      "s-i",
+      "s-i",
+      "s-p",
+      "s-i",
+      "s-i",
+      "s-i",
+      "s-i",
+    ]); // das 8h às 17h
+    expect(novos["1"]!.some((l) => l.employee_id === "t")).toBe(false); // o Thiago não tem horário: o dia fica vazio
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "Thiago Dantas ainda não tem horário",
+    );
+    const aviso = await screen.findByRole("alert");
+    expect(aviso.textContent).toContain("1 conflito");
+    expect(aviso.textContent).toContain("Thiago Dantas tem horário na segunda");
+    fireEvent.click(within(aviso).getByRole("button", { name: "Manter o horário" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+  it("na semana publicada, o botão fica desligado", async () => {
+    api.lerSemanas.mockResolvedValueOnce([{ inicio: "2026-10-12", situacao: "publicada" }]);
+    semana = {
+      inicio: "2026-10-12",
+      situacao: "publicada",
+      publicada_em: "2026-10-09T12:00:00Z",
+      eu: null,
+      feriados: [],
+      dias: [[], [], [], [], [], [], []],
+    };
+    abrir(<MontarSemana pessoas={PESSOAS} />);
+    const botao = await screen.findByRole("button", { name: /Atribuir folgas e horários/ });
+    await waitFor(() => expect(screen.getByText(/Publicada: o time já vê/)).toBeTruthy());
+    expect((botao as HTMLButtonElement).disabled).toBe(true);
   });
 });

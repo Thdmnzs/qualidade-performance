@@ -263,3 +263,104 @@ describe("quem entra na escala", () => {
     expect(r.map((p) => p.nome)).toEqual(["Ana Lima", "Carol Confort", "Vitor de Almeida"]);
   });
 });
+
+describe("atribuir as folgas e os horários", async () => {
+  const { atribuirFolgasEHorarios, horasVazias, horasDoHorario, problemaDoHorario } =
+    await import("../escala");
+  const SIG = [
+    { id: "i", sigla: "i", conta_como_trabalho: true, em_atendimento: true, ordem: 1 },
+    { id: "P", sigla: "P", conta_como_trabalho: false, em_atendimento: false, ordem: 2 },
+    { id: "cxtech", sigla: "cxtech", conta_como_trabalho: true, em_atendimento: false, ordem: 3 },
+    { id: "folga", sigla: "folga", conta_como_trabalho: false, em_atendimento: false, ordem: 4 },
+    { id: "ferias", sigla: "férias", conta_como_trabalho: false, em_atendimento: false, ordem: 5 },
+  ] as never[];
+  const vazia = () =>
+    Array.from(
+      { length: 7 },
+      () => [] as { employee_id: string; nome: string; horas: (string | null)[] }[],
+    );
+  const pessoas = [
+    { id: "r", nome: "Rachel" },
+    { id: "k", nome: "Kaio" },
+    { id: "t", nome: "Thiago" },
+  ];
+  const base = (dias = vazia()) => ({
+    inicio: "2026-10-19",
+    dias,
+    pessoas,
+    siglas: SIG,
+    folgas: new Map([
+      ["r", [2, 6]],
+      ["k", [0, 6]],
+      ["t", [2, 6]],
+    ]),
+    horarios: new Map([
+      ["r", { entrada: 8, saida: 17, pausa: 12 }],
+      ["t", { entrada: 6, saida: 15, pausa: 10 }],
+    ]),
+    emFerias: () => false,
+    protegidos: new Set<string>(),
+  });
+  const linha = (
+    r: { dias: { employee_id: string; horas: (string | null)[] }[][] },
+    d: number,
+    id: string,
+  ) => r.dias[d]!.find((l) => l.employee_id === id)?.horas;
+  it("o horário: o atendimento, com a pausa na hora dela", () => {
+    const h = horasDoHorario({ entrada: 8, saida: 17, pausa: 12 }, "i", "P");
+    expect(h.slice(0, 2)).toEqual([null, null]); // 6h e 7h
+    expect(h.slice(2, 11)).toEqual(["i", "i", "i", "i", "P", "i", "i", "i", "i"]); // das 8h às 17h, a pausa às 12h
+    expect(h.slice(11)).toEqual([null, null, null, null, null]);
+  });
+  it("as regras do horário (as mesmas do banco)", () => {
+    expect(problemaDoHorario({ entrada: 8, saida: 17, pausa: 12 })).toBeNull();
+    expect(problemaDoHorario({ entrada: 15, saida: 9, pausa: 12 })).toContain("depois da entrada");
+    expect(problemaDoHorario({ entrada: 6, saida: 17, pausa: 10 })).toContain("até 10 horas");
+    expect(problemaDoHorario({ entrada: 8, saida: 17, pausa: 16 })).toContain("A pausa");
+    expect(problemaDoHorario({ entrada: 14, saida: 23, pausa: 18 })).toContain("das 6h às 22h");
+  });
+  it("numa semana vazia: as folgas nos dias de folga, e os horários nos outros", () => {
+    const r = atribuirFolgasEHorarios(base());
+    expect(linha(r, 2, "r")!.every((h) => h === "folga")).toBe(true);
+    expect(linha(r, 0, "r")).toEqual(
+      horasDoHorario({ entrada: 8, saida: 17, pausa: 12 }, "i", "P"),
+    );
+    expect(r.folgas).toBe(6);
+    expect(r.horarios).toBe(10); // a Rachel e o Thiago: 5 dias de trabalho cada
+    expect(r.semHorario).toEqual([{ employee_id: "k", nome: "Kaio" }]); // o Kaio não tem horário
+    expect(linha(r, 1, "k")).toBeUndefined(); // e os dias de trabalho dele ficam vazios
+  });
+  it("o que já foi montado fica; e o dia de folga com horário vira um conflito", () => {
+    const dias = vazia();
+    const montado = horasVazias().map((_, k) => (k < 2 ? "cxtech" : null));
+    dias[0]!.push({ employee_id: "t", nome: "Thiago", horas: montado }); // a segunda do Thiago, à mão
+    dias[2]!.push({
+      employee_id: "r",
+      nome: "Rachel",
+      horas: horasDoHorario({ entrada: 8, saida: 17, pausa: 12 }, "i", "P"),
+    });
+    const r = atribuirFolgasEHorarios(base(dias));
+    expect(linha(r, 0, "t")).toEqual(montado);
+    expect(r.conflitos).toEqual([{ employee_id: "r", nome: "Rachel", dia: 2 }]);
+  });
+  it("as férias e a troca aplicada têm prioridade; a linha sem horas é preenchida", () => {
+    const dias = vazia();
+    dias[1]!.push({ employee_id: "t", nome: "Thiago", horas: horasVazias() });
+    const r = atribuirFolgasEHorarios({
+      ...base(dias),
+      emFerias: (id, data) => id === "r" && data === "2026-10-20",
+      protegidos: new Set(["t:2"]),
+    });
+    expect(linha(r, 1, "r")).toBeUndefined(); // a terça de férias da Rachel
+    expect(linha(r, 2, "t")).toBeUndefined(); // a quarta da troca do Thiago
+    expect(linha(r, 1, "t")).toEqual(
+      horasDoHorario({ entrada: 6, saida: 15, pausa: 10 }, "i", "P"),
+    );
+  });
+  it("de novo, na mesma semana: nada a fazer", () => {
+    const uma = atribuirFolgasEHorarios(base());
+    const duas = atribuirFolgasEHorarios(base(uma.dias));
+    expect(duas.mudados).toEqual([]);
+    expect(duas.folgas + duas.horarios).toBe(0);
+  });
+});

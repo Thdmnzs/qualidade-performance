@@ -328,3 +328,112 @@ export function pessoasDaEscala(cadastros: { id: string; nome: string; status: s
     .map((c) => ({ id: c.id, nome: c.nome }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
+
+// ---------- O horário de trabalho (13/10/2026) ----------
+export type HorarioDeTrabalho = { entrada: number; saida: number; pausa: number };
+
+/** O que há de errado no horário (as mesmas regras do banco), ou null. */
+export function problemaDoHorario(h: HorarioDeTrabalho): string | null {
+  if (h.entrada < HORA_INICIAL || h.saida > HORA_INICIAL + QUANTAS_HORAS)
+    return `O horário precisa caber na escala, das ${HORA_INICIAL}h às ${HORA_INICIAL + QUANTAS_HORAS}h.`;
+  if (h.saida <= h.entrada) return "A saída precisa ser depois da entrada.";
+  if (h.saida - h.entrada > 10) return "A jornada pode ter até 10 horas.";
+  if (h.pausa <= h.entrada || h.pausa >= h.saida - 1)
+    return "A pausa precisa ficar dentro do horário, nem na primeira nem na última hora.";
+  return null;
+}
+export const textoDoHorario = (h: HorarioDeTrabalho) =>
+  `${h.entrada}h às ${h.saida}h · pausa às ${h.pausa}h`;
+
+/** As horas de um dia de trabalho: o atendimento, com a pausa na hora dela. */
+export function horasDoHorario(h: HorarioDeTrabalho, atendimento: string, pausa: string): Horas {
+  return horasVazias().map((_, k) => {
+    const hora = HORA_INICIAL + k;
+    return hora >= h.entrada && hora < h.saida ? (hora === h.pausa ? pausa : atendimento) : null;
+  });
+}
+
+// ---------- Atribuir as folgas fixas e os horários (13/10/2026) ----------
+export type ConflitoDeFolga = { employee_id: string; nome: string; dia: number };
+export type FolgasEHorariosAtribuidos = {
+  dias: DiasDaSemana;
+  mudados: number[];
+  folgas: number;
+  horarios: number;
+  conflitos: ConflitoDeFolga[];
+  semHorario: { employee_id: string; nome: string }[];
+};
+
+/**
+ * O botão "Atribuir folgas e horários": preenche os dias VAZIOS da semana.
+ *
+ *   * Num dia da folga fixa, vazio: entra a folga, o dia inteiro.
+ *   * Num dia de trabalho, vazio: entra o horário de trabalho da pessoa (o atendimento e a pausa).
+ *     Sem um horário cadastrado, o dia fica vazio, e a pessoa vai para a lista "sem horário".
+ *   * Um dia que já tem algo (montado à mão, uma folga extra, as férias, a ausência) fica como está.
+ *     Se for um dia da folga fixa com horário, vira um conflito, para o ADM decidir.
+ *   * As férias do calendário e os dias de uma troca aplicada têm prioridade: não são tocados.
+ */
+export function atribuirFolgasEHorarios(p: {
+  inicio: string;
+  dias: DiasDaSemana;
+  pessoas: { id: string; nome: string }[];
+  folgas: Map<string, number[]>;
+  horarios: Map<string, HorarioDeTrabalho>;
+  siglas: Sigla[];
+  emFerias: (employeeId: string, data: string) => boolean;
+  protegidos: Set<string>; // "employee_id:dia" (os dias de uma troca aplicada)
+}): FolgasEHorariosAtribuidos {
+  const achar = (nome: string) => p.siglas.find((s) => s.sigla.toLowerCase() === nome)?.id;
+  const folga = achar("folga");
+  const pausa = achar("p");
+  const atendimento = [...p.siglas]
+    .sort((a, b) => a.ordem - b.ordem)
+    .find((s) => s.em_atendimento)?.id;
+  const trabalho = new Set(p.siglas.filter((s) => s.conta_como_trabalho).map((s) => s.id));
+  const dias = p.dias.map((linhas) => linhas.map((l) => ({ ...l, horas: [...l.horas] })));
+  const mudados = new Set<number>();
+  const conflitos: ConflitoDeFolga[] = [];
+  const semHorario = new Map<string, string>();
+  let folgas = 0;
+  let horarios = 0;
+  for (const pessoa of p.pessoas) {
+    const diasDeFolga = p.folgas.get(pessoa.id) ?? [];
+    const horario = p.horarios.get(pessoa.id);
+    for (let d = 0; d < 7; d++) {
+      if (p.emFerias(pessoa.id, dataDoDia(p.inicio, d)) || p.protegidos.has(`${pessoa.id}:${d}`))
+        continue;
+      const linhas = dias[d]!;
+      const linha = linhas.find((l) => l.employee_id === pessoa.id);
+      const vazio = !linha || linha.horas.every((h) => h === null);
+      const ehFolga = diasDeFolga.includes(d);
+      if (!vazio) {
+        if (ehFolga && linha!.horas.some((h) => h !== null && (trabalho.has(h) || h === pausa)))
+          conflitos.push({ employee_id: pessoa.id, nome: pessoa.nome, dia: d });
+        continue; // já tem algo: fica como está
+      }
+      let novas: Horas | null = null;
+      if (ehFolga) {
+        if (folga) novas = horasVazias().map(() => folga);
+      } else if (horario && atendimento && pausa) {
+        novas = horasDoHorario(horario, atendimento, pausa);
+      } else if (!horario) {
+        semHorario.set(pessoa.id, pessoa.nome);
+      }
+      if (!novas) continue;
+      if (linha) linha.horas = novas;
+      else linhas.push({ employee_id: pessoa.id, nome: pessoa.nome, horas: novas });
+      if (ehFolga) folgas++;
+      else horarios++;
+      mudados.add(d);
+    }
+  }
+  return {
+    dias,
+    mudados: [...mudados].sort((a, b) => a - b),
+    folgas,
+    horarios,
+    conflitos,
+    semHorario: [...semHorario].map(([employee_id, nome]) => ({ employee_id, nome })),
+  };
+}

@@ -20,6 +20,13 @@ import {
   type Ficha,
 } from "@/lib/dados-pessoais";
 import { corrigirDadosDe, lerDadosDe } from "@/lib/dados-pessoais-api";
+import {
+  HORA_INICIAL,
+  problemaDoHorario,
+  QUANTAS_HORAS,
+  type HorarioDeTrabalho,
+} from "@/lib/escala";
+import { definirHorarioDeTrabalho, lerHorariosDeTrabalho } from "@/lib/escala-api";
 
 const Rotulo = ({ children }: { children: ReactNode }) => (
   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -131,6 +138,7 @@ export function FichaDoAdm({
                 valor={f.aniversario_dia ? (f.aniversario_visivel ? "sim" : "não") : null}
               />
             </div>
+            <SecaoDoHorario pessoa={pessoa!} />
             <div>
               <Rotulo>🏠 Endereço</Rotulo>
               <Linha rotulo="CEP" valor={f.cep ? mascaraDoCep(f.cep) : null} />
@@ -183,5 +191,122 @@ export function FichaDoAdm({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * O horário de trabalho (13/10/2026): a entrada, a saída e a pausa, para todos os dias de trabalho.
+ * Fica à parte dos dados pessoais (não é um dado sensível), e é usado pela montagem da escala
+ * ("Atribuir folgas e horários"). Salvo na hora, com o Histórico.
+ */
+function SecaoDoHorario({ pessoa }: { pessoa: { id: string; nome: string } }) {
+  const qc = useQueryClient();
+  const { data: horarios } = useQuery({
+    queryKey: ["horarios-de-trabalho"],
+    queryFn: lerHorariosDeTrabalho,
+  });
+  const atual = horarios?.get(pessoa.id) ?? null;
+  const [editando, setEditando] = useState<HorarioDeTrabalho | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => setEditando(null), [pessoa.id]);
+  const fim = HORA_INICIAL + QUANTAS_HORAS;
+  const opcoes = (de: number, ate: number) =>
+    Array.from({ length: ate - de + 1 }, (_, i) => de + i);
+  const problema = editando ? problemaDoHorario(editando) : null;
+  async function salvar(h: HorarioDeTrabalho | null) {
+    setSalvando(true);
+    try {
+      await definirHorarioDeTrabalho(pessoa.id, h);
+      toast.success(
+        h
+          ? `${pessoa.nome.split(" ")[0]}: das ${h.entrada}h às ${h.saida}h, com a pausa às ${h.pausa}h.`
+          : "Horário apagado.",
+      );
+      setEditando(null);
+      await qc.invalidateQueries({ queryKey: ["horarios-de-trabalho"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+  const campo = (rotulo: string, chave: keyof HorarioDeTrabalho, de: number, ate: number) => (
+    <label className="text-xs font-bold">
+      {rotulo}
+      <select
+        className="mt-1 h-9 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
+        value={editando![chave]}
+        onChange={(e) => setEditando({ ...editando!, [chave]: Number(e.target.value) })}
+      >
+        {opcoes(de, ate).map((h) => (
+          <option key={h} value={h}>
+            {h}h
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+  return (
+    <div className="rounded-xl border border-border p-3">
+      <Rotulo>🕘 Horário de trabalho</Rotulo>
+      {editando ? (
+        <>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {campo("Entrada", "entrada", HORA_INICIAL, fim - 1)}
+            {campo("Saída", "saida", HORA_INICIAL + 1, fim)}
+            {campo("Pausa", "pausa", HORA_INICIAL + 1, fim - 2)}
+          </div>
+          <p
+            className={`mt-2 text-xs ${problema ? "text-destructive" : "text-muted-foreground"}`}
+            aria-live="polite"
+          >
+            {problema ??
+              `${editando.saida - editando.entrada} horas na escala, com 1 hora de pausa.`}
+          </p>
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
+            {atual && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-auto text-destructive"
+                disabled={salvando}
+                onClick={() => salvar(null)}
+              >
+                Apagar o horário
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={salvando}
+              onClick={() => setEditando(null)}
+            >
+              Cancelar
+            </Button>
+            <Button size="sm" disabled={!!problema || salvando} onClick={() => salvar(editando)}>
+              {salvando ? "Salvando..." : "Salvar o horário"}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <Linha rotulo="Horário" valor={atual ? `${atual.entrada}h às ${atual.saida}h` : null} />
+          <Linha rotulo="Pausa" valor={atual ? `às ${atual.pausa}h` : null} />
+          <div className="mt-1 flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditando(atual ?? { entrada: 8, saida: 17, pausa: 12 })}
+            >
+              🕘 {atual ? "Editar o horário" : "Preencher o horário"}
+            </Button>
+          </div>
+        </>
+      )}
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Usado pela montagem da escala (“Atribuir folgas e horários”). Vale para todos os dias de
+        trabalho.
+      </p>
+    </div>
   );
 }

@@ -1312,6 +1312,19 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       minha_aparencia: { Args: never; Returns: Json };
+      horarios_de_trabalho: {
+        Args: never;
+        Returns: { employee_id: string; entrada: number; saida: number; pausa: number }[];
+      };
+      definir_horario_de_trabalho: {
+        Args: {
+          _employee_id: string;
+          _entrada: number | null;
+          _saida: number | null;
+          _pausa: number | null;
+        };
+        Returns: undefined;
+      };
       consumir_limite_de_uso: {
         Args: { _chave: string; _maximo: number; _janela_em_segundos: number };
         Returns: boolean;

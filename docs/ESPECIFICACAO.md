@@ -309,6 +309,15 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
 
 - **Os dias da semana em que cada pessoa folga**, cadastrados pelo ADM na aba "Folgas fixas" (até 4 por
   semana). O pedido de troca usa as folgas fixas nas semanas que ainda não foram publicadas.
+- **O horário de trabalho** de cada pessoa (a entrada, a saída e a hora da pausa, o mesmo para todos os dias
+  de trabalho), preenchido pelo ADM na ficha, em Colaboradores. Até 10 horas, das 6h às 22h, e a pausa nem
+  na primeira nem na última hora. Fica à parte dos dados pessoais (não é um dado sensível), e só o ADM o lê.
+- **O botão "Atribuir folgas e horários"**, na montagem, preenche os dias **vazios** da semana, só nas
+  semanas **não publicadas**: nos dias da folga fixa, a folga; nos outros, o horário de trabalho (o
+  atendimento, com a pausa na hora dela). Depois, o ADM só ajusta as tarefas. Num dia da folga fixa em que a
+  pessoa já tem horário, o horário **fica**, e o ADM vê o conflito (com o "Pôr a folga" e o "Manter o
+  horário"); quem não tem horário cadastrado fica com os dias de trabalho vazios, com um aviso. O que já foi
+  montado, as férias do calendário e os dias de uma troca aplicada não são tocados.
 
 ### 10.4 As trocas de escala
 
@@ -432,3 +441,5 @@ contagens do limite de uso.
 | 30/09/2026 | O documento original de requisitos (o "prompt mestre"), hoje em `docs/historico/`. |
 | 13/10/2026 | Reescrito para descrever o sistema como ele é hoje: os perfis, as quinzenas, as avaliações, as contestações, os indicadores, o ranking, a gamificação, o perfil, a escala, as trocas, as notificações, as integrações e a segurança. |
 | 13/10/2026 | A supervisão (o ADM) passa a entrar na escala e nas férias; continua fora das trocas. |
+| 13/10/2026 | O botão "Atribuir folgas fixas", na montagem da semana. |
+| 13/10/2026 | O horário de trabalho de cada pessoa, e o botão passa a "Atribuir folgas e horários". |

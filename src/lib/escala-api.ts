@@ -3,7 +3,7 @@
  * ADM (para montar) e o membro (para ver); a tela só traduz as respostas.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { DiasDaSemana, Horas, Sigla } from "@/lib/escala";
+import type { DiasDaSemana, HorarioDeTrabalho, Horas, Sigla } from "@/lib/escala";
 
 const falhar = (e: { message: string } | null) => {
   if (e) throw new Error(e.message);
@@ -165,6 +165,28 @@ export async function decidirPedido(id: string, aprovar: boolean, motivo: string
     _pedido: id,
     _aprovar: aprovar,
     _motivo: motivo ?? "",
+  });
+  falhar(error);
+}
+
+// ---------- O horário de trabalho (13/10/2026): só o ADM ----------
+export async function lerHorariosDeTrabalho(): Promise<Map<string, HorarioDeTrabalho>> {
+  const { data, error } = await supabase.rpc("horarios_de_trabalho");
+  falhar(error);
+  return new Map(
+    ((data ?? []) as ({ employee_id: string } & HorarioDeTrabalho)[]).map((h) => [
+      h.employee_id,
+      { entrada: h.entrada, saida: h.saida, pausa: h.pausa },
+    ]),
+  );
+}
+/** Define o horário (ou o apaga, com null). */
+export async function definirHorarioDeTrabalho(employeeId: string, h: HorarioDeTrabalho | null) {
+  const { error } = await supabase.rpc("definir_horario_de_trabalho", {
+    _employee_id: employeeId,
+    _entrada: h?.entrada ?? null,
+    _saida: h?.saida ?? null,
+    _pausa: h?.pausa ?? null,
   });
   falhar(error);
 }
