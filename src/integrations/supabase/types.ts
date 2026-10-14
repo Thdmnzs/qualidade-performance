@@ -862,6 +862,7 @@ export type Database = {
           ultima_revisao: string | null;
           url: string;
           versao_atual: number;
+          ordem: number | null;
         };
         Insert: {
           ativo?: boolean;
@@ -879,6 +880,7 @@ export type Database = {
           ultima_revisao?: string | null;
           url: string;
           versao_atual?: number;
+          ordem?: number | null;
         };
         Update: {
           ativo?: boolean;
@@ -896,6 +898,7 @@ export type Database = {
           ultima_revisao?: string | null;
           url?: string;
           versao_atual?: number;
+          ordem?: number | null;
         };
         Relationships: [];
       };

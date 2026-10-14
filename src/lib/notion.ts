@@ -146,6 +146,8 @@ export type ItemDaFila = {
   revisado: boolean;
   ultimaRevisao: string | null;
   url: string;
+  /** A posição na Flukepédia (14/10/2026): a tela mostra cada base nessa ordem. */
+  ordem?: number;
 };
 
 const valor = (p: Propriedade | undefined): string => {
@@ -206,4 +208,137 @@ export function linkSeguroDoNotion(url: string | null | undefined): string | nul
   }
   if (u.protocol !== "https:" || u.username || u.password) return null;
   return HOSTS_DO_NOTION.has(u.hostname.toLowerCase()) ? u.toString() : null;
+}
+
+// ---------- A página da Flukepédia (14/10/2026) ----------
+// O Índice Mestre lista só os processos já revisados (no B2C, 32 de cerca de 120). A página da
+// Flukepédia lista TODOS: cada seção é a categoria; o texto em negrito no topo de uma coluna, a
+// subcategoria; e cada subpágina, um processo.
+
+type TextoComEstilo = {
+  plain_text?: string | null;
+  annotations?: { bold?: boolean };
+  type?: string;
+  mention?: { type?: string; page?: { id?: string } };
+}[];
+
+/** "📱 Aplicativo e Chip [🚧 EM REVISÃO]" → "Aplicativo e Chip". */
+export const nomeLimpo = (texto: string) =>
+  texto
+    .replace(/\[[^\]]*EM REVIS[ÃA]O[^\]]*\]/giu, "")
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Só os títulos de SEÇÃO (os dois níveis maiores) são categorias: um título menor dentro de uma coluna
+// (como um bloco recolhível de anotações) não muda a categoria, e o que está dentro dele não é lido.
+const ehTitulo = (tipo: string) => tipo === "heading_1" || tipo === "heading_2";
+
+/** A subcategoria: um parágrafo que começa em negrito (o rótulo da coluna). */
+function rotuloEmNegrito(b: Bloco): string | null {
+  if (b.type !== "paragraph") return null;
+  const rt = (
+    (b["paragraph"] as { rich_text?: TextoComEstilo } | undefined)?.rich_text ?? []
+  ).filter((t) => (t.plain_text ?? "").trim());
+  if (!rt.length || !rt[0]!.annotations?.bold || rt.some((t) => t.type === "mention")) return null;
+  const nome = nomeLimpo(textoRico(rt));
+  return nome || null;
+}
+
+/** As páginas de um bloco: a subpágina, o "link para página", e a menção dentro de um parágrafo. */
+function paginasDoBloco(b: Bloco): { id: string; titulo: string | null }[] {
+  if (b.type === "child_page")
+    return [
+      { id: b.id, titulo: (b["child_page"] as { title?: string } | undefined)?.title ?? null },
+    ];
+  if (b.type === "link_to_page") {
+    const id = (b["link_to_page"] as { page_id?: string } | undefined)?.page_id;
+    return id ? [{ id, titulo: null }] : [];
+  }
+  if (b.type === "paragraph") {
+    const rt = (b["paragraph"] as { rich_text?: TextoComEstilo } | undefined)?.rich_text ?? [];
+    return rt
+      .filter((t) => t.type === "mention" && t.mention?.type === "page" && t.mention.page?.id)
+      .map((t) => ({ id: t.mention!.page!.id!, titulo: (t.plain_text ?? "").trim() || null }));
+  }
+  return [];
+}
+
+/**
+ * Os processos da página da Flukepédia, na ordem da página. Só conta o que vem DEPOIS da primeira
+ * seção (o link para o Índice Mestre, no topo, fica de fora). Uma coluna sem o rótulo em negrito
+ * continua a subcategoria da anterior; uma seção sem rótulos (o Streaming) fica sem subcategoria.
+ */
+export function processosDaFlukepedia(blocos: Bloco[], base: "B2C" | "B2B"): ItemDaFila[] {
+  const itens: ItemDaFila[] = [];
+  let categoria: string | null = null;
+  let subcategoria: string | null = null;
+  const percorrer = (lista: Bloco[]) => {
+    for (const b of lista) {
+      if (ehTitulo(b.type)) {
+        categoria =
+          nomeLimpo(textoRico((b[b.type] as { rich_text?: unknown } | undefined)?.rich_text)) ||
+          null;
+        subcategoria = null;
+        continue;
+      }
+      if (b.type === "column_list" || b.type === "column") {
+        percorrer(b.filhos ?? []);
+        continue;
+      }
+      if (!categoria) continue; // antes da primeira seção (o link do Índice Mestre)
+      const rotulo = rotuloEmNegrito(b);
+      if (rotulo) {
+        subcategoria = rotulo;
+        continue;
+      }
+      for (const p of paginasDoBloco(b)) {
+        const pageId = idSemHifens(p.id);
+        itens.push({
+          pageId,
+          base,
+          codigo: null,
+          titulo: p.titulo || "(sem título)",
+          categoria,
+          subcategoria,
+          revisado: false,
+          ultimaRevisao: null,
+          url: `https://www.notion.so/${pageId}`,
+        });
+      }
+    }
+  };
+  percorrer(blocos);
+  return itens;
+}
+
+/**
+ * Junta o Índice Mestre e a Flukepédia: o Índice tem a prioridade (o código, o "revisado" e a data);
+ * os que só estão na Flukepédia entram como "ainda não revisado". Sem repetidos.
+ */
+export function juntarComFlukepedia(doIndice: ItemDaFila[], daPagina: ItemDaFila[]): ItemDaFila[] {
+  const noIndice = new Map(doIndice.map((i) => [i.pageId, i]));
+  const vistos = new Set<string>();
+  const fila: ItemDaFila[] = [];
+  for (const i of [...doIndice, ...daPagina]) {
+    if (vistos.has(i.pageId)) continue;
+    vistos.add(i.pageId);
+    const doIdx = noIndice.get(i.pageId);
+    // Do Índice, mas sem a categoria? Usa a da página.
+    fila.push(
+      doIdx
+        ? {
+            ...doIdx,
+            categoria: doIdx.categoria ?? i.categoria,
+            subcategoria: doIdx.subcategoria ?? i.subcategoria,
+          }
+        : i,
+    );
+  }
+  // A posição: a ordem da página da Flukepédia (os do Índice que não estão na página vão para o fim).
+  const naPagina = new Map(daPagina.map((i, n) => [i.pageId, n]));
+  return fila
+    .map((i, n) => ({ i, pos: naPagina.get(i.pageId) ?? daPagina.length + n }))
+    .sort((a, b) => a.pos - b.pos)
+    .map(({ i }, n) => ({ ...i, ordem: n + 1 }));
 }

@@ -10,7 +10,9 @@ import {
   blocosParaTexto,
   idSemHifens,
   itemDoIndice,
+  juntarComFlukepedia,
   montarProcesso,
+  processosDaFlukepedia,
   textoRico,
   type Bloco,
   type ItemDaFila,
@@ -23,8 +25,22 @@ const VERSAO_API = "2022-06-28";
 /** As fontes: os dois Índices Mestres (com a base dentro) e as páginas de referência. */
 const FONTES = {
   indices: [
-    { base: "B2C" as const, nome: "Índice Mestre B2C", pagina: "3a7cc47b1d7c81f39b8becc0579cebf7" },
-    { base: "B2B" as const, nome: "Índice Mestre B2B", pagina: "3eacc47b1d7c8185a800c87a24fd0b7f" },
+    // O Índice Mestre (os processos revisados, com o código) e a página da Flukepédia (TODOS os
+    // processos, 14/10/2026): os dois são lidos e juntados.
+    {
+      base: "B2C" as const,
+      nome: "Índice Mestre B2C",
+      pagina: "3a7cc47b1d7c81f39b8becc0579cebf7",
+      nomeDaFlukepedia: "Flukepédia | B2C",
+      flukepedia: "368cc47b1d7c81dc992bea98666c9891",
+    },
+    {
+      base: "B2B" as const,
+      nome: "Índice Mestre B2B",
+      pagina: "3eacc47b1d7c8185a800c87a24fd0b7f",
+      nomeDaFlukepedia: "Flukepédia | B2B",
+      flukepedia: "3eacc47b1d7c8187ad58faef80ba8f98",
+    },
   ],
   // Páginas avulsas, fora das Flukepédias: cada uma precisa de acesso próprio na conexão.
   referencias: [
@@ -184,6 +200,22 @@ async function exigirAdmin(chamadorId: string) {
     throw new ErroDoNotion("Apenas administradores podem sincronizar a base de processos.");
 }
 
+/**
+ * Os processos de uma base: o Índice Mestre (com o código e o "revisado") juntado à página da
+ * Flukepédia (todos os processos). O Índice tem a prioridade; os que só estão na Flukepédia entram
+ * como "ainda não revisado".
+ */
+async function itensDaBase(indice: (typeof FONTES.indices)[number]): Promise<ItemDaFila[]> {
+  const linhas = await naFonte(indice.nome, async () =>
+    linhasDaBase(await baseDentroDe(indice.pagina)),
+  );
+  const doIndice = linhas
+    .map((l) => itemDoIndice(l, indice.base))
+    .filter((x): x is ItemDaFila => !!x);
+  const blocos = await naFonte(indice.nomeDaFlukepedia, () => lerBlocos(indice.flukepedia));
+  return juntarComFlukepedia(doIndice, processosDaFlukepedia(blocos, indice.base));
+}
+
 /** Monta a fila completa: as linhas dos dois Índices e o Guia. */
 async function montarFila(): Promise<{
   fila: ItemDaFila[];
@@ -192,12 +224,7 @@ async function montarFila(): Promise<{
   const fila: ItemDaFila[] = [];
   const porBase: Record<string, { processos: number; revisados: number }> = {};
   for (const indice of FONTES.indices) {
-    const linhas = await naFonte(indice.nome, async () =>
-      linhasDaBase(await baseDentroDe(indice.pagina)),
-    );
-    const itens = linhas
-      .map((l) => itemDoIndice(l, indice.base))
-      .filter((x): x is ItemDaFila => !!x);
+    const itens = await itensDaBase(indice);
     porBase[indice.base] = {
       processos: itens.length,
       revisados: itens.filter((i) => i.revisado).length,
@@ -245,12 +272,7 @@ export async function testarNotion(chamadorId: string) {
   const porBase: Record<string, { processos: number; revisados: number } | { erro: string }> = {};
   for (const indice of FONTES.indices) {
     try {
-      const linhas = await naFonte(indice.nome, async () =>
-        linhasDaBase(await baseDentroDe(indice.pagina)),
-      );
-      const itens = linhas
-        .map((l) => itemDoIndice(l, indice.base))
-        .filter((x): x is ItemDaFila => !!x);
+      const itens = await itensDaBase(indice);
       porBase[indice.base] = {
         processos: itens.length,
         revisados: itens.filter((i) => i.revisado).length,
@@ -360,6 +382,8 @@ export async function continuarSincronizacao(chamadorId: string, id: string): Pr
           erro: "Página arquivada no Notion",
         });
       } else {
+        // O "link para página" chega sem título: usa o da própria página (14/10/2026).
+        if (item.titulo === "(sem título)") item.titulo = tituloDaPagina(pagina);
         const { data: atual } = await supabaseAdmin
           .from("processos")
           .select("editado_no_notion, versao_atual")
@@ -382,6 +406,7 @@ export async function continuarSincronizacao(chamadorId: string, id: string): Pr
               subcategoria: item.subcategoria,
               revisado: item.revisado,
               ultima_revisao: item.ultimaRevisao,
+              ordem: item.ordem ?? null,
               sincronizado_em: new Date().toISOString(),
               ativo: true,
             })
@@ -407,6 +432,11 @@ export async function continuarSincronizacao(chamadorId: string, id: string): Pr
             },
           );
           if (erroGravar) throw new Error(erroGravar.message);
+          // A posição na Flukepédia (14/10/2026), que a versão não carrega.
+          await supabaseAdmin
+            .from("processos")
+            .update({ ordem: item.ordem ?? null })
+            .eq("notion_page_id", item.pageId);
           if (resultado === "nova") cont.novos += 1;
           else if (resultado === "alterada") cont.alterados += 1;
           else cont.sem_mudanca += 1;

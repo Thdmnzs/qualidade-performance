@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, PageHeader } from "@/components/page-header";
+import { ColunasDosProcessos } from "@/components/processos/colunas-dos-processos";
 import { Button } from "@/components/ui/button";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,9 +69,11 @@ function Processos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("processos")
-        .select("id, codigo, titulo, base, revisado, versao_atual, sincronizado_em, ativo")
+        .select(
+          "id, codigo, titulo, base, revisado, versao_atual, sincronizado_em, ativo, categoria, subcategoria, ordem, url",
+        )
         .order("base")
-        .order("codigo");
+        .order("ordem", { nullsFirst: false });
       if (error) throw error;
       return data;
     },
@@ -228,53 +231,8 @@ function Processos() {
         </section>
       </div>
 
-      <h2 className="mb-3 font-display text-lg font-semibold">
-        Processos{" "}
-        <span className="text-sm font-normal text-muted-foreground">({ativos.length})</span>
-      </h2>
-      {ativos.length === 0 ? (
-        <EmptyState
-          titulo="Nenhum processo ainda"
-          texto="Sincronize para trazer os processos do Notion."
-        />
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Código</th>
-                <th className="px-4 py-3">Processo</th>
-                <th className="px-4 py-3">Base</th>
-                <th className="px-4 py-3">Revisão</th>
-                <th className="px-4 py-3">Versão</th>
-                <th className="px-4 py-3">Sincronizado em</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ativos.map((p) => (
-                <tr key={p.id} className="border-t border-border">
-                  <td className="px-4 py-2 font-mono text-xs">{p.codigo ?? "—"}</td>
-                  <td className="px-4 py-2">{p.titulo}</td>
-                  <td className="px-4 py-2">{p.base}</td>
-                  <td className="px-4 py-2">
-                    {p.base === "Guia" ? (
-                      "—"
-                    ) : p.revisado ? (
-                      <span className="text-primary">Revisado</span>
-                    ) : (
-                      <span className="text-warning">Pendente</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{p.versao_atual}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {p.sincronizado_em ? dataHoraBR(p.sincronizado_em) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* As duas colunas, o B2C e o B2B (14/10/2026). */}
+      <ColunasDosProcessos processos={ativos} />
     </div>
   );
 }

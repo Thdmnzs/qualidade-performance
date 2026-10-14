@@ -390,7 +390,7 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
 | Serviço | Para quê | Como |
 |---|---|---|
 | **Intercom** | o sorteio e a leitura das conversas e dos tickets; os indicadores diários | pelo servidor, com uma chave só de leitura |
-| **Notion** | a base de processos (Flukepédia B2C e B2B, e o Guia de Clientes Atritados), com versão | a sincronização pelo ADM, em lotes; a chave só de leitura |
+| **Notion** | a base de processos (Flukepédia B2C e B2B, e o Guia de Clientes Atritados), com versão | a sincronização pelo ADM, em lotes; a chave só de leitura. Ela lê o **Índice Mestre** de cada Flukepédia (os processos revisados, com o código) e a **página da Flukepédia** (todos os processos: cada seção é a categoria, o negrito no topo de uma coluna é a subcategoria, e cada subpágina é um processo). O Índice tem a prioridade; os que só estão na página entram como "ainda não revisado" |
 | **Slack** | o **Radar da Qualidade** (as contestações, no canal de qualidade) e a **Central de Turnos** (as trocas, no canal de escala) | cada robô com o próprio token e canal, só com a permissão de escrever; nenhum aviso sai duas vezes |
 | **Google** | a importação dos indicadores pela planilha (aguardando) | a conta de serviço `qualityhub-leitor`, só de leitura |
 | **Anthropic** | a pré-avaliação por IA (aguardando a chave) | pelo servidor, com a conversa mascarada |
@@ -454,3 +454,5 @@ contagens do limite de uso.
 | 13/10/2026 | O horário de trabalho de cada pessoa, e o botão passa a "Atribuir folgas e horários". |
 | 14/10/2026 | Nos fins de semana e nos feriados, quem folga fica fora da escala. |
 | 14/10/2026 | O horário diferente aos fins de semana (o botão e a ordem usam o horário de cada dia). |
+| 14/10/2026 | A sincronização do Notion passa a ler também a página da Flukepédia (todos os processos, e não só os do Índice Mestre). |
+| 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |
