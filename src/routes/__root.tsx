@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "QualityHUB" },
+      { title: "CX Hub" },
       {
         name: "description",
         content: "Plataforma interna de qualidade e performance do time de CX.",

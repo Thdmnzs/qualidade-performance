@@ -23,10 +23,7 @@ export const Route = createFileRoute("/definir-senha")({
   // A sessão vem no fragmento da URL (#access_token=...), que só existe no navegador.
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Definir senha · QualityHUB" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "Definir senha · CX Hub" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: DefinirSenha,
 });
@@ -187,7 +184,7 @@ function DefinirSenha() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold text-primary">QualityHUB</h1>
+          <h1 className="font-display text-3xl font-bold text-primary">CX Hub</h1>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-glow">
@@ -199,7 +196,7 @@ function DefinirSenha() {
             <div className="space-y-4 text-center">
               <h2 className="font-display text-xl font-semibold">
                 {estado.tipo === "invite"
-                  ? "Você foi convidado(a) para o QualityHUB"
+                  ? "Você foi convidado(a) para o CX Hub"
                   : "Definir uma nova senha"}
               </h2>
               <p className="text-sm text-muted-foreground">

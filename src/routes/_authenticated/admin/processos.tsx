@@ -20,7 +20,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/processos")({
   head: () => ({
     meta: [
-      { title: "Processos · QualityHUB" },
+      { title: "Processos · CX Hub" },
       { name: "description", content: "Base de processos da Flukepédia, sincronizada do Notion." },
     ],
   }),

@@ -1,5 +1,5 @@
 /**
- * A escala e as férias no QualityHUB (11/10/2026): as regras da tela, puras (sem
+ * A escala e as férias no CX Hub (11/10/2026): as regras da tela, puras (sem
  * rede), para serem testadas. A planilha deixou de existir: tudo vem do banco.
  *
  * Uma semana tem 7 dias (0 = segunda ... 6 = domingo), e cada pessoa de um dia tem

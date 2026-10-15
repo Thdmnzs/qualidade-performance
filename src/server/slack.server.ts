@@ -43,7 +43,7 @@ export async function postarNoSlack(p: {
       channel: robo.canal,
       text: p.texto,
       mrkdwn: true,
-      unfurl_links: false, // sem pré-visualização do link do QualityHUB
+      unfurl_links: false, // sem pré-visualização do link do CX Hub
       unfurl_media: false,
       ...(p.naConversaDe ? { thread_ts: p.naConversaDe, reply_broadcast: !!p.tambemNoCanal } : {}),
     }),

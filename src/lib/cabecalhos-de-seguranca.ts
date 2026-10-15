@@ -31,7 +31,7 @@ export const CABECALHOS_DE_SEGURANCA: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // A plataforma não usa câmera, microfone, localização, pagamento nem USB.
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  // Uma janela aberta a partir de outro site não consegue mexer na do QualityHUB (13/10/2026).
+  // Uma janela aberta a partir de outro site não consegue mexer na do CX Hub (13/10/2026).
   "Cross-Origin-Opener-Policy": "same-origin",
   // Só HTTPS por 2 anos, inclusive nos subdomínios.
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains",

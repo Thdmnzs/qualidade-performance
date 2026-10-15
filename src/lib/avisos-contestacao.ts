@@ -53,7 +53,7 @@ export function textoDaAbertura(d: DadosDoAviso, urlDoQualityHub: string): strin
     "*📝 UMA NOVA CONTESTAÇÃO FOI ABERTA*",
     `${quem} contestou ${oQue}.`,
     prazo,
-    `<${urlDoQualityHub}/admin/contestacoes|Abrir no QualityHUB>`,
+    `<${urlDoQualityHub}/admin/contestacoes|Abrir no CX Hub>`,
   ].join("\n");
 }
 

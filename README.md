@@ -1,4 +1,4 @@
-# QualityHUB
+# CX Hub
 
 Plataforma interna do time de CX para acompanhar qualidade, produtividade, CSAT, SLA,
 horas online, avaliações, contestações, elegibilidade à premiação e ranking por quinzena.

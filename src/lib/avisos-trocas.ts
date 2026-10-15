@@ -59,11 +59,11 @@ export function textoDoAviso(d: DadosDoAvisoDeTroca, url: string): string {
     `*Com quem*: ${d.para}`,
     `*A troca*: ${aTroca(d)}`,
     `*Como fica*: ${comoFica(d)}`,
-    `<${url}/escala|Aprovar ou recusar no QualityHUB>`,
+    `<${url}/escala|Aprovar ou recusar no CX Hub>`,
   ].join("\n");
 }
 
-/** O fim, na conversa do aviso: o motivo de uma recusa NÃO vai (a supervisão fala com as duas no QualityHUB). */
+/** O fim, na conversa do aviso: o motivo de uma recusa NÃO vai (a supervisão fala com as duas no CX Hub). */
 export function textoDoFim(d: DadosDoAvisoDeTroca): string | null {
   const quem = d.decidida_por ?? "a supervisão";
   if (d.situacao === "aprovada")

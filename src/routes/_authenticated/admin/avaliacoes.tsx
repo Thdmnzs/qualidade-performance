@@ -37,7 +37,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/avaliacoes")({
   head: () => ({
     meta: [
-      { title: "Avaliações de qualidade · QualityHUB" },
+      { title: "Avaliações de qualidade · CX Hub" },
       {
         name: "description",
         content: "Formulário de qualidade com 14 critérios e registro de quiz por quinzena.",

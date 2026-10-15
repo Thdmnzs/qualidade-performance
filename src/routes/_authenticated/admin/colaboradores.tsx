@@ -28,7 +28,7 @@ import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/
 export const Route = createFileRoute("/_authenticated/admin/colaboradores")({
   head: () => ({
     meta: [
-      { title: "Colaboradores · QualityHUB" },
+      { title: "Colaboradores · CX Hub" },
       {
         name: "description",
         content: "Cadastro, ativação e inativação de colaboradores do time de CX.",

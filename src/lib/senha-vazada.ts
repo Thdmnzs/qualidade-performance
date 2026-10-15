@@ -2,7 +2,7 @@
  * A conferência de senhas vazadas (09/10/2026), pelo Pwned Passwords (Have I Been
  * Pwned), gratuito e sem chave. A SENHA NUNCA SAI DO NAVEGADOR:
  *   1. o navegador calcula o SHA-1 da senha (o "código", que não volta a ser a senha);
- *   2. manda só os 5 primeiros caracteres ao servidor do QualityHUB, que pergunta ao
+ *   2. manda só os 5 primeiros caracteres ao servidor do CX Hub, que pergunta ao
  *      serviço e devolve os códigos de senhas vazadas que começam com eles;
  *   3. o próprio navegador confere se o código completo está na lista.
  * Puro (sem rede), para ser testado à parte.

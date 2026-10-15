@@ -1,8 +1,8 @@
-# Especificação do QualityHUB
+# Especificação do CX Hub
 
 **Versão:** 13/10/2026 · **Situação:** o sistema como ele é hoje, em produção.
 
-Este documento descreve as regras de negócio do QualityHUB: os perfis, os módulos e o que cada um faz, com
+Este documento descreve as regras de negócio do CX Hub: os perfis, os módulos e o que cada um faz, com
 os números que o sistema usa de verdade. Ele substitui o documento original de requisitos (o "prompt
 mestre" da primeira versão), que está guardado, sem alterações, em
 [`docs/historico/prompt-mestre-original.md`](historico/prompt-mestre-original.md).
@@ -21,7 +21,7 @@ mestre" da primeira versão), que está guardado, sem alterações, em
 
 ## 1. Visão geral
 
-O QualityHUB é a plataforma interna do time de CX da Fluke para acompanhar a qualidade e a performance do
+O CX Hub é a plataforma interna do time de CX da Fluke para acompanhar a qualidade e a performance do
 atendimento: as avaliações de qualidade, as contestações, os indicadores, a elegibilidade e o ranking por
 quinzena, a gamificação, a escala de trabalho, as trocas de escala e as férias.
 
@@ -372,6 +372,16 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
 
 ---
 
+## 11.1 O acesso rápido
+
+- **Na barra lateral, embaixo do menu** (no celular, num painel aberto pelo botão 🔗): os links das
+  ferramentas do time, em 7 grupos (o Atendimento, o Material de apoio, o Financeiro, a Comunicação, a Fluke
+  na web, as Consultas e as Planilhas). O Atendimento começa aberto; os slides são um subgrupo recolhível.
+- **A busca** procura em todos os grupos, sem acento. Os links abrem numa aba nova.
+- **Os "Meus atalhos":** a estrela fixa um link no topo. Ficam guardados no navegador de cada pessoa.
+- **Os restritos** (as planilhas de PIN/PUK) aparecem só para o ADM.
+- **A lista mora no código** (`src/lib/acesso-rapido.ts`): para mudar um link, é uma mudança no sistema.
+
 ## 12. Painel e Histórico (ADM)
 
 - **O Painel:** as abas Métricas e Avaliações, no formato do relatório "Qualidade e Treinamento", com o
@@ -455,4 +465,5 @@ contagens do limite de uso.
 | 14/10/2026 | Nos fins de semana e nos feriados, quem folga fica fora da escala. |
 | 14/10/2026 | O horário diferente aos fins de semana (o botão e a ordem usam o horário de cada dia). |
 | 14/10/2026 | A sincronização do Notion passa a ler também a página da Flukepédia (todos os processos, e não só os do Índice Mestre). |
+| 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |

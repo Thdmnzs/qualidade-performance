@@ -55,7 +55,7 @@ import {
 import { fetchMetas } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/admin/painel")({
-  head: () => ({ meta: [{ title: "Painel · QualityHUB" }] }),
+  head: () => ({ meta: [{ title: "Painel · CX Hub" }] }),
   component: Painel,
 });
 
@@ -157,7 +157,7 @@ function Painel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           titulo="Painel"
-          descricao="Os resultados do time de CX, calculados a partir das avaliações e dos indicadores do QualityHUB."
+          descricao="Os resultados do time de CX, calculados a partir das avaliações e dos indicadores do CX Hub."
         />
         <Button asChild variant="outline">
           <a href={LOOKER} target="_blank" rel="noopener noreferrer">

@@ -44,7 +44,7 @@ import { fetchColaboradores } from "@/lib/queries";
 export const Route = createFileRoute("/_authenticated/escala")({
   head: () => ({
     meta: [
-      { title: "Escala · QualityHUB" },
+      { title: "Escala · CX Hub" },
       { name: "description", content: "A escala da semana e as férias do time." },
     ],
   }),

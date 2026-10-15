@@ -27,7 +27,7 @@ describe("o aviso (no formato combinado)", () => {
         "*Com quem*: Amanda Lima",
         "*A troca*: As folgas: quarta, 14/10, e quinta, 15/10",
         "*Como fica*: Thiago folga na quinta; Amanda, na quarta",
-        "<https://qualidade-performance.vercel.app/escala|Aprovar ou recusar no QualityHUB>",
+        "<https://qualidade-performance.vercel.app/escala|Aprovar ou recusar no CX Hub>",
       ].join("\n"),
     );
   });

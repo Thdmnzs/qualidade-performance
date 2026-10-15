@@ -18,7 +18,7 @@ import { fetchAvaliacoesGestao, fetchQuinzenas } from "@/lib/queries";
 export const Route = createFileRoute("/_authenticated/admin/historico")({
   head: () => ({
     meta: [
-      { title: "Histórico · QualityHUB" },
+      { title: "Histórico · CX Hub" },
       { name: "description", content: "Avaliações de quinzenas fechadas e sorteios descartados." },
     ],
   }),

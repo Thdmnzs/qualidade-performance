@@ -37,7 +37,7 @@ import { prazoDeContestacaoAberto } from "@/lib/quinzena";
 export const Route = createFileRoute("/_authenticated/minhas-avaliacoes")({
   head: () => ({
     meta: [
-      { title: "Minhas avaliações · QualityHUB" },
+      { title: "Minhas avaliações · CX Hub" },
       { name: "description", content: "Suas avaliações de qualidade por quinzena." },
     ],
   }),

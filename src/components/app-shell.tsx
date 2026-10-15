@@ -23,6 +23,7 @@ import { lerPedidos } from "@/lib/escala-api";
 import { lerMinhasTrocas, lerTrocasParaAprovar } from "@/lib/trocas-api";
 import { apagarRegistros } from "@/lib/expiracao-da-sessao";
 import { usePermissoes, useSessionUser } from "@/hooks/useAuth";
+import { AcessoRapido, AcessoRapidoNoCelular } from "@/components/acesso-rapido";
 import { BotaoTema } from "@/components/botao-tema";
 import { CentralDeNotificacoes } from "@/components/central-de-notificacoes";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
@@ -145,9 +146,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             height={32}
             className="hidden h-8 w-auto dark:block"
           />
-          <p className="mt-2 text-xs text-muted-foreground">QualityHUB</p>
+          <p className="mt-2 text-xs text-muted-foreground">CX Hub</p>
         </div>
-        <nav className="mt-4 flex flex-1 flex-col gap-1">
+        <nav className="mt-4 flex flex-col gap-1">
           {itens.map((item) => (
             <Link
               key={item.to}
@@ -165,6 +166,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+        {/* O acesso rápido (14/10/2026): os links das ferramentas do time, embaixo do menu. */}
+        <div className="mt-5 border-t border-border pt-4">
+          <AcessoRapido perfil={perfil} pessoa={employee?.id} />
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -200,6 +205,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <AcessoRapidoNoCelular perfil={perfil} pessoa={employee?.id} />
             <CentralDeNotificacoes />
             <BotaoTema />
             {menuDoUsuario}

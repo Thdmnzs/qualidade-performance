@@ -1,6 +1,6 @@
 /**
  * O prazo da sessão (09/10/2026): 30 minutos sem uso, e no máximo 9 horas desde
- * o login. O Supabase só oferece isso no plano Pro, então o QualityHUB confere por
+ * o login. O Supabase só oferece isso no plano Pro, então o CX Hub confere por
  * conta própria. O "uso" vale em QUALQUER aba (o registro é compartilhado).
  */
 export const INATIVIDADE_MS = 30 * 60_000;

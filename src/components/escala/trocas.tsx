@@ -1017,9 +1017,7 @@ export function TrocasParaAprovar({
               Recusar a troca{" "}
               {recusando ? `${primeiro(recusando.de.nome)} ⇄ ${primeiro(recusando.para.nome)}` : ""}
             </DialogTitle>
-            <DialogDescription>
-              O motivo aparece para as duas pessoas, no QualityHUB.
-            </DialogDescription>
+            <DialogDescription>O motivo aparece para as duas pessoas, no CX Hub.</DialogDescription>
           </DialogHeader>
           <textarea
             value={motivo}

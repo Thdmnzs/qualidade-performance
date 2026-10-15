@@ -62,7 +62,7 @@ import { quinzenasPublicadas } from "@/lib/quinzena";
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
-      { title: "Meu perfil · QualityHUB" },
+      { title: "Meu perfil · CX Hub" },
       { name: "description", content: "Seu nível, seu XP, suas missões e suas conquistas." },
     ],
   }),

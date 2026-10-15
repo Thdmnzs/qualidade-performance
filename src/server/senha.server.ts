@@ -13,7 +13,7 @@ export async function consultarPrefixo(prefixo: string): Promise<string> {
   let r: Response;
   try {
     r = await fetch(`https://api.pwnedpasswords.com/range/${prefixo}`, {
-      headers: { "Add-Padding": "true", "User-Agent": "QualityHUB" }, // o enchimento esconde o tamanho
+      headers: { "Add-Padding": "true", "User-Agent": "CX Hub" }, // o enchimento esconde o tamanho
       signal: AbortSignal.timeout(4000),
     });
   } catch {

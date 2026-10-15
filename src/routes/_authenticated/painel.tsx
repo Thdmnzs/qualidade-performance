@@ -36,7 +36,7 @@ import { quinzenasPublicadas, situacaoExibida } from "@/lib/quinzena";
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Visão geral · QualityHUB" },
+      { title: "Visão geral · CX Hub" },
       { name: "description", content: "Seus indicadores e elegibilidade na quinzena." },
     ],
   }),

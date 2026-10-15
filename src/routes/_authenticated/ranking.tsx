@@ -18,7 +18,7 @@ import { quinzenasPublicadas } from "@/lib/quinzena";
 export const Route = createFileRoute("/_authenticated/ranking")({
   head: () => ({
     meta: [
-      { title: "Ranking · QualityHUB" },
+      { title: "Ranking · CX Hub" },
       { name: "description", content: "Pódio e classificação da quinzena." },
     ],
   }),

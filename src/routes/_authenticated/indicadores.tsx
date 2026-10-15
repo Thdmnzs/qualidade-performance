@@ -22,7 +22,7 @@ import { fetchMetas } from "@/lib/queries";
 export const Route = createFileRoute("/_authenticated/indicadores")({
   head: () => ({
     meta: [
-      { title: "Indicadores · QualityHUB" },
+      { title: "Indicadores · CX Hub" },
       { name: "description", content: "Seus indicadores no período que você escolher." },
     ],
   }),

@@ -11,12 +11,12 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar · QualityHUB" },
+      { title: "Entrar · CX Hub" },
       {
         name: "description",
         content: "Acesso à plataforma interna de qualidade e performance do time de CX.",
       },
-      { property: "og:title", content: "Entrar · QualityHUB" },
+      { property: "og:title", content: "Entrar · CX Hub" },
       {
         property: "og:description",
         content: "Acesso à plataforma interna de qualidade e performance do time de CX.",
@@ -90,7 +90,7 @@ function AuthPage() {
           height={48}
           className="mx-auto h-12 w-auto"
         />
-        <p className="mt-3 text-center text-sm text-slate-500">QualityHUB</p>
+        <p className="mt-3 text-center text-sm text-slate-500">CX Hub</p>
 
         {/* A aba decide a área de entrada (multiacesso do avaliador). */}
         <div

@@ -4,13 +4,13 @@ import { Award, LineChart, ShieldCheck } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "QualityHUB" },
+      { title: "CX Hub" },
       {
         name: "description",
         content:
           "Acompanhe qualidade, produtividade, CSAT, elegibilidade à premiação e ranking do time de CX por quinzena.",
       },
-      { property: "og:title", content: "QualityHUB" },
+      { property: "og:title", content: "CX Hub" },
       {
         property: "og:description",
         content:
@@ -50,9 +50,7 @@ function Landing() {
           <p className="mt-8 text-xs font-semibold uppercase tracking-widest text-green-700">
             Uso interno · CX
           </p>
-          <h1 className="mt-3 font-display text-3xl font-bold leading-tight sm:text-5xl">
-            QualityHUB
-          </h1>
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight sm:text-5xl">CX Hub</h1>
           <p className="mt-4 max-w-2xl text-slate-600">
             Centraliza os resultados do time de atendimento por quinzena: indicadores, avaliações de
             qualidade, contestações, elegibilidade à premiação e ranking.

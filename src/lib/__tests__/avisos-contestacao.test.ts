@@ -28,7 +28,7 @@ describe("textoDaAbertura", () => {
         "*📝 UMA NOVA CONTESTAÇÃO FOI ABERTA*",
         '*Rubia* contestou a avaliação de *Interação* "Portabilidade", do contato de 03/10/2026, avaliada por *Rachel Kivel*.',
         "Você tem *1 dia útil* para responder: até *09/10/2026, 23:59*.",
-        "<https://qh.vercel.app/admin/contestacoes|Abrir no QualityHUB>",
+        "<https://qh.vercel.app/admin/contestacoes|Abrir no CX Hub>",
       ].join("\n"),
     );
   });
