@@ -247,3 +247,35 @@ describe("as frases da escala", () => {
       expect(categoriaDe(a)).toBe("Escala");
   });
 });
+
+describe("o acesso rápido no Histórico", () => {
+  const texto = (r: Partial<Registro>) =>
+    fraseDoRegistro({
+      acao: "",
+      quem: "Admin",
+      alvo: null,
+      valor_anterior: null,
+      valor_novo: null,
+      ...r,
+    } as Registro)
+      .map((p) => p.texto)
+      .join("");
+  it("as frases, e a categoria", () => {
+    expect(
+      texto({
+        acao: "atalho_criar",
+        valor_novo: { link: "Wave", grupo: "Atendimento", restrito: false },
+      }),
+    ).toBe("criou o link Wave no grupo Atendimento");
+    expect(
+      texto({
+        acao: "atalho_editar",
+        valor_novo: { link: "PIN/PUK (eSIM)", grupo: "Planilhas", restrito: true },
+      }),
+    ).toBe("editou o link PIN/PUK (eSIM) do grupo Planilhas (restrito)");
+    expect(
+      texto({ acao: "atalho_grupo_excluir", valor_novo: { grupo: "Financeiro", links: 4 } }),
+    ).toBe("excluiu o grupo Financeiro do acesso rápido, com 4 links");
+    expect(categoriaDe("atalho_criar")).toBe("Acesso rápido");
+  });
+});

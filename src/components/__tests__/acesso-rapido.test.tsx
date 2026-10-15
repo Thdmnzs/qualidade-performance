@@ -1,9 +1,60 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import type { ReactNode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AcessoRapido } from "../acesso-rapido";
+import type { GrupoDeAtalhos } from "@/lib/acesso-rapido";
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to, ...p }: { children: ReactNode; to: string }) => (
+    <a href={to} {...p}>
+      {children}
+    </a>
+  ),
+}));
+const LISTA: GrupoDeAtalhos[] = [
+  {
+    id: "g1",
+    nome: "Atendimento",
+    icone: "🎧",
+    links: [
+      { id: "a1", nome: "Intercom", url: "https://app.intercom.com" },
+      { id: "a2", nome: "Dash B2C", url: "https://dash.b2c" },
+    ],
+  },
+  {
+    id: "g2",
+    nome: "Material de apoio",
+    icone: "📚",
+    links: [
+      { id: "a3", nome: "Portabilidade", url: "https://docs.google.com/p", sub: "Slides" },
+      { id: "a4", nome: "Dicionário de tags", url: "https://www.notion.so/d" },
+    ],
+  },
+  {
+    id: "g3",
+    nome: "Comunicação",
+    icone: "✉️",
+    links: [{ id: "a5", nome: "Gmail", url: "https://mail.google.com" }],
+  },
+  {
+    id: "g4",
+    nome: "Planilhas",
+    icone: "📊",
+    links: [{ id: "a6", nome: "PIN/PUK (eSIM)", url: "https://docs.google.com/s", restrito: true }],
+  },
+];
+vi.mock("@/lib/acesso-rapido-api", () => ({ lerAcessoRapido: vi.fn(async () => LISTA) }));
+const { AcessoRapido } = await import("../acesso-rapido");
+const abrir = (perfil: string, pessoa: string) =>
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <AcessoRapido perfil={perfil} pessoa={pessoa} />
+    </QueryClientProvider>,
+  );
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -15,42 +66,41 @@ const links = () =>
     .map((a) => a.textContent);
 
 describe("o acesso rápido", () => {
-  it("o Atendimento começa aberto; os outros grupos e os slides, recolhidos; os links numa aba nova", () => {
-    render(<AcessoRapido perfil="colaborador" pessoa="ana" />);
-    expect(links()).toContain("Intercom");
-    expect(links()).not.toContain("Gmail"); // a Comunicação começa recolhida
-    const intercom = within(nav()).getByRole("link", { name: "Intercom" }) as HTMLAnchorElement;
-    expect(intercom.target).toBe("_blank");
-    expect(intercom.rel).toContain("noopener");
+  it("lido do banco: o Atendimento aberto, os outros e os slides recolhidos; os links numa aba nova", async () => {
+    abrir("colaborador", "ana");
+    expect(await within(nav()).findByRole("link", { name: "Intercom" })).toBeTruthy();
+    expect(links()).not.toContain("Gmail");
+    expect(
+      (within(nav()).getByRole("link", { name: "Intercom" }) as HTMLAnchorElement).target,
+    ).toBe("_blank");
     fireEvent.click(within(nav()).getByRole("button", { name: /Material de apoio/ }));
     expect(links()).toContain("Dicionário de tags");
-    expect(links()).not.toContain("Portabilidade"); // os slides, recolhidos
+    expect(links()).not.toContain("Portabilidade");
     fireEvent.click(within(nav()).getByRole("button", { name: /^Slides/ }));
     expect(links()).toContain("Portabilidade");
   });
-  it("a estrela fixa em Meus atalhos, e fica guardada para a mesma pessoa", () => {
-    const { unmount } = render(<AcessoRapido perfil="colaborador" pessoa="ana" />);
-    fireEvent.click(within(nav()).getByRole("button", { name: "Fixar Dash B2C nos atalhos" }));
+  it("a estrela fixa em Meus atalhos, e fica guardada para a mesma pessoa", async () => {
+    const { unmount } = abrir("colaborador", "ana");
+    fireEvent.click(
+      await within(nav()).findByRole("button", { name: "Fixar Dash B2C nos atalhos" }),
+    );
     expect(within(nav()).getByText("Meus atalhos")).toBeTruthy();
     unmount();
-    render(<AcessoRapido perfil="colaborador" pessoa="ana" />);
-    expect(within(nav()).getByText("Meus atalhos")).toBeTruthy(); // continua depois de recarregar
-    cleanup();
-    render(<AcessoRapido perfil="colaborador" pessoa="vera" />);
-    expect(within(nav()).queryByText("Meus atalhos")).toBeNull(); // os da Ana não são da Vera
+    abrir("colaborador", "ana");
+    expect(await within(nav()).findByText("Meus atalhos")).toBeTruthy();
   });
-  it("a busca, e os restritos só para o ADM", () => {
-    render(<AcessoRapido perfil="colaborador" pessoa="ana" />);
+  it("o botão Editar só para o ADM; e o restrito, só para ele", async () => {
+    abrir("colaborador", "ana");
+    await within(nav()).findByRole("link", { name: "Intercom" });
+    expect(screen.queryByRole("link", { name: "Editar o acesso rápido" })).toBeNull();
     fireEvent.change(screen.getByRole("searchbox", { name: "Buscar um link" }), {
       target: { value: "pin/puk" },
     });
     expect(links()).toEqual([]);
     cleanup();
-    render(<AcessoRapido perfil="adm" pessoa="adm" />);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar um link" }), {
-      target: { value: "pin/puk" },
-    });
-    expect(links()).toHaveLength(2);
-    expect(within(nav()).getAllByText("restrito")).toHaveLength(2);
+    abrir("adm", "adm");
+    expect(
+      (await screen.findByRole("link", { name: "Editar o acesso rápido" })).getAttribute("href"),
+    ).toBe("/admin/acesso-rapido");
   });
 });

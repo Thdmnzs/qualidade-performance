@@ -1314,6 +1314,26 @@ export type Database = {
         Args: never;
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
+      acesso_rapido: { Args: never; Returns: Json };
+      salvar_grupo_de_atalhos: {
+        Args: { _id: string | null; _nome: string; _icone: string };
+        Returns: string;
+      };
+      excluir_grupo_de_atalhos: { Args: { _id: string }; Returns: undefined };
+      mover_grupo_de_atalhos: { Args: { _id: string; _direcao: number }; Returns: undefined };
+      salvar_atalho: {
+        Args: {
+          _id: string | null;
+          _grupo_id: string;
+          _nome: string;
+          _url: string;
+          _sub: string;
+          _restrito: boolean;
+        };
+        Returns: string;
+      };
+      excluir_atalho: { Args: { _id: string }; Returns: undefined };
+      mover_atalho: { Args: { _id: string; _direcao: number }; Returns: undefined };
       minha_aparencia: { Args: never; Returns: Json };
       horarios_de_trabalho: {
         Args: never;

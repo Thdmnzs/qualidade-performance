@@ -34,6 +34,14 @@ export const CATEGORIAS: Record<string, string[]> = {
     "definir_perfil",
     "dados_pessoais_corrigir",
   ],
+  "Acesso rápido": [
+    "atalho_grupo_criar",
+    "atalho_grupo_editar",
+    "atalho_grupo_excluir",
+    "atalho_criar",
+    "atalho_editar",
+    "atalho_excluir",
+  ],
   Escala: [
     "escala_publicar",
     "escala_mudar_dia",
@@ -251,6 +259,35 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         ),
       ];
     }
+    // O acesso rápido (14/10/2026)
+    case "atalho_grupo_criar":
+      return [q("criou o grupo "), b(txt(n["grupo"]) ?? ""), q(" no acesso rápido")];
+    case "atalho_grupo_editar":
+      return [q("editou o grupo "), b(txt(n["grupo"]) ?? ""), q(" do acesso rápido")];
+    case "atalho_grupo_excluir":
+      return [
+        q("excluiu o grupo "),
+        b(txt(n["grupo"]) ?? ""),
+        q(` do acesso rápido${Number(n["links"]) ? `, com ${String(n["links"])} links` : ""}`),
+      ];
+    case "atalho_criar":
+      return [
+        q("criou o link "),
+        b(txt(n["link"]) ?? ""),
+        q(` no grupo ${txt(n["grupo"]) ?? ""}${n["restrito"] ? " (restrito)" : ""}`),
+      ];
+    case "atalho_editar":
+      return [
+        q("editou o link "),
+        b(txt(n["link"]) ?? ""),
+        q(` do grupo ${txt(n["grupo"]) ?? ""}${n["restrito"] ? " (restrito)" : ""}`),
+      ];
+    case "atalho_excluir":
+      return [
+        q("excluiu o link "),
+        b(txt(n["link"]) ?? ""),
+        q(` do grupo ${txt(n["grupo"]) ?? ""}`),
+      ];
     case "escala_folga_fixa": {
       const dias = Array.isArray(n["dias"]) ? (n["dias"] as number[]) : [];
       return [

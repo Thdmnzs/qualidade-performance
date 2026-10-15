@@ -380,7 +380,10 @@ Quem falha em mais de um requisito leva **todos** os motivos (e não só o prime
 - **A busca** procura em todos os grupos, sem acento. Os links abrem numa aba nova.
 - **Os "Meus atalhos":** a estrela fixa um link no topo. Ficam guardados no navegador de cada pessoa.
 - **Os restritos** (as planilhas de PIN/PUK) aparecem só para o ADM.
-- **A lista mora no código** (`src/lib/acesso-rapido.ts`): para mudar um link, é uma mudança no sistema.
+- **A lista mora no banco**, e o **ADM a edita** na tela "Acesso rápido" (pelo botão "✏️ Editar", ao lado
+  do título): acrescentar, renomear (com o emoji), reordenar e excluir os grupos; e, dentro deles,
+  acrescentar, editar (o nome, o endereço, o subgrupo, o "restrito"), reordenar e excluir os links. Só
+  endereços com https://, e cada mudança vai para o Histórico. Os restritos só chegam ao ADM (o banco decide).
 
 ## 12. Painel e Histórico (ADM)
 
@@ -466,4 +469,5 @@ contagens do limite de uso.
 | 14/10/2026 | O horário diferente aos fins de semana (o botão e a ordem usam o horário de cada dia). |
 | 14/10/2026 | A sincronização do Notion passa a ler também a página da Flukepédia (todos os processos, e não só os do Índice Mestre). |
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
+| 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |

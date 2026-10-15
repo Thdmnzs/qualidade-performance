@@ -1,5 +1,9 @@
-import { ChevronRight, ExternalLink, Link2, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight, ExternalLink, Link2, Pencil, Star } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { lerAcessoRapido } from "@/lib/acesso-rapido-api";
 
 import {
   Sheet,
@@ -29,7 +33,14 @@ export function AcessoRapido({
   perfil: string | null | undefined;
   pessoa: string | null | undefined;
 }) {
-  const grupos = gruposVisiveis(perfil);
+  // A lista mora no banco (o ADM a edita); os restritos só chegam ao ADM.
+  const { data } = useQuery({
+    queryKey: ["acesso-rapido"],
+    queryFn: lerAcessoRapido,
+    enabled: !!pessoa,
+    staleTime: 5 * 60_000,
+  });
+  const grupos = gruposVisiveis(perfil, data ?? []);
   const [busca, setBusca] = useState("");
   const [abertos, setAbertos] = useState<Set<string>>(() => new Set(["Atendimento"]));
   const [atalhos, setAtalhos] = useState<string[]>([]);
@@ -123,9 +134,20 @@ export function AcessoRapido({
   );
   return (
     <div>
-      <p className="px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-        Acesso rápido
-      </p>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          Acesso rápido
+        </p>
+        {perfil === "adm" && (
+          <Link
+            to="/admin/acesso-rapido"
+            className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+            aria-label="Editar o acesso rápido"
+          >
+            <Pencil className="size-3" aria-hidden="true" /> Editar
+          </Link>
+        )}
+      </div>
       <input
         type="search"
         value={busca}
