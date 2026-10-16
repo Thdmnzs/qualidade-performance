@@ -385,6 +385,19 @@ html.dark {
   .cartao-ind.escuro .anterior b {
     color: #111311;
   }
+  /* (16/10/2026) Dentro da meta: o cartão em verde claro, e as informações em preto. */
+  .cartao-ind.verde {
+    background: #e6f4ea;
+    border: 1px solid #b7dec3;
+    color: #111311;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+  }
+  .cartao-ind.verde .rotulo,
+  .cartao-ind.verde .valor,
+  .cartao-ind.verde .anterior,
+  .cartao-ind.verde .anterior b {
+    color: #111311;
+  }
   /* (16/10/2026) A situação em destaque: a pílula cheia, maior, com um ícone. */
   .cartao-ind .pilula {
     font-size: 13px;
@@ -443,6 +456,12 @@ html.dark {
   .cartao-ind .etiqueta.info {
     background: #eef0ee;
     color: #5b635b;
+  }
+  /* (16/10/2026) Dentro da meta: o cartão em verde claro (como o fora da meta é vermelho claro). */
+  .cartao-ind.claro.ok {
+    background: #e7f5ec;
+    border: 1px solid #b4dec3;
+    color: #111311;
   }
 }
 
@@ -556,6 +575,59 @@ html.dark .raridade-texto {
   html.dark .cartao-ind .etiqueta.info {
     background: #1d2a21;
     color: #a9b8ae;
+  }
+  /* (16/10/2026) No modo escuro, para TODOS os cartões (inclusive um tipo novo): o nome em cinza claro, e o
+     valor e a quinzena anterior em branco. Antes, cada tipo tinha a sua regra, e o informativo ficou sem ela. */
+  html.dark .cartao-ind .rotulo {
+    color: #c3d2c8;
+  }
+  html.dark .cartao-ind .valor,
+  html.dark .cartao-ind .anterior b {
+    color: #f1f6f2;
+  }
+  html.dark .cartao-ind .anterior {
+    color: #a9b8ae;
+  }
+  html.dark .cartao-ind .valor.aguardando {
+    color: #c3d2c8;
+  }
+  /* o fora da meta: o vermelho escuro (com o texto claro) */
+  html.dark .cartao-ind.escuro .rotulo,
+  html.dark .cartao-ind.escuro .valor,
+  html.dark .cartao-ind.escuro .anterior,
+  html.dark .cartao-ind.escuro .anterior b {
+    color: #f6e7e5;
+  }
+  /* o dentro da meta: o verde escuro (com o texto claro) */
+  html.dark .cartao-ind.verde {
+    background: #12301c;
+    border-color: #25603b;
+    color: #e6f0ea;
+  }
+  html.dark .cartao-ind.verde .rotulo {
+    color: #cfe3d5;
+  }
+  /* (16/10/2026) No modo escuro, o texto claro em TODOS os cartões (o nome sumia no informativo). */
+  html.dark .cartao-ind .rotulo,
+  html.dark .cartao-ind .anterior {
+    color: #b9c7bd;
+  }
+  html.dark .cartao-ind .valor,
+  html.dark .cartao-ind .anterior b,
+  html.dark .cartao-ind .valor.aguardando {
+    color: #eef5f0;
+  }
+  html.dark .cartao-ind.escuro .rotulo,
+  html.dark .cartao-ind.escuro .anterior,
+  html.dark .cartao-ind.escuro .valor,
+  html.dark .cartao-ind.escuro .anterior b {
+    color: #f6e7e5;
+  }
+  /* (16/10/2026) No modo escuro, o dentro da meta num verde escuro. */
+  html.dark .cartao-ind.claro.ok {
+    background: #12301f;
+    border-color: #2b6b44;
+    color: #eef5f0;
   }
 }
 
