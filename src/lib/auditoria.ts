@@ -34,6 +34,7 @@ export const CATEGORIAS: Record<string, string[]> = {
     "definir_perfil",
     "dados_pessoais_corrigir",
   ],
+  Indicadores: ["nome_na_planilha"],
   "Acesso rápido": [
     "atalho_grupo_criar",
     "atalho_grupo_editar",
@@ -259,6 +260,16 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         ),
       ];
     }
+    // Os indicadores pela planilha (16/10/2026)
+    case "nome_na_planilha":
+      return n["nome_na_planilha"] == null
+        ? [q("desligou o nome da planilha de "), b(alvo)]
+        : [
+            q("ligou o nome da planilha "),
+            b(`“${txt(n["nome_na_planilha"]) ?? ""}”`),
+            q(" a "),
+            b(alvo),
+          ];
     // O acesso rápido (14/10/2026)
     case "atalho_grupo_criar":
       return [q("criou o grupo "), b(txt(n["grupo"]) ?? ""), q(" no acesso rápido")];

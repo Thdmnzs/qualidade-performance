@@ -371,6 +371,79 @@ html.dark {
     border-color: #c9cdc9;
     color: #1a1d1a;
   }
+  /* (16/10/2026) Fora da meta: o cartão em vermelho claro, e as informações em preto. */
+  .cartao-ind.escuro {
+    background: #fde4e2;
+    border: 1px solid #f4b4ae;
+    color: #111311;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+  }
+  .cartao-ind.escuro .rotulo,
+  .cartao-ind.escuro .valor,
+  .cartao-ind.escuro .delta,
+  .cartao-ind.escuro .anterior,
+  .cartao-ind.escuro .anterior b {
+    color: #111311;
+  }
+  /* (16/10/2026) A situação em destaque: a pílula cheia, maior, com um ícone. */
+  .cartao-ind .pilula {
+    font-size: 13px;
+    font-weight: 800;
+    padding: 5px 12px;
+    border-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cartao-ind .pilula::before {
+    font-size: 12px;
+    line-height: 1;
+  }
+  .cartao-ind .pilula.ok {
+    background: #157a3a;
+    color: #fff;
+  }
+  .cartao-ind .pilula.ok::before {
+    content: "✓";
+  }
+  .cartao-ind .pilula.fora {
+    background: #c62828;
+    color: #fff;
+  }
+  .cartao-ind .pilula.fora::before {
+    content: "!";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: #fff;
+    color: #c62828;
+    font-weight: 900;
+  }
+  .cartao-ind .pilula.aguardando {
+    background: #e3e7e3;
+    color: #1a1d1a;
+  }
+  .cartao-ind .pilula.aguardando::before,
+  .cartao-ind .pilula.info::before {
+    content: "ℹ";
+  }
+  /* (16/10/2026) O informativo: sem meta, com a borda tracejada e a pílula azul. */
+  .cartao-ind.info {
+    background: #ffffff;
+    border: 1px dashed #c9cdc9;
+    color: #111311;
+  }
+  .cartao-ind .pilula.info {
+    background: #2b5fc9;
+    color: #fff;
+  }
+  .cartao-ind .etiqueta.info {
+    background: #eef0ee;
+    color: #5b635b;
+  }
 }
 
 /* Rótulo de raridade: tom escuro no claro, a cor original no escuro. */
@@ -440,6 +513,49 @@ html.dark .raridade-texto {
   }
   html.dark .cartao-ind.claro .descricao {
     color: #a3b2a8;
+  }
+  /* (16/10/2026) No modo escuro: o fora da meta num vermelho escuro (para não ofuscar), e as pílulas. */
+  html.dark .cartao-ind.escuro {
+    background: #3a1c1a;
+    border-color: #6b2d28;
+    color: #f6e7e5;
+  }
+  html.dark .cartao-ind.escuro .rotulo,
+  html.dark .cartao-ind.escuro .valor,
+  html.dark .cartao-ind.escuro .delta,
+  html.dark .cartao-ind.escuro .anterior,
+  html.dark .cartao-ind.escuro .anterior b {
+    color: #f6e7e5;
+  }
+  html.dark .cartao-ind .pilula.ok {
+    background: #1f9d4c;
+    border-color: #1f9d4c;
+    color: #fff;
+  }
+  html.dark .cartao-ind .pilula.fora {
+    background: #e5484d;
+    border-color: #e5484d;
+    color: #fff;
+  }
+  html.dark .cartao-ind .pilula.fora::before {
+    color: #e5484d;
+  }
+  html.dark .cartao-ind .pilula.aguardando {
+    background: #2a3a2f;
+    color: #e6f0ea;
+  }
+  html.dark .cartao-ind.info {
+    background: #112019;
+    border-color: rgb(255 255 255 / 18%);
+    color: #e6f0ea;
+  }
+  html.dark .cartao-ind .pilula.info {
+    background: #3b6fd9;
+    color: #fff;
+  }
+  html.dark .cartao-ind .etiqueta.info {
+    background: #1d2a21;
+    color: #a9b8ae;
   }
 }
 

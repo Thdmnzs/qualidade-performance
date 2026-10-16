@@ -277,5 +277,13 @@ describe("o acesso rápido no Histórico", () => {
       texto({ acao: "atalho_grupo_excluir", valor_novo: { grupo: "Financeiro", links: 4 } }),
     ).toBe("excluiu o grupo Financeiro do acesso rápido, com 4 links");
     expect(categoriaDe("atalho_criar")).toBe("Acesso rápido");
+    expect(
+      texto({
+        acao: "nome_na_planilha",
+        alvo: "Luiz Oliveira",
+        valor_novo: { colaborador: "Luiz Oliveira", nome_na_planilha: "Luiz Fernando" },
+      }),
+    ).toBe("ligou o nome da planilha “Luiz Fernando” a Luiz Oliveira");
+    expect(categoriaDe("nome_na_planilha")).toBe("Indicadores");
   });
 });

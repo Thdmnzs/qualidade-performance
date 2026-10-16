@@ -1,132 +1,400 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { FileUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { ExternalLink, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { EmptyState, PageHeader } from "@/components/page-header";
-import { CartaoIndicador } from "@/components/cartao-indicador";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { usePermissoes } from "@/hooks/useAuth";
-import { dataBR, nomeQuinzena } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
+import { dataHoraBR } from "@/lib/format";
+import { lerPlanilhaAgoraFn } from "@/lib/indicadores.functions";
+import { PLANILHA_DOS_INDICADORES } from "@/lib/planilha-indicadores";
 import {
-  diasDaQuinzena,
-  horasEMinutos,
-  horasExigidas,
-  INDICADORES,
-  textoDaMeta,
-} from "@/lib/indicadores";
-import { fetchMetas, fetchQuinzenas } from "@/lib/queries";
+  gruposDaTabela,
+  linhasDosDados,
+  tabelaDaAnalise,
+  type Grupo,
+} from "@/lib/tabela-da-planilha";
 
 export const Route = createFileRoute("/_authenticated/admin/indicadores")({
-  head: () => ({
-    meta: [
-      { title: "Indicadores · CX Hub" },
-      {
-        name: "description",
-        content: "Indicadores do time, enviados em arquivo e revisados pelo ADM.",
-      },
-    ],
-  }),
-  component: Indicadores,
+  head: () => ({ meta: [{ title: "Indicadores · CX Hub" }] }),
+  component: IndicadoresDaSupervisao,
 });
 
-function Indicadores() {
+type Copia = { valores: string[][]; dia: string | null; lida_em: string };
+type Leitura = {
+  id: string;
+  lida_em: string;
+  origem: string;
+  gravadas: number;
+  ignoradas: { nome: string; linhas: number }[];
+  erro: string | null;
+};
+const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const diaCurto = (iso: string) =>
+  `${SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()]} ${iso.slice(8)}/${iso.slice(5, 7)}`;
+
+/**
+ * Os indicadores na visão da supervisão (16/10/2026): a CÓPIA da planilha, arrumada no layout do CX Hub.
+ * "Ontem" copia as linhas do dia anterior da aba Dados; "A quinzena", a aba Análise (no período escolhido
+ * na própria planilha). Nada é calculado: os valores e a formatação são os da planilha.
+ */
+function IndicadoresDaSupervisao() {
   const { isAdmin, isLoading } = usePermissoes();
-  const [fortnightId, setFortnightId] = useState("");
-
-  const { data: quinzenas = [] } = useQuery({
-    queryKey: ["quinzenas"],
-    queryFn: fetchQuinzenas,
+  const qc = useQueryClient();
+  const lerAgora = useServerFn(lerPlanilhaAgoraFn);
+  const [aba, setAba] = useState<"ontem" | "quinzena">("ontem");
+  const [membro, setMembro] = useState("");
+  const [lendo, setLendo] = useState(false);
+  const { data: copia } = useQuery({
+    queryKey: ["copia-da-planilha"],
     enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("copia_da_planilha");
+      if (error) throw error;
+      return (data ?? {}) as { dados?: Copia; analise?: Copia };
+    },
   });
-  useEffect(() => {
-    if (!fortnightId && quinzenas[0]) setFortnightId(quinzenas[0].id);
-  }, [quinzenas, fortnightId]);
-  const quinzena = quinzenas.find((q) => q.id === fortnightId);
-
-  // Metas: fonte única no banco (regra de negócio "metas_indicadores").
-  // Metas: fonte única no banco (regra de negócio "metas_indicadores").
-  const { data: metas, isLoading: carregandoMetas } = useQuery({
-    queryKey: ["metas-indicadores"],
-    queryFn: fetchMetas,
+  const { data: leituras = [] } = useQuery({
+    queryKey: ["leituras-da-planilha"],
     enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("leituras_da_planilha_recentes");
+      if (error) throw error;
+      return (data ?? []) as Leitura[];
+    },
   });
-
-  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
+  if (isLoading) return null;
   if (!isAdmin)
     return (
       <EmptyState titulo="Acesso restrito" texto="Esta área é exclusiva de administradores." />
     );
 
+  async function ler() {
+    setLendo(true);
+    try {
+      const r = await lerAgora();
+      if (r.ok)
+        toast.success(
+          `A planilha foi lida: ${r.gravadas} ${r.gravadas === 1 ? "linha gravada" : "linhas gravadas"}.`,
+        );
+      else toast.error(r.erro);
+      await qc.invalidateQueries({ queryKey: ["copia-da-planilha"] });
+      await qc.invalidateQueries({ queryKey: ["leituras-da-planilha"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLendo(false);
+    }
+  }
+  const ultima = leituras[0];
+  const dados = linhasDosDados(copia?.dados?.valores ?? []);
+  const analise = tabelaDaAnalise(copia?.analise?.valores ?? []);
+  const daQuinzena = aba === "quinzena";
+  const cabecalho = daQuinzena ? analise.cabecalho : dados.cabecalho;
+  const posMembro = cabecalho.findIndex((c) => c.trim().toLowerCase() === "membro");
+  const todas = daQuinzena ? analise.linhas : dados.linhas;
+  const linhas = todas.filter((l) => !membro || l[posMembro] === membro);
+  const nomes = [
+    ...new Set(
+      [...dados.linhas, ...analise.linhas].map((l, i) =>
+        i < dados.linhas.length
+          ? l[dados.cabecalho.findIndex((c) => c.trim().toLowerCase() === "membro")]
+          : l[0],
+      ),
+    ),
+  ]
+    .filter((n): n is string => !!n && n !== "TIME")
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const pessoas = linhas.filter((l) => l[posMembro] !== "TIME").length;
   return (
     <div>
       <PageHeader
         titulo="Indicadores"
-        descricao="Os relatórios são enviados em arquivo (Excel ou CSV) e só vão para os colaboradores depois da revisão do ADM."
+        descricao={
+          ultima
+            ? `📥 Lida ${dataHoraBR(ultima.lida_em)}, da planilha "CX - Métricas individuais do time" · a próxima leitura é amanhã, às 8h`
+            : "📥 A planilha ainda não foi lida. Clique em “Ler agora”."
+        }
+        acao={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={ler} disabled={lendo}>
+              <RefreshCw className={`size-4 ${lendo ? "animate-spin" : ""}`} />{" "}
+              {lendo ? "Lendo..." : "Ler agora"}
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={PLANILHA_DOS_INDICADORES.url} target="_blank" rel="noopener noreferrer">
+                Abrir a planilha <ExternalLink className="size-4" />
+              </a>
+            </Button>
+          </div>
+        }
       />
-
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="ind-quinzena" className="text-xs text-muted-foreground">
-            Quinzena
-          </Label>
-          <select
-            id="ind-quinzena"
-            value={fortnightId}
-            onChange={(e) => setFortnightId(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {quinzenas.map((q) => (
-              <option key={q.id} value={q.id}>
-                {nomeQuinzena(q)}
-              </option>
-            ))}
-          </select>
+      {ultima?.erro && (
+        <div
+          className="mb-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
+          role="alert"
+        >
+          <b>⚠️ A última leitura falhou</b> ({dataHoraBR(ultima.lida_em)}): {ultima.erro}
         </div>
-        {quinzena && (
-          <p className="pb-2 text-sm text-muted-foreground">
-            {dataBR(quinzena.data_inicio)} a {dataBR(quinzena.data_fim)} ·{" "}
-            {diasDaQuinzena(quinzena)} dias
+      )}
+      {ultima && !ultima.erro && ultima.ignoradas.length > 0 && (
+        <NomesSemDono ignoradas={ultima.ignoradas} aoLigar={ler} />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="inline-flex rounded-lg border border-border p-1 text-sm font-bold"
+          role="tablist"
+          aria-label="O período"
+        >
+          {(
+            [
+              ["ontem", copia?.dados?.dia ? `Ontem · ${diaCurto(copia.dados.dia)}` : "Ontem"],
+              ["quinzena", "A quinzena (aba Análise)"],
+            ] as const
+          ).map(([k, rotulo]) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={aba === k}
+              onClick={() => setAba(k)}
+              className={`rounded-md px-3 py-1.5 ${aba === k ? "bg-primary text-primary-foreground" : ""}`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+        <select
+          aria-label="O membro"
+          value={membro}
+          onChange={(e) => setMembro(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 text-sm font-bold"
+        >
+          <option value="">Todo o time</option>
+          <option value="TIME">Só o TIME (o total)</option>
+          {nomes.map((n) => (
+            <option key={n}>{n}</option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {pessoas} {pessoas === 1 ? "pessoa" : "pessoas"}
+          {linhas.some((l) => l[posMembro] === "TIME") ? " e o TIME" : ""}
+        </span>
+      </div>
+      {daQuinzena && analise.info.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-xl bg-secondary px-4 py-2.5 text-sm">
+          {analise.info.map(([k, v]) => (
+            <span key={k}>
+              <span className="text-muted-foreground">{k}:</span> <b>{v}</b>
+            </span>
+          ))}
+          <span className="text-muted-foreground">
+            · copiado da aba Análise (o período se escolhe na planilha)
+          </span>
+        </div>
+      )}
+      <div className="mt-3 max-h-[calc(100vh-15rem)] min-h-64 overflow-auto rounded-2xl border border-border bg-card">
+        {cabecalho.length === 0 || linhas.length === 0 ? (
+          <p className="p-8 text-center text-sm text-muted-foreground">
+            {cabecalho.length === 0
+              ? "Ainda não há uma cópia da planilha. Clique em “Ler agora”."
+              : "Nenhuma linha para esse filtro."}
           </p>
+        ) : (
+          <TabelaDaPlanilha
+            grupos={gruposDaTabela(cabecalho)}
+            linhas={linhas}
+            posMembro={posMembro}
+            fixas={posMembro + 1}
+          />
         )}
       </div>
+    </div>
+  );
+}
 
-      {carregandoMetas ? (
-        <p className="text-sm text-muted-foreground">Carregando metas...</p>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {INDICADORES.map((ind) => {
-            const meta = metas?.[ind.chave];
-            return (
-              // Formato dos cartões de indicador; aqui o valor grande é a META.
-              <CartaoIndicador
-                key={ind.chave}
-                rotulo={ind.titulo}
-                etiqueta={meta?.escopo === "time" ? "do time" : "individual"}
-                valor={meta ? textoDaMeta(meta) : null}
-                situacao={meta ? "ok" : "aguardando"}
-                textoDaSituacao={meta ? "meta vigente" : "meta não configurada"}
+/** A tabela: as linhas alternadas, os cabeçalhos agrupados, as primeiras colunas fixas e o TIME em destaque. */
+function TabelaDaPlanilha({
+  grupos,
+  linhas,
+  posMembro,
+  fixas,
+}: {
+  grupos: Grupo[];
+  linhas: string[][];
+  posMembro: number;
+  fixas: number;
+}) {
+  const colunas = grupos.flatMap((g) =>
+    g.colunas.map((c, k) => ({
+      ...c,
+      inicio: k === 0 && g.nome !== "",
+      aguardandoGrupo: !!g.aguardando,
+    })),
+  );
+  const LARGURA = [104, 132];
+  const esquerda = (i: number) => LARGURA.slice(0, i).reduce((a, b) => a + b, 0);
+  const fixa = (i: number) =>
+    i < fixas ? `sticky z-[1] ${i === fixas - 1 ? "border-r border-border font-bold" : ""}` : "";
+  let par = 0;
+  return (
+    <table className="min-w-full border-separate border-spacing-0 text-[13px]">
+      <thead>
+        <tr>
+          {grupos.map((g, i) => (
+            <th
+              key={`${g.nome}-${i}`}
+              colSpan={g.colunas.length}
+              className={`sticky top-0 z-[3] h-[34px] border-l-2 border-card px-3 text-center text-[11px] font-bold uppercase tracking-[0.08em] ${g.aguardando ? "bg-primary/15" : "bg-muted"} ${i === 0 ? "left-0 z-[5]" : ""}`}
+            >
+              {g.nome}
+              {g.aguardando && (
+                <span
+                  className="ml-1.5 rounded-full bg-card px-1.5 py-px align-[1px] text-[9.5px] normal-case tracking-normal text-primary"
+                  title="As duas colunas aparecem preenchidas quando a planilha as tiver (o percentil calculado pelo Intercom)."
+                >
+                  aguardando a planilha
+                </span>
+              )}
+            </th>
+          ))}
+        </tr>
+        <tr>
+          {colunas.map((c, i) => (
+            <th
+              key={`${c.nome}-${i}`}
+              title={c.nome}
+              style={i < fixas ? { left: esquerda(i), minWidth: LARGURA[i] } : undefined}
+              className={`sticky top-[34px] z-[2] whitespace-nowrap border-b border-border bg-secondary px-3 py-2 text-[11.5px] font-bold text-muted-foreground ${i < fixas ? "z-[4] text-left" : "text-right"} ${c.inicio ? "border-l-2 border-l-card" : ""}`}
+            >
+              {c.curto}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {linhas.map((l, n) => {
+          const ehTime = l[posMembro] === "TIME";
+          const fundo = ehTime
+            ? "bg-primary/10 font-bold"
+            : par++ % 2
+              ? "bg-secondary/70"
+              : "bg-card";
+          return (
+            <tr key={n} className="group">
+              {colunas.map((c, i) => {
+                const v = c.indice === null ? "" : (l[c.indice] ?? "");
+                return (
+                  <td
+                    key={i}
+                    style={i < fixas ? { left: esquerda(i), minWidth: LARGURA[i] } : undefined}
+                    className={`whitespace-nowrap px-3 py-[7px] tabular-nums group-hover:bg-accent ${fundo} ${fixa(i)} ${i < fixas ? "text-left" : "text-right"} ${c.inicio ? "border-l-2 border-l-border" : ""} ${v === "" ? "text-muted-foreground" : ""} ${ehTime && i === fixas - 1 ? "text-primary" : ""} ${c.aguardandoGrupo ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_112_10/5%)_6px_12px)]" : ""}`}
+                  >
+                    {v === "" ? "—" : v}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/** Os nomes da planilha que não estão ligados a ninguém (a última leitura os ignorou): ligar a uma pessoa. */
+function NomesSemDono({
+  ignoradas,
+  aoLigar,
+}: {
+  ignoradas: { nome: string; linhas: number }[];
+  aoLigar: () => void;
+}) {
+  const qc = useQueryClient();
+  const sem = ignoradas.filter((i) => !i.nome.includes("(números inválidos"));
+  const invalidos = ignoradas.filter((i) => i.nome.includes("(números inválidos"));
+  const { data: pessoas = [] } = useQuery({
+    queryKey: ["pessoas-para-a-planilha"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, nome, nome_na_planilha")
+        .eq("status", "ativo")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const [escolha, setEscolha] = useState<Record<string, string>>({});
+  async function ligar(nome: string) {
+    const id = escolha[nome];
+    if (!id) return;
+    const { error } = await supabase.rpc("associar_nome_da_planilha", {
+      _employee_id: id,
+      _nome: nome,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`“${nome}” ligado. Lendo a planilha de novo...`);
+    await qc.invalidateQueries({ queryKey: ["pessoas-para-a-planilha"] });
+    aoLigar();
+  }
+  return (
+    <div
+      className="mb-3 rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 text-sm"
+      role="status"
+    >
+      {sem.length > 0 && (
+        <>
+          <p className="font-bold">
+            ⚠️{" "}
+            {sem.length === 1
+              ? "Um nome da planilha não está ligado"
+              : `${sem.length} nomes da planilha não estão ligados`}{" "}
+            a ninguém do cadastro
+          </p>
+          <p className="text-xs text-muted-foreground">
+            As linhas desses nomes não entram nos indicadores dos colaboradores até serem ligadas.
+          </p>
+          {sem.map((i) => (
+            <div key={i.nome} className="mt-2 flex flex-wrap items-center gap-2">
+              <b>“{i.nome}”</b>{" "}
+              <span className="text-xs text-muted-foreground">
+                ({i.linhas} {i.linhas === 1 ? "linha" : "linhas"})
+              </span>
+              <select
+                aria-label={`A pessoa de ${i.nome}`}
+                value={escolha[i.nome] ?? ""}
+                onChange={(e) => setEscolha({ ...escolha, [i.nome]: e.target.value })}
+                className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
               >
-                {ind.chave === "horas_online" && meta && quinzena && (
-                  <p className="text-sm">
-                    Nesta quinzena:{" "}
-                    <strong>{horasEMinutos(horasExigidas(quinzena, meta.meta))}</strong> em{" "}
-                    {diasDaQuinzena(quinzena)} dias
-                  </p>
-                )}
-                <p className="text-sm text-muted-foreground">{ind.explicacao}</p>
-                {/* O envio depende do formato de cada relatório, que está sendo levantado com os gestores. */}
-                <Button variant="outline" className="mt-2 w-full font-bold" disabled>
-                  <FileUp className="size-4" /> Enviar relatório
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Disponível assim que o modelo do arquivo for definido.
-                </p>
-              </CartaoIndicador>
-            );
-          })}
-        </div>
+                <option value="">Escolha a pessoa...</option>
+                {pessoas.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                    {p.nome_na_planilha ? ` (hoje: ${p.nome_na_planilha})` : ""}
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" disabled={!escolha[i.nome]} onClick={() => ligar(i.nome)}>
+                Ligar
+              </Button>
+            </div>
+          ))}
+        </>
+      )}
+      {invalidos.length > 0 && (
+        <p className="mt-2 text-xs">
+          <b>Linhas com números inválidos</b> (ignoradas): {invalidos.map((i) => i.nome).join("; ")}
+          . Vale conferir na planilha.
+        </p>
       )}
     </div>
   );

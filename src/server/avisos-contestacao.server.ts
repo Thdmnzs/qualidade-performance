@@ -96,6 +96,11 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
     timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado));
   if (!igual) return new Response("Não autorizado.", { status: 401 });
   // A Central de Turnos (13/10/2026) também recupera, de manhã, os avisos de troca que se perderam.
+  // Os indicadores (15/10/2026): a planilha é lida todo dia às 8h, junto da tarefa da manhã.
+  const { lerPlanilhaDosIndicadores } = await import("@/server/planilha-indicadores.server");
+  const leitura = await lerPlanilhaDosIndicadores("automatica");
+  if (!leitura.ok)
+    console.error("[tarefa da manhã] a planilha dos indicadores não foi lida:", leitura.erro);
   const { avisosDeTrocaPendentes } = await import("@/server/central-de-turnos.server");
   const trocas = await avisosDeTrocaPendentes();
   // A central de notificações (13/10/2026): as novidades com mais de 30 dias são apagadas.

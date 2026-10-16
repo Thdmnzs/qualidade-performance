@@ -470,4 +470,24 @@ contagens do limite de uso.
 | 14/10/2026 | A sincronização do Notion passa a ler também a página da Flukepédia (todos os processos, e não só os do Índice Mestre). |
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
+| 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro. |
 | 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |
+
+## Os indicadores pela planilha (16/10/2026)
+
+- **A fonte:** a planilha "CX - Métricas individuais do time" (Google Sheets), compartilhada, como leitora, com a
+  conta de serviço `qualityhub-leitor@qualityhub-510921.iam.gserviceaccount.com`. Ela é lida **todo dia às 8h**
+  (na tarefa da manhã) e quando o ADM clica em **"Ler agora"**. Cada leitura fica registrada.
+- **A aba "Dados"** (uma linha por pessoa e por dia) alimenta as telas do colaborador. O **"nome na planilha"** de
+  cada pessoa (no cadastro) liga a linha a ela; um nome sem dono aparece para o ADM, que o liga ali mesmo. O TIME e o
+  dia de hoje (ainda enchendo) não entram. As **horas ativas** são as horas online da meta.
+- **O colaborador** vê os dele **todo dia**, com o dia anterior, em quatro abas: a **Produtividade** (por hora ativa:
+  o total e o membro da equipe, informativos, e a ajustada, que vale para o bônus e o ranking), o **SLA** (o geral do
+  chat e do e-mail, a média do B2C e do B2B, com a meta; e o B2C e o B2B, com a 1ª resposta, informativa, e o geral),
+  a **Qualidade** (na publicação) e o **CSAT do time**. Os números da quinzena são parciais (até ontem); o oficial sai
+  no fechamento. A conta da quinzena: as somas (as conversas, as horas, as avaliações) e as taxas pelas somas; o SLA,
+  a média dos dias.
+- **A supervisão** vê a **cópia da planilha**, sem nenhum cálculo do CX Hub: o **"Ontem"**, as linhas do dia anterior
+  da aba "Dados"; a **"quinzena"**, a aba "Análise" (no período escolhido na própria planilha). As colunas são achadas
+  pelo nome, então uma coluna nova aparece sozinha. O **SLA geral (percentil)** do Intercom vai entrar como duas colunas
+  novas da planilha; até lá, ele aparece vazio, "aguardando a planilha".

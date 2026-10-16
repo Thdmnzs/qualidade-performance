@@ -509,6 +509,7 @@ export type Database = {
           turno: string | null;
           updated_at: string;
           user_id: string | null;
+          nome_na_planilha: string | null;
         };
         Insert: {
           created_at?: string;
@@ -521,6 +522,7 @@ export type Database = {
           turno?: string | null;
           updated_at?: string;
           user_id?: string | null;
+          nome_na_planilha?: string | null;
         };
         Update: {
           created_at?: string;
@@ -533,6 +535,7 @@ export type Database = {
           turno?: string | null;
           updated_at?: string;
           user_id?: string | null;
+          nome_na_planilha?: string | null;
         };
         Relationships: [];
       };
@@ -761,6 +764,84 @@ export type Database = {
           status?: Database["public"]["Enums"]["fortnight_status"];
           tipo?: Database["public"]["Enums"]["fortnight_type"];
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      indicadores_diarios: {
+        Row: {
+          id: string;
+          employee_id: string;
+          dia: string;
+          conversas_atribuidas: number | null;
+          autoatribuicoes: number | null;
+          tempo_ativo_min: number | null;
+          sla_chat_s: number | null;
+          sla_email_s: number | null;
+          csat_positivas: number | null;
+          csat_total: number | null;
+          horas_logadas_min: number | null;
+          importacao_id: string | null;
+          leitura_id: string | null;
+          created_at: string;
+          updated_at: string;
+          sla_b2c_chat_1_s: number | null;
+          sla_b2c_email_1_s: number | null;
+          sla_b2c_chat_g_s: number | null;
+          sla_b2c_email_g_s: number | null;
+          sla_b2b_chat_1_s: number | null;
+          sla_b2b_email_1_s: number | null;
+          sla_b2b_chat_g_s: number | null;
+          sla_b2b_email_g_s: number | null;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          dia: string;
+          conversas_atribuidas?: number | null;
+          autoatribuicoes?: number | null;
+          tempo_ativo_min?: number | null;
+          sla_chat_s?: number | null;
+          sla_email_s?: number | null;
+          csat_positivas?: number | null;
+          csat_total?: number | null;
+          horas_logadas_min?: number | null;
+          importacao_id?: string | null;
+          leitura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          sla_b2c_chat_1_s?: number | null;
+          sla_b2c_email_1_s?: number | null;
+          sla_b2c_chat_g_s?: number | null;
+          sla_b2c_email_g_s?: number | null;
+          sla_b2b_chat_1_s?: number | null;
+          sla_b2b_email_1_s?: number | null;
+          sla_b2b_chat_g_s?: number | null;
+          sla_b2b_email_g_s?: number | null;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          dia?: string;
+          conversas_atribuidas?: number | null;
+          autoatribuicoes?: number | null;
+          tempo_ativo_min?: number | null;
+          sla_chat_s?: number | null;
+          sla_email_s?: number | null;
+          csat_positivas?: number | null;
+          csat_total?: number | null;
+          horas_logadas_min?: number | null;
+          importacao_id?: string | null;
+          leitura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          sla_b2c_chat_1_s?: number | null;
+          sla_b2c_email_1_s?: number | null;
+          sla_b2c_chat_g_s?: number | null;
+          sla_b2c_email_g_s?: number | null;
+          sla_b2b_chat_1_s?: number | null;
+          sla_b2b_email_1_s?: number | null;
+          sla_b2b_chat_g_s?: number | null;
+          sla_b2b_email_g_s?: number | null;
         };
         Relationships: [];
       };
@@ -1315,6 +1396,18 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      gravar_copia_da_planilha: {
+        Args: { _aba: string; _valores: Json; _dia: string | null };
+        Returns: undefined;
+      };
+      copia_da_planilha: { Args: never; Returns: Json };
+      gravar_leitura_da_planilha: { Args: { _origem: string; _linhas: Json }; Returns: Json };
+      registrar_erro_da_leitura: { Args: { _origem: string; _erro: string }; Returns: undefined };
+      leituras_da_planilha_recentes: { Args: never; Returns: Json };
+      associar_nome_da_planilha: {
+        Args: { _employee_id: string; _nome: string };
+        Returns: undefined;
+      };
       salvar_grupo_de_atalhos: {
         Args: { _id: string | null; _nome: string; _icone: string };
         Returns: string;
