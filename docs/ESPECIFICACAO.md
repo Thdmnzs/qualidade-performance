@@ -471,6 +471,7 @@ contagens do limite de uso.
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro, e o dentro da meta, verde claro. |
+| 16/10/2026 | A Visão geral mostra o resultado na publicação (a prévia, durante a contestação; o oficial, depois do fechamento); e o fechamento (a elegibilidade, o ranking e o bônus) passa a ler os indicadores da planilha. |
 | 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |
 
 ## Os indicadores pela planilha (16/10/2026)
@@ -493,3 +494,8 @@ contagens do limite de uso.
   novas da planilha; até lá, ele aparece vazio, "aguardando a planilha".
 - **As cores do cartão:** verde claro dentro da meta, vermelho claro fora, branco aguardando, e a borda tracejada
   (com a pílula azul) no informativo, sem meta. No modo escuro, os mesmos sinais em tons escuros.
+- **A Visão geral, na publicação:** assim que a quinzena é publicada, o colaborador vê os indicadores e a elegibilidade
+  dela, com a marca de **prévia** enquanto a quinzena está em contestação (uma contestação aceita pode mudar a nota); depois
+  do fechamento, o **oficial**. A prévia usa a mesma conta do fechamento.
+- **O fechamento** (a elegibilidade, o ranking e o bônus) lê os indicadores da planilha, pela mesma conta da tela do
+  colaborador. A qualidade (as avaliações), o quiz, as regras e o desempate continuam os mesmos.

@@ -1396,6 +1396,7 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      meu_resultado_da_quinzena: { Args: { _fortnight_id: string }; Returns: Json };
       gravar_copia_da_planilha: {
         Args: { _aba: string; _valores: Json; _dia: string | null };
         Returns: undefined;

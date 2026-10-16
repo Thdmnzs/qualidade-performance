@@ -24,13 +24,7 @@ import {
   type Variacao,
   O_QUE_MEDE,
 } from "@/lib/indicadores";
-import {
-  fetchElegibilidade,
-  fetchMediasTime,
-  fetchMetas,
-  fetchQuinzenas,
-  fetchResultados,
-} from "@/lib/queries";
+import { fetchMetas, fetchQuinzenas } from "@/lib/queries";
 import { quinzenasPublicadas, situacaoExibida } from "@/lib/quinzena";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -44,6 +38,19 @@ export const Route = createFileRoute("/_authenticated/painel")({
 });
 
 type Linha = { rotulo: string; valor: string };
+/** O resultado de uma quinzena publicada (o oficial, ou a prévia), como o banco o devolve. */
+type Resultado = {
+  oficial: boolean;
+  elegivel: boolean | null;
+  motivos: string[];
+  produtividade: number | null;
+  sla_chat: number | null;
+  sla_email: number | null;
+  horas_semanais: number | null;
+  quiz: boolean | null;
+  csat_time: number | null;
+};
+
 type Cartao = {
   chave: string;
   titulo: string;
@@ -79,15 +86,29 @@ function Painel() {
   const employeeId = employee?.id;
 
   const { data: metas = {} } = useQuery({ queryKey: ["metas-indicadores"], queryFn: fetchMetas });
-  const { data: resultados = [] } = useQuery({
-    queryKey: ["resultados", fortnightId, employeeId],
-    queryFn: () => fetchResultados(fortnightId, employeeId!),
+  // O resultado da quinzena publicada (16/10/2026): o oficial (fechada) ou a prévia (em contestação),
+  // pela mesma conta do fechamento. Ele substitui as tabelas antigas dos arquivos, que ninguém preenche.
+  const { data: resultado = null } = useQuery({
+    queryKey: ["meu-resultado", fortnightId, employeeId],
     enabled: !!fortnightId && !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("meu_resultado_da_quinzena", {
+        _fortnight_id: fortnightId,
+      });
+      if (error) throw error;
+      return (data ?? null) as unknown as Resultado | null;
+    },
   });
-  const { data: medias = [] } = useQuery({
-    queryKey: ["medias", fortnightId],
-    queryFn: () => fetchMediasTime(fortnightId),
-    enabled: !!fortnightId,
+  const { data: resultadoAnt = null } = useQuery({
+    queryKey: ["meu-resultado", anteriorId, employeeId],
+    enabled: !!anteriorId && !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("meu_resultado_da_quinzena", {
+        _fortnight_id: anteriorId,
+      });
+      if (error) throw error;
+      return (data ?? null) as unknown as Resultado | null;
+    },
   });
   const { data: qualidade } = useQuery({
     queryKey: ["qualidade", fortnightId, employeeId],
@@ -100,16 +121,6 @@ function Painel() {
       return data?.[0] ?? null;
     },
   });
-  const { data: resultadosAnt = [] } = useQuery({
-    queryKey: ["resultados", anteriorId, employeeId],
-    queryFn: () => fetchResultados(anteriorId, employeeId!),
-    enabled: !!anteriorId && !!employeeId,
-  });
-  const { data: mediasAnt = [] } = useQuery({
-    queryKey: ["medias", anteriorId],
-    queryFn: () => fetchMediasTime(anteriorId),
-    enabled: !!anteriorId,
-  });
   const { data: qualidadeAnt } = useQuery({
     queryKey: ["qualidade", anteriorId, employeeId],
     enabled: !!anteriorId && !!employeeId,
@@ -121,12 +132,8 @@ function Painel() {
       return data?.[0] ?? null;
     },
   });
-  const { data: elegibilidade } = useQuery({
-    queryKey: ["elegibilidade", fortnightId, employeeId],
-    queryFn: () => fetchElegibilidade(fortnightId, employeeId!),
-    enabled: !!fortnightId && !!employeeId,
-  });
-  const motivos = Array.isArray(elegibilidade?.motivos) ? (elegibilidade?.motivos as string[]) : [];
+  const motivos = Array.isArray(resultado?.motivos) ? resultado.motivos : [];
+  const previa = !!resultado && !resultado.oficial;
 
   if (carregandoEmp || carregandoPerfil)
     return <p className="text-sm text-muted-foreground">Carregando...</p>;
@@ -148,10 +155,18 @@ function Painel() {
   }
 
   const numero = (v: unknown) => (v === null || v === undefined ? null : Number(v));
-  const valorDe = (chave: ChaveIndicador, lista = resultados) =>
-    numero(lista.find((x) => x.indicador === chave)?.valor);
-  const mediaDe = (chave: ChaveIndicador, lista = medias) =>
-    numero(lista.find((x) => x.indicador === chave)?.media);
+  const doResultado = (r: Resultado | null, chave: ChaveIndicador) =>
+    numero(
+      r
+        ? {
+            produtividade: r.produtividade,
+            sla_chat: r.sla_chat,
+            sla_email: r.sla_email,
+            csat: r.csat_time,
+            horas_online: r.horas_semanais,
+          }[chave]
+        : null,
+    );
 
   const cartoes: Cartao[] = [];
 
@@ -175,35 +190,16 @@ function Painel() {
     const meta = metas[ind.chave];
     if (!meta) continue;
     const doTime = ind.chave === "csat"; // CSAT é do time: o mesmo valor para todos
-    const atual = doTime ? mediaDe(ind.chave) : valorDe(ind.chave);
-    const ant = doTime ? mediaDe(ind.chave, mediasAnt) : valorDe(ind.chave, resultadosAnt);
-    let medidoNaMeta = atual;
-    if (ind.chave === "horas_online") {
-      // A regra da meta usa a média semanal da quinzena; a variação também.
-      medidoNaMeta = atual === null || !quinzena ? null : mediaSemanal(atual, quinzena);
-      const antSemanal =
-        ant === null || !quinzenaAnterior ? null : mediaSemanal(ant, quinzenaAnterior);
-      cartoes.push({
-        chave: ind.chave,
-        titulo: ind.titulo,
-        etiqueta: "individual",
-        valor: atual === null ? null : formatarValor("horas_online", atual),
-        naMeta: medidoNaMeta === null ? null : atingiuMeta(meta, medidoNaMeta),
-        sentido: meta.sentido,
-        meta: `${meta.meta}h/semana`,
-        variacao: variacao("horas_online", medidoNaMeta, antSemanal, meta.sentido),
-        anterior: ant === null ? null : formatarValor("horas_online", ant),
-      });
-      continue;
-    }
+    const atual = doResultado(resultado, ind.chave);
+    const ant = doResultado(resultadoAnt, ind.chave);
     cartoes.push({
       chave: ind.chave,
       titulo: ind.titulo,
       etiqueta: doTime ? "do time" : "individual",
       valor: atual === null ? null : formatarValor(ind.chave, atual),
-      naMeta: medidoNaMeta === null ? null : atingiuMeta(meta, medidoNaMeta),
+      naMeta: atual === null ? null : atingiuMeta(meta, atual),
       sentido: meta.sentido,
-      meta: textoDaMeta(meta),
+      meta: ind.chave === "horas_online" ? `${meta.meta}h/semana` : textoDaMeta(meta),
       variacao: variacao(ind.chave, atual, ant, meta.sentido),
       anterior: ant === null ? null : formatarValor(ind.chave, ant),
     });
@@ -252,19 +248,20 @@ function Painel() {
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Elegibilidade à premiação
             </p>
-            {elegibilidade ? (
+            {resultado && resultado.elegivel != null ? (
               <>
                 <p
                   className={`mt-2 inline-flex items-center gap-2 font-display text-xl font-bold ${
-                    elegibilidade.elegivel ? "text-primary" : "text-destructive"
+                    resultado.elegivel ? "text-primary" : "text-destructive"
                   }`}
                 >
-                  {elegibilidade.elegivel ? (
+                  {resultado.elegivel ? (
                     <CheckCircle2 className="size-5" />
                   ) : (
                     <AlertTriangle className="size-5" />
                   )}
-                  {elegibilidade.elegivel ? "Elegível" : "Não elegível"}
+                  {previa ? "Prévia: " : ""}
+                  {resultado.elegivel ? "Elegível" : "Não elegível"}
                 </p>
                 {motivos.length > 0 && (
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
@@ -273,10 +270,16 @@ function Painel() {
                     ))}
                   </ul>
                 )}
+                {previa && (
+                  <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                    É uma <b>prévia</b>: a quinzena está em contestação, e uma contestação aceita
+                    pode mudar a sua nota. O resultado oficial sai no fechamento.
+                  </p>
+                )}
               </>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
-                Calculada no fechamento da quinzena.
+                Ainda não há dados desta quinzena para a elegibilidade.
               </p>
             )}
           </div>
@@ -296,6 +299,9 @@ function Painel() {
                 textoDaSituacao={`${textoDaSituacao(c.naMeta, c.sentido)}${c.nivel ? ` · ${c.nivel}` : ""}`}
                 meta={c.meta}
                 descricao={O_QUE_MEDE[c.chave as keyof typeof O_QUE_MEDE]}
+                {...(previa && c.chave !== "qualidade"
+                  ? { legenda: "prévia: o oficial sai no fechamento" }
+                  : {})}
               />
             ))}
           </div>
