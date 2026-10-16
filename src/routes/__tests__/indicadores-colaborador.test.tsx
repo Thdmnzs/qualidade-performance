@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentType, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -95,8 +95,8 @@ const rotulos = () =>
   [...screen.getByRole("tabpanel").querySelectorAll(".rotulo")].map((r) => r.textContent);
 afterEach(cleanup);
 
-describe("os indicadores do colaborador, em abas", () => {
-  it("as quatro abas; a Produtividade com os três cartões (a ajustada, com a meta)", async () => {
+describe("os indicadores do colaborador: o dia escolhido em destaque", () => {
+  it("o padrão é ontem: só o número do dia, sem a média da quinzena", async () => {
     abrir();
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
       "Produtividade",
@@ -104,19 +104,20 @@ describe("os indicadores do colaborador, em abas", () => {
       "Qualidade",
       "CSAT",
     ]);
-    expect(await screen.findByText("6,75")).toBeTruthy(); // a ajustada, do banco
+    expect((await screen.findAllByText("em qui 15/10")).length).toBe(3);
     expect(rotulos()).toEqual([
       "Por hora ativa: total",
       "Por hora ativa: membro da equipe",
       "Por hora ativa: ajustada",
     ]);
     const painel = screen.getByRole("tabpanel");
-    expect(painel.querySelectorAll(".cartao-ind.info")).toHaveLength(2); // o total e o membro: informativos
-    expect(within(painel).getByText("dentro da meta")).toBeTruthy();
-    expect(within(painel).getByText("6,25")).toBeTruthy(); // o total na quinzena: (60 + 40) ÷ 16 h
-    expect(within(painel).getByText("5,00")).toBeTruthy(); // e o de ontem: 40 ÷ 8 h
+    const valores = () =>
+      [...painel.querySelectorAll(".cartao-ind .valor")].map((v) => v.textContent);
+    await waitFor(() => expect(valores()).toEqual(["5,00", "0,50", "4,50"])); // 15/10: 40 conversas, 4 dele mesmo, em 8 h
+    expect(painel.querySelectorAll(".cartao-ind.escuro")).toHaveLength(1); // a ajustada do dia (4,50) ficou abaixo da meta
+    expect(painel.textContent).not.toMatch(/Na quinzena/); // a média da quinzena só sai na Visão geral, na publicação
   });
-  it("o SLA: os dois gerais e os oito tempos", async () => {
+  it("o SLA do dia, em minutos e segundos", async () => {
     abrir();
     fireEvent.click(screen.getByRole("tab", { name: "SLA" }));
     expect(await screen.findByText("SLA geral do chat")).toBeTruthy();
@@ -132,20 +133,43 @@ describe("os indicadores do colaborador, em abas", () => {
       "1ª resposta",
       "Geral",
     ]);
-    expect(screen.getByRole("tabpanel").querySelectorAll(".cartao-ind.info")).toHaveLength(4); // a 1ª resposta: informativa
-    expect(
-      (await within(screen.getByRole("tabpanel")).findAllByText("4m 00s")).length,
-    ).toBeGreaterThan(0); // o geral do chat: 240 s
+    const geral = screen.getByRole("tabpanel").querySelector(".cartao-ind .valor")!;
+    await waitFor(() => expect(geral.textContent).toBe("4m 00s")); // o SLA geral do chat em 15/10: 240 s
   });
-  it("a Qualidade, na publicação; e o CSAT, só o do time", async () => {
+  it("o filtro: a seta volta um dia; um dia sem dados avisa; o Ontem volta", async () => {
+    abrir();
+    await screen.findAllByText("em qui 15/10");
+    fireEvent.click(screen.getByRole("button", { name: "O dia anterior" }));
+    expect((await screen.findAllByText("em qua 14/10")).length).toBe(3);
+    expect(screen.getByRole("tabpanel").querySelector(".cartao-ind .valor")!.textContent).toBe(
+      "7,50",
+    ); // 14/10: 60 em 8 h
+    expect(
+      (screen.getByRole("button", { name: "O dia seguinte" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    fireEvent.change(screen.getByLabelText("Escolher o dia"), { target: { value: "2026-10-10" } });
+    expect((await screen.findAllByText("sem dados neste dia")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Ontem" }));
+    expect((await screen.findAllByText("em qui 15/10")).length).toBe(3);
+    expect(
+      (screen.getByRole("button", { name: "O dia seguinte" }) as HTMLButtonElement).disabled,
+    ).toBe(true); // não passa de ontem
+  });
+  it("o Para concorrer continua no topo; a Qualidade, na publicação; e o CSAT do time, o do dia", async () => {
+    abrir();
+    expect(
+      await screen.findByText(/Para concorrer nesta quinzena|no caminho para concorrer/),
+    ).toBeTruthy();
+    cleanup();
     abrir();
     fireEvent.click(screen.getByRole("tab", { name: "Qualidade" }));
     expect(await screen.findByText("aparece na publicação da quinzena")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Ver minhas avaliações/ }).getAttribute("href")).toBe(
-      "/minhas-avaliacoes",
-    );
     fireEvent.click(screen.getByRole("tab", { name: "CSAT" }));
     expect(rotulos()).toEqual(["CSAT do time"]);
-    expect(screen.getByRole("tabpanel").querySelector(".cartao-ind.escuro")).not.toBeNull(); // 95,3% < 97%: o vermelho claro
+    await waitFor(() =>
+      expect(screen.getByRole("tabpanel").querySelector(".cartao-ind .valor")!.textContent).toBe(
+        "97,1%",
+      ),
+    ); // o do dia
   });
 });

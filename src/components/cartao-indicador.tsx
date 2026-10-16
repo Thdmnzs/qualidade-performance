@@ -17,6 +17,7 @@ export function CartaoIndicador({
   meta,
   descricao,
   legenda,
+  semValor,
   ontem,
   children,
 }: {
@@ -34,17 +35,19 @@ export function CartaoIndicador({
   meta?: string;
   /** O que o indicador mede, em linguagem simples (na legenda do ícone de ?). */
   descricao?: string;
-  /** Uma linha embaixo do valor (por exemplo, "na quinzena, até ontem"). */
+  /** Uma linha embaixo do valor (por exemplo, "em qui 15/10"). */
   legenda?: string;
+  /** O texto no lugar do valor quando ele não existe (o padrão é "Aguardando o resultado"). */
+  semValor?: string;
   /** O número do dia anterior (o D-1), já formatado; null num dia sem dados (a folga). */
   ontem?: { rotulo: string; valor: string | null; naMeta: boolean | null };
   children?: React.ReactNode;
 }) {
   return (
     // Preto só quando o indicador está FORA da meta: o cartão escuro é um alerta.
-    // Vermelho claro só quando o indicador está FORA da meta (o cartão é um alerta); tracejado quando é informativo.
+    // Vermelho claro FORA da meta (o alerta); verde claro DENTRO; tracejado quando é informativo; branco aguardando.
     <div
-      className={`cartao-ind ${situacao === "fora" ? "escuro" : situacao === "info" ? "info" : "claro"} ${situacao}`}
+      className={`cartao-ind ${situacao === "fora" ? "escuro" : situacao === "ok" ? "verde" : situacao === "info" ? "info" : "claro"} ${situacao}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
@@ -59,7 +62,7 @@ export function CartaoIndicador({
       </div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         {valor === null ? (
-          <span className="valor aguardando">Aguardando o resultado</span>
+          <span className="valor aguardando">{semValor ?? "Aguardando o resultado"}</span>
         ) : (
           <span className="valor">{valor}</span>
         )}

@@ -82,6 +82,11 @@ const mediaDosDias = (ds: Dia[], k: keyof Dia) => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 };
 const ajustada = (d: Dia) => (d.conversas_atribuidas ?? 0) - (d.autoatribuicoes ?? 0);
+const somarDias = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 
 /**
  * Meus indicadores (16/10/2026): em abas (a Produtividade, o SLA, a Qualidade e o CSAT), atualizados todo
@@ -93,7 +98,10 @@ function MeusIndicadores() {
   const [aba, setAba] = useState<Aba>("produtividade");
   const hoje = hojeEmFortaleza();
   const ontem = ontemDe(hoje);
-  const q = quinzenaDoDia(ontem);
+  // O dia escolhido no filtro (o padrão é ontem): os cartões mostram o número DESSE dia (16/10/2026).
+  const [dia, setDia] = useState(ontem);
+  const q = quinzenaDoDia(ontem); // a quinzena atual (a dos requisitos da elegibilidade)
+  const qDoDia = quinzenaDoDia(dia); // a quinzena do dia escolhido (a da média e do gráfico)
   const anterior = quinzenaDoDia(ontemDe(q.de));
   const { data: metas = {} as Metas } = useQuery({
     queryKey: ["metas-indicadores"],
@@ -115,7 +123,7 @@ function MeusIndicadores() {
     },
   });
   const { data: todosOsDias = [] } = useQuery({
-    queryKey: ["meus-dias", employee?.id, anterior.de, ontem],
+    queryKey: ["meus-dias", employee?.id, qDoDia.de, ontem],
     enabled: !!employee,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -124,11 +132,20 @@ function MeusIndicadores() {
           "dia, conversas_atribuidas, autoatribuicoes, tempo_ativo_min, sla_chat_s, sla_email_s, sla_b2c_chat_1_s, sla_b2c_email_1_s, sla_b2c_chat_g_s, sla_b2c_email_g_s, sla_b2b_chat_1_s, sla_b2b_email_1_s, sla_b2b_chat_g_s, sla_b2b_email_g_s",
         )
         .eq("employee_id", employee!.id)
-        .gte("dia", anterior.de)
+        .gte("dia", qDoDia.de < q.de ? qDoDia.de : q.de)
         .lte("dia", ontem)
         .order("dia");
       if (error) throw error;
       return (data ?? []) as Dia[];
+    },
+  });
+  const { data: csatDoDia = null } = useQuery({
+    queryKey: ["csat-do-dia", dia],
+    enabled: !!employee,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("meus_indicadores", { _de: dia, _ate: dia });
+      if (error) throw error;
+      return ((data?.[0] as Consolidado | undefined)?.csat_time ?? null) as number | null;
     },
   });
   const { data: quiz = null } = useQuery({
@@ -161,70 +178,67 @@ function MeusIndicadores() {
     );
   const atual = c?.atual ?? null;
   const ant = c?.anterior ?? null;
-  const dias = todosOsDias.filter((d) => d.dia >= q.de);
-  const diasAnt = todosOsDias.filter((d) => d.dia >= anterior.de && d.dia <= anterior.ate);
-  const d1 = dias.find((d) => d.dia === ontem) ?? null;
-  const rotuloOntem = `Ontem (${diaDaSemana(ontem)} ${ddmm(ontem)})`;
+  // A quinzena do dia escolhido, ATÉ ele (para a média, na linha de baixo); e o próprio dia (o número grande).
+  const dias = todosOsDias.filter((d) => d.dia >= qDoDia.de && d.dia <= dia);
+  const diasAnt: Dia[] = [];
+  const diasDoGrafico = todosOsDias.filter((d) => d.dia >= qDoDia.de && d.dia <= qDoDia.ate);
+  const d1 = todosOsDias.find((d) => d.dia === dia) ?? null;
+  const rotuloDoDia = `em ${diaDaSemana(dia)} ${ddmm(dia)}`;
   const fmt = (chave: ChaveIndicador | "qualidade", v: number | null | undefined) =>
     v == null ? null : formatarValor(chave, v);
   const situacaoDe = (ok: boolean | null) =>
     (ok === null ? "aguardando" : ok ? "ok" : "fora") as "ok" | "fora" | "aguardando";
 
-  /** Um cartão com meta (o verde ou o vermelho claro, pela meta). */
+  /**
+   * Um cartão com meta (16/10/2026): o número grande é o do DIA escolhido (e a pílula diz se ele bateu a
+   * meta). A média da quinzena não aparece aqui: o resultado da quinzena só sai na Visão geral, na
+   * publicação (o "Para concorrer", no topo, continua acompanhando os requisitos).
+   */
   const comMeta = (p: {
     chave: ChaveIndicador;
     rotulo: string;
     etiqueta?: "individual" | "do time";
-    valor: number | null;
-    ontem?: number | null;
-    anterior: number | null;
+    valor: number | null; // a média da quinzena, até o dia
+    ontem?: number | null; // o número do dia
+    anterior?: number | null;
     descricao: string;
     formato?: (v: number) => string;
   }) => {
     const f = p.formato ?? ((v: number) => formatarValor(p.chave, v));
-    const ok = naMeta(metas, p.chave, p.valor);
+    const doDia = p.ontem ?? null;
+    const ok = naMeta(metas, p.chave, doDia);
     const m = metas[p.chave];
     return (
       <CartaoIndicador
         rotulo={p.rotulo}
         etiqueta={p.etiqueta ?? "individual"}
-        valor={p.valor == null ? null : f(p.valor)}
-        anterior={p.anterior == null ? "—" : f(p.anterior)}
+        valor={doDia == null ? null : f(doDia)}
+        semValor="sem dados neste dia"
         situacao={situacaoDe(ok)}
-        textoDaSituacao={textoDaSituacao(ok, m?.sentido ?? "minimo")}
+        textoDaSituacao={doDia == null ? "sem dados" : textoDaSituacao(ok, m?.sentido ?? "minimo")}
         {...(m ? { meta: textoDaMeta(m) } : {})}
         descricao={p.descricao}
-        legenda="na quinzena, até ontem"
-        {...("ontem" in p
-          ? {
-              ontem: {
-                rotulo: rotuloOntem,
-                valor: d1 && p.ontem != null ? f(p.ontem) : d1 ? "—" : null,
-                naMeta: naMeta(metas, p.chave, p.ontem),
-              },
-            }
-          : {})}
+        legenda={rotuloDoDia}
       />
     );
   };
-  /** Um cartão informativo (sem meta). */
+  /** Um cartão informativo (sem meta): o número do dia. */
   const informativo = (p: {
     rotulo: string;
     valor: string | null;
     ontem: string | null;
-    anterior: string | null;
+    anterior?: string | null;
     descricao: string;
   }) => (
     <CartaoIndicador
       rotulo={p.rotulo}
       etiqueta="sem meta"
-      valor={p.valor}
-      anterior={p.anterior ?? "—"}
+      valor={p.ontem}
+      semValor="sem dados neste dia"
       situacao="info"
       textoDaSituacao="informativo"
       descricao={p.descricao}
-      legenda="na quinzena, até ontem"
-      ontem={{ rotulo: rotuloOntem, valor: d1 ? (p.ontem ?? "—") : null, naMeta: null }}
+      legenda={rotuloDoDia}
     />
   );
 
@@ -305,6 +319,51 @@ function MeusIndicadores() {
         </div>
       </div>
 
+      {/* O filtro do dia (16/10/2026): os cartões mostram os números do dia escolhido (até ontem). */}
+      <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="O dia dos indicadores">
+        <span className="text-sm font-bold">O dia:</span>
+        <button
+          type="button"
+          aria-label="O dia anterior"
+          onClick={() => setDia(somarDias(dia, -1))}
+          className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-lg font-bold"
+        >
+          ‹
+        </button>
+        <input
+          type="date"
+          aria-label="Escolher o dia"
+          value={dia}
+          max={ontem}
+          onChange={(e) =>
+            e.target.value && setDia(e.target.value > ontem ? ontem : e.target.value)
+          }
+          className="h-9 rounded-lg border border-input bg-background px-2 text-sm font-bold"
+        />
+        <button
+          type="button"
+          aria-label="O dia seguinte"
+          disabled={dia >= ontem}
+          onClick={() => setDia(somarDias(dia, 1))}
+          className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-lg font-bold disabled:opacity-40"
+        >
+          ›
+        </button>
+        {dia !== ontem && (
+          <button
+            type="button"
+            onClick={() => setDia(ontem)}
+            className="h-9 rounded-full border border-border bg-card px-3 text-sm font-bold"
+          >
+            Ontem
+          </button>
+        )}
+        <span className="text-sm text-muted-foreground">
+          {dia === ontem ? "ontem, " : ""}
+          {diaDaSemana(dia)} {ddmm(dia)}
+          {!d1 ? " · sem dados neste dia" : ""}
+        </span>
+      </div>
       <div
         className="mt-5 flex gap-1 overflow-x-auto border-b border-border"
         role="tablist"
@@ -363,7 +422,7 @@ function MeusIndicadores() {
               {comMeta({
                 chave: "produtividade",
                 rotulo: "Por hora ativa: ajustada",
-                valor: atual?.produtividade ?? null,
+                valor: porHora(dias, ajustada),
                 ontem: d1?.tempo_ativo_min ? ajustada(d1) / (d1.tempo_ativo_min / 60) : null,
                 anterior: ant?.produtividade ?? null,
                 descricao:
@@ -375,8 +434,9 @@ function MeusIndicadores() {
               <p className="font-bold">Dia a dia na quinzena</p>
               <div className="mt-2 grid gap-4 md:grid-cols-2">
                 <EvolucaoDoDia
+                  destaque={dia}
                   titulo="Por hora ativa: ajustada"
-                  pontos={dias.map((d) => ({
+                  pontos={diasDoGrafico.map((d) => ({
                     dia: d.dia,
                     valor: d.tempo_ativo_min ? ajustada(d) / (d.tempo_ativo_min / 60) : null,
                   }))}
@@ -456,15 +516,23 @@ function MeusIndicadores() {
               <p className="font-bold">Dia a dia na quinzena</p>
               <div className="mt-2 grid gap-4 md:grid-cols-2">
                 <EvolucaoDoDia
+                  destaque={dia}
                   titulo="SLA geral do chat"
-                  pontos={dias.map((d) => ({ dia: d.dia, valor: emMinutos(d.sla_chat_s) }))}
+                  pontos={diasDoGrafico.map((d) => ({
+                    dia: d.dia,
+                    valor: emMinutos(d.sla_chat_s),
+                  }))}
                   meta={metas.sla_chat?.meta ?? null}
                   menorMelhor
                   formatar={(v) => formatarValor("sla_chat", v)}
                 />
                 <EvolucaoDoDia
+                  destaque={dia}
                   titulo="SLA geral do e-mail"
-                  pontos={dias.map((d) => ({ dia: d.dia, valor: emMinutos(d.sla_email_s) }))}
+                  pontos={diasDoGrafico.map((d) => ({
+                    dia: d.dia,
+                    valor: emMinutos(d.sla_email_s),
+                  }))}
                   meta={metas.sla_email?.meta ?? null}
                   menorMelhor
                   formatar={(v) => formatarValor("sla_email", v)}
@@ -524,8 +592,8 @@ function MeusIndicadores() {
               chave: "csat",
               rotulo: "CSAT do time",
               etiqueta: "do time",
-              valor: atual?.csat_time ?? null,
-              anterior: ant?.csat_time ?? null,
+              valor: null,
+              ontem: csatDoDia,
               descricao:
                 "A satisfação dos clientes com o atendimento do time: as avaliações positivas ÷ todas as avaliações. É o que vale para a meta.",
             })}

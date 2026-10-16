@@ -8,12 +8,15 @@ export function EvolucaoDoDia({
   meta,
   menorMelhor,
   formatar,
+  destaque,
 }: {
   titulo: string;
   pontos: { dia: string; valor: number | null }[];
   meta: number | null;
   menorMelhor: boolean;
   formatar: (v: number) => string;
+  /** O dia escolhido no filtro: um anel em volta do ponto dele. */
+  destaque?: string;
 }) {
   const vals = pontos.filter((p): p is { dia: string; valor: number } => p.valor != null);
   if (!vals.length)
@@ -52,15 +55,21 @@ export function EvolucaoDoDia({
           strokeWidth={2}
         />
         {vals.map((p, i) => (
-          <circle
-            key={p.dia}
-            cx={x(i)}
-            cy={y(p.valor)}
-            r={3}
-            fill={ok(p.valor) ? "#13A403" : "#DC2626"}
-          >
-            <title>{`${p.dia.slice(8)}/${p.dia.slice(5, 7)}: ${formatar(p.valor)}`}</title>
-          </circle>
+          <g key={p.dia}>
+            {p.dia === destaque && (
+              <circle
+                cx={x(i)}
+                cy={y(p.valor)}
+                r={6.5}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              />
+            )}
+            <circle cx={x(i)} cy={y(p.valor)} r={3} fill={ok(p.valor) ? "#13A403" : "#DC2626"}>
+              <title>{`${p.dia.slice(8)}/${p.dia.slice(5, 7)}: ${formatar(p.valor)}`}</title>
+            </circle>
+          </g>
         ))}
       </svg>
     </div>

@@ -494,6 +494,12 @@ contagens do limite de uso.
   novas da planilha; até lá, ele aparece vazio, "aguardando a planilha".
 - **As cores do cartão:** verde claro dentro da meta, vermelho claro fora, branco aguardando, e a borda tracejada
   (com a pílula azul) no informativo, sem meta. No modo escuro, os mesmos sinais em tons escuros.
+- **O dia em destaque (16/10/2026):** nos cartões do colaborador, o número grande é o do **dia escolhido** (por padrão,
+  ontem), e a pílula diz se esse dia bateu a meta. A média da quinzena **não** aparece nos cartões: o resultado da
+  quinzena só sai na Visão geral, a partir da publicação para a contestação. Um filtro
+  (o campo de data, as setas ‹ › e o atalho "Ontem") escolhe qualquer dia até ontem; num dia sem dados, os cartões dizem
+  "sem dados neste dia". O "Para concorrer nesta quinzena", no topo, continua acompanhando os requisitos da
+  quinzena atual.
 - **A Visão geral, na publicação:** assim que a quinzena é publicada, o colaborador vê os indicadores e a elegibilidade
   dela, com a marca de **prévia** enquanto a quinzena está em contestação (uma contestação aceita pode mudar a nota); depois
   do fechamento, o **oficial**. A prévia usa a mesma conta do fechamento.
