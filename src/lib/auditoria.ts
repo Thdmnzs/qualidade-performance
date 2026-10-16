@@ -35,6 +35,7 @@ export const CATEGORIAS: Record<string, string[]> = {
     "dados_pessoais_corrigir",
   ],
   Indicadores: ["nome_na_planilha"],
+  Segurança: ["senha_alterada"],
   "Acesso rápido": [
     "atalho_grupo_criar",
     "atalho_grupo_editar",
@@ -260,6 +261,9 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         ),
       ];
     }
+    // A troca de senha pela própria pessoa (16/10/2026): nunca registra a senha
+    case "senha_alterada":
+      return [q("alterou a própria senha")];
     // Os indicadores pela planilha (16/10/2026)
     case "nome_na_planilha":
       return n["nome_na_planilha"] == null

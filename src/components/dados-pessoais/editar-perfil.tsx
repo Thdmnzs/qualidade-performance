@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { AlterarSenha } from "@/components/dados-pessoais/alterar-senha";
 import { CamposDaFicha } from "@/components/dados-pessoais/campos-da-ficha";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,7 @@ import {
 import { problemaDaFicha, type Ficha } from "@/lib/dados-pessoais";
 import { lerMeusDados, salvarMeusDados } from "@/lib/dados-pessoais-api";
 
-/** O "Editar perfil" da pessoa: o aniversário, o endereço e o contato de emergência. */
+/** O "Editar perfil" da pessoa: o aniversário, o endereço, o contato de emergência e a senha. */
 export function EditarPerfil({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
@@ -71,6 +72,8 @@ export function EditarPerfil({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
             {salvando ? "Salvando..." : "Salvar"}
           </Button>
         </div>
+        {/* Alterar a senha (16/10/2026): com o próprio botão, separado dos dados do perfil. */}
+        <AlterarSenha />
       </DialogContent>
     </Dialog>
   );
