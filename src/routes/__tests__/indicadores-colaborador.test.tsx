@@ -98,11 +98,11 @@ afterEach(cleanup);
 describe("os indicadores do colaborador: o dia escolhido em destaque", () => {
   it("o padrão é ontem: só o número do dia, sem a média da quinzena", async () => {
     abrir();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "Produtividade",
-      "SLA",
-      "CSAT",
-    ]); // 20/10/2026: sem a Qualidade
+    expect(
+      within(screen.getByRole("tablist", { name: "Os indicadores" }))
+        .getAllByRole("tab")
+        .map((t) => t.textContent),
+    ).toEqual(["Produtividade", "SLA", "CSAT"]); // 20/10/2026: sem a Qualidade
     expect(screen.getByRole("heading", { name: "Minhas métricas" })).toBeTruthy();
     expect((await screen.findAllByText("em qui 15/10")).length).toBe(3);
     expect(rotulos()).toEqual([
@@ -120,7 +120,7 @@ describe("os indicadores do colaborador: o dia escolhido em destaque", () => {
   it("o SLA do dia, em minutos e segundos", async () => {
     abrir();
     fireEvent.click(screen.getByRole("tab", { name: "SLA" }));
-    expect(await screen.findByText("SLA geral do chat")).toBeTruthy();
+    expect(await within(screen.getByRole("tabpanel")).findByText("SLA geral do chat")).toBeTruthy();
     expect(rotulos()).toEqual([
       "SLA geral do chat",
       "SLA geral do e-mail",

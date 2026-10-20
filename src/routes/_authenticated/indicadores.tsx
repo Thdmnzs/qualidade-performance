@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CartaoIndicador } from "@/components/cartao-indicador";
 import { EvolucaoDoDia } from "@/components/indicadores/evolucao-do-dia";
 import { FiltroDoDia } from "@/components/indicadores/filtro-do-dia";
+import { ResultadoDaQuinzena } from "@/components/indicadores/resultado-da-quinzena";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -209,6 +210,8 @@ function MeusIndicadores() {
         descricao={`📥 Atualizados todo dia às 8h, com o dia anterior. A quinzena vai de ${ddmm(q.de)} a ${ddmm(q.ate)}.`}
       />
 
+      {/* O resultado da quinzena (20/10/2026), com a conta da planilha. */}
+      <ResultadoDaQuinzena hoje={hoje} metas={metas} />
       {/* O filtro do dia (a peça compartilhada com a supervisão). */}
       <div className="mt-5">
         <FiltroDoDia dia={dia} ontem={ontem} aoMudar={setDia} semDados={!d1} />
