@@ -36,7 +36,7 @@ Regras:
 5. "comentario" é o feedback geral para o colaborador, no mesmo tom, em até 4 frases: o que foi bem e os pontos de atenção.
 6. Nos textos, não mencione inteligência artificial, a ficha nem os números dos critérios, e não repita dados pessoais. Dados mascarados aparecem como [CPF], [E-MAIL], [TELEFONE] etc.
 7. Use "medio" somente nos critérios que permitem (indicado na ficha).
-Responda usando a ferramenta ${FERRAMENTA}, com todos os critérios da ficha.`;
+Responda SEMPRE chamando a ferramenta ${FERRAMENTA}, uma vez, com todos os critérios da ficha, e nada além dela (nenhum texto antes ou depois).`;
 
 /** O formato fixo da resposta (tool use): a IA preenche, o servidor valida. */
 export const ESQUEMA_DA_FERRAMENTA = {
@@ -118,7 +118,9 @@ export function montarPedido(p: {
     max_tokens: 3000,
     system: INSTRUCOES,
     tools: [ESQUEMA_DA_FERRAMENTA],
-    tool_choice: { type: "tool", name: FERRAMENTA },
+    // (20/10/2026) O modelo atual não aceita a ferramenta OBRIGATÓRIA ("tool"/"any"): ela vai no modo
+    // automático, e as instruções pedem que a resposta seja sempre por ela.
+    tool_choice: { type: "auto" },
     messages: [{ role: "user", content: partes.join("\n\n") }],
   };
 }
@@ -227,4 +229,28 @@ export function retirarSugestoes(
   }
   const comentarios = atual.comentarios === s.comentario ? "" : atual.comentarios;
   return { respostas, observacoes, comentarios };
+}
+
+/**
+ * A resposta da IA, de onde ela vier (20/10/2026): a chamada da ferramenta (o normal) ou, se a IA respondeu
+ * em texto, o objeto de dados dentro do texto (a rede de segurança). A validação é a mesma depois.
+ */
+export function entradaDaResposta(
+  conteudo: { type: string; name?: string; input?: unknown; text?: string }[] | undefined,
+): unknown {
+  const bloco = conteudo?.find((b) => b.type === "tool_use" && b.name === FERRAMENTA);
+  if (bloco) return bloco.input;
+  const texto =
+    conteudo
+      ?.filter((b) => b.type === "text")
+      .map((b) => b.text ?? "")
+      .join("\n") ?? "";
+  const inicio = texto.indexOf("{");
+  const fim = texto.lastIndexOf("}");
+  if (inicio < 0 || fim <= inicio) return null;
+  try {
+    return JSON.parse(texto.slice(inicio, fim + 1));
+  } catch {
+    return null;
+  }
 }

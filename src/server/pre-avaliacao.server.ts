@@ -12,7 +12,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { textoParaSugerirProcesso, type Mensagem } from "@/lib/intercom";
 import { mascarar } from "@/lib/mascarar";
 import {
-  FERRAMENTA,
+  entradaDaResposta,
   MODELO,
   montarPedido,
   validarResposta,
@@ -161,11 +161,11 @@ export async function preAvaliar(p: {
     return { estado: "falhou", motivo: `A IA não respondeu (código ${resposta.status}).` };
   }
   const corpo = (await resposta.json()) as {
-    content?: { type: string; name?: string; input?: unknown }[];
+    content?: { type: string; name?: string; input?: unknown; text?: string }[];
     usage?: { input_tokens?: number; output_tokens?: number };
   };
-  const bloco = corpo.content?.find((b) => b.type === "tool_use" && b.name === FERRAMENTA);
-  const sugestoes = validarResposta(bloco?.input, ficha);
+  // A chamada da ferramenta (o normal) ou o objeto de dados no texto (a rede de segurança).
+  const sugestoes = validarResposta(entradaDaResposta(corpo.content), ficha);
   if (!sugestoes)
     return { estado: "falhou", motivo: "A resposta da IA veio num formato inesperado." };
 

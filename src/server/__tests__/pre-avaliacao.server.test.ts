@@ -173,6 +173,26 @@ describe("preAvaliar (servidor, com o Claude simulado)", () => {
     });
   });
 
+  it("a rede de segurança: a IA responde em texto, com os dados, e a ficha recebe as sugestões", async () => {
+    const dados = { criterios: [{ criterio_id: "c1", resposta: "sim" }], comentario: "Bom." };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              content: [{ type: "text", text: `Segue a avaliação: ${JSON.stringify(dados)}` }],
+              usage: {},
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+    const r = await preAvaliar(ids);
+    expect(r).toMatchObject({ estado: "pronta" });
+    if (r.estado === "pronta") expect(r.sugestoes.criterios["c1"]).toEqual({ resposta: "sim" });
+  });
+
   it("a IA responde com erro: 'falhou', sem repassar o corpo do erro", async () => {
     vi.stubGlobal(
       "fetch",
