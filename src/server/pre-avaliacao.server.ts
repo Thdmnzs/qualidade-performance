@@ -14,6 +14,7 @@ import { mascarar } from "@/lib/mascarar";
 import {
   entradaDaResposta,
   MODELO,
+  problemasDaResposta,
   montarPedido,
   validarResposta,
   type CriterioParaIA,
@@ -162,12 +163,19 @@ export async function preAvaliar(p: {
   }
   const corpo = (await resposta.json()) as {
     content?: { type: string; name?: string; input?: unknown; text?: string }[];
+    stop_reason?: string;
     usage?: { input_tokens?: number; output_tokens?: number };
   };
   // A chamada da ferramenta (o normal) ou o objeto de dados no texto (a rede de segurança).
-  const sugestoes = validarResposta(entradaDaResposta(corpo.content), ficha);
-  if (!sugestoes)
+  const entrada = entradaDaResposta(corpo.content);
+  const sugestoes = validarResposta(entrada, ficha);
+  if (!sugestoes) {
+    // Só os nomes dos campos, os tipos dos blocos e o motivo do fim (nunca o texto da conversa).
+    console.error(
+      `[pré-avaliação] a resposta veio fora do formato. fim: ${corpo.stop_reason ?? "?"}; blocos: ${(corpo.content ?? []).map((b) => b.type).join(",") || "nenhum"}; problemas: ${problemasDaResposta(entrada).slice(0, 8).join(" | ") || "sem os dados"}`,
+    );
     return { estado: "falhou", motivo: "A resposta da IA veio num formato inesperado." };
+  }
 
   // 6. Grava só as sugestões (se outra aba gravou antes, vale a que já estava).
   const { data: gravada, error: erroGrava } = await supabaseAdmin.rpc("registrar_pre_avaliacao", {

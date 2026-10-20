@@ -296,3 +296,77 @@ describe("a resposta da IA, de onde ela vier (20/10/2026)", async () => {
     expect(entradaDaResposta(undefined)).toBeNull();
   });
 });
+
+describe("a validação tolerante no formato, e rígida no conteúdo (20/10/2026)", async () => {
+  const { validarResposta, problemasDaResposta } = await import("../pre-avaliacao");
+  const FICHA = [
+    { id: "c1", pergunta: "?", peso: 1, permite_medio: true },
+    { id: "c2", pergunta: "?", peso: 1, permite_medio: false },
+    { id: "c3", pergunta: "?", peso: 1, permite_medio: true },
+  ] as never;
+  it("os nulos, os acentos e as maiúsculas: aceitos e convertidos", () => {
+    const r = validarResposta(
+      {
+        criterios: [
+          { criterio_id: "c1", resposta: "Sim", observacao: null, motivo: null },
+          { criterio_id: "c2", resposta: "Não", observacao: "Faltou confirmar o CPF." },
+          { criterio_id: "c3", resposta: "médio", observacao: "Faltou acolher." },
+        ],
+        comentario: null,
+      },
+      FICHA,
+    );
+    expect(r!.criterios).toEqual({
+      c1: { resposta: "sim" },
+      c2: { resposta: "nao", observacao: "Faltou confirmar o CPF." },
+      c3: { resposta: "medio", observacao: "Faltou acolher." },
+    });
+    expect(r!.comentario).toBe("");
+  });
+  it("a lista dos critérios como texto (um formato de alguns modelos)", () => {
+    const r = validarResposta(
+      { criterios: JSON.stringify([{ criterio_id: "c1", resposta: "sim" }]), comentario: "Bom." },
+      FICHA,
+    );
+    expect(r!.criterios["c1"]).toEqual({ resposta: "sim" });
+  });
+  it("um critério com problema vira sem sugestão sozinho, sem derrubar os outros", () => {
+    const r = validarResposta(
+      {
+        criterios: [
+          { criterio_id: "c1", resposta: "talvez" },
+          { criterio_id: "c3", resposta: "sim" },
+          { resposta: "sim" },
+        ],
+        comentario: "",
+      },
+      FICHA,
+    );
+    expect(r!.criterios).toEqual({ c3: { resposta: "sim" } });
+  });
+  it("o conteúdo continua rígido: o médio onde a ficha não permite, e o não sem observação", () => {
+    const r = validarResposta(
+      {
+        criterios: [
+          { criterio_id: "c2", resposta: "medio", observacao: "x" },
+          { criterio_id: "c1", resposta: "nao" },
+        ],
+        comentario: "",
+      },
+      FICHA,
+    );
+    expect(r!.criterios["c2"]!.resposta).toBeNull();
+    expect(r!.criterios["c1"]!.resposta).toBeNull();
+  });
+  it("o registro do que faltou: só os nomes dos campos (nunca o texto)", () => {
+    expect(problemasDaResposta({ comentario: "texto da conversa" })).toEqual([
+      "criterios: invalid_type",
+    ]);
+    expect(problemasDaResposta({ criterios: [{ resposta: "sim" }], comentario: "" })[0]).toMatch(
+      /^criterios\.0\.criterio_id/,
+    );
+    expect(
+      problemasDaResposta({ criterios: [{ criterio_id: "c1", resposta: "sim" }], comentario: "" }),
+    ).toEqual([]);
+  });
+});

@@ -115,7 +115,7 @@ export function montarPedido(p: {
   ].filter(Boolean);
   return {
     model: MODELO,
-    max_tokens: 3000,
+    max_tokens: 8000, // (20/10/2026) a ficha inteira, com as observações, sem cortar
     system: INSTRUCOES,
     tools: [ESQUEMA_DA_FERRAMENTA],
     // (20/10/2026) O modelo atual não aceita a ferramenta OBRIGATÓRIA ("tool"/"any"): ela vai no modo
@@ -125,17 +125,68 @@ export function montarPedido(p: {
   };
 }
 
+// (20/10/2026) A validação é TOLERANTE no formato e rígida no conteúdo: aceita as variações que os modelos
+// novos usam (um campo nulo, um acento, uma maiúscula, a lista como texto) e as converte; um critério com
+// problema vira "sem sugestão" sozinho, sem derrubar os outros. As regras da ficha continuam iguais.
+const semAcento = (t: string) =>
+  t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+const RESPOSTAS: Record<string, "sim" | "medio" | "nao" | null> = {
+  sim: "sim",
+  medio: "medio",
+  nao: "nao",
+  sem_sugestao: null,
+  "sem sugestao": null,
+  "": null,
+};
+const textoOpcional = z.preprocess(
+  (v) => (v == null ? undefined : String(v)),
+  z.string().optional(),
+);
 const Item = z.object({
-  criterio_id: z.string(),
+  criterio_id: z.preprocess((v) => (v == null ? v : String(v)), z.string()),
   // "sem_sugestao" (o formato novo) e null (o antigo, das sugestões já guardadas) são o mesmo: sem sugestão.
-  resposta: z
-    .enum(["sim", "medio", "nao", "sem_sugestao"])
-    .nullable()
-    .transform((r) => (r === "sem_sugestao" ? null : r)),
-  observacao: z.string().optional(),
-  motivo: z.string().optional(),
+  resposta: z.preprocess(
+    // "in", e não "??": o "sem_sugestao" vale null, e o null não pode virar "inválida"
+    (v) =>
+      v == null
+        ? null
+        : semAcento(String(v)) in RESPOSTAS
+          ? RESPOSTAS[semAcento(String(v))]
+          : "invalida",
+    z.enum(["sim", "medio", "nao"]).nullable(),
+  ),
+  observacao: textoOpcional,
+  motivo: textoOpcional,
 });
-const Entrada = z.object({ criterios: z.array(Item), comentario: z.string() });
+const comoLista = (v: unknown) => {
+  if (typeof v !== "string") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return v;
+  }
+};
+const Entrada = z.object({
+  criterios: z.preprocess(comoLista, z.array(z.unknown())),
+  comentario: z.preprocess((v) => (v == null ? "" : String(v)), z.string()),
+});
+
+/** O que faltou na resposta (só os nomes dos campos e o motivo, nunca o texto), para os registros do servidor. */
+export function problemasDaResposta(entrada: unknown): string[] {
+  const r = Entrada.safeParse(entrada);
+  if (!r.success)
+    return r.error.issues.map((i) => `${i.path.join(".") || "(a resposta)"}: ${i.code}`);
+  return r.data.criterios.flatMap((item, n) => {
+    const v = Item.safeParse(item);
+    return v.success
+      ? []
+      : v.error.issues.map((i) => `criterios.${n}.${i.path.join(".")}: ${i.code}`);
+  });
+}
 
 /**
  * Valida a resposta da IA contra a ficha. Itens problemáticos viram "sem
@@ -148,7 +199,12 @@ export function validarResposta(entrada: unknown, ficha: CriterioParaIA[]): Suge
   if (!r.success) return null;
   const porId = new Map(ficha.map((c) => [c.id, c]));
   const criterios: Record<string, Sugestao> = {};
-  for (const item of r.data.criterios) {
+  const itens = r.data.criterios
+    .map((i) => Item.safeParse(i))
+    .filter((v) => v.success)
+    .map((v) => v.data!);
+  if (r.data.criterios.length > 0 && itens.length === 0) return null; // nenhum critério aproveitável
+  for (const item of itens) {
     const c = porId.get(item.criterio_id);
     if (!c || criterios[c.id]) continue;
     const observacao = item.observacao?.trim().slice(0, LIMITE_OBSERVACAO);
