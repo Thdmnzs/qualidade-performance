@@ -4,7 +4,7 @@
  *
  *   * As colunas são achadas pelo NOME do cabeçalho (a ordem pode mudar na planilha).
  *   * Os números vêm como o Google os mostra ("60,00", "98,5%", "1.234"): a vírgula é o decimal.
- *   * O SLA do dia, por canal, é a média do B2C e do B2B (a decisão da supervisão); com só um, vale ele.
+ *   * O SLA geral do dia, por canal, é o "[Geral]" do Intercom (20/10/2026); sem essa coluna, a média do B2C e do B2B.
  *   * As horas ativas viram minutos (e são também as horas online da meta).
  *   * Uma célula vazia é "sem dado", e não zero.
  */
@@ -59,6 +59,9 @@ const COLUNAS = {
   b2c_email: "[b2c] sla email (s)",
   b2b_chat: "[b2b] sla chat (s)",
   b2b_email: "[b2b] sla email (s)",
+  // (20/10/2026) O SLA geral do Intercom: é ELE o SLA geral do colaborador, da Visão geral e do fechamento.
+  geral_chat: "[geral] sla chat (s)",
+  geral_email: "[geral] sla email (s)",
 } as const;
 const OBRIGATORIAS = ["dia", "nome", "conversas", "horas"] as const;
 
@@ -117,8 +120,15 @@ export function linhasDaPlanilha(valores: unknown[][]): LinhaDaPlanilha[] {
       conversas: numero(cel(l, "conversas")),
       autoatribuicoes: numero(cel(l, "autoatribuicoes")),
       tempo_ativo_min: horas === null ? null : Math.round(horas * 60 * 10) / 10,
-      sla_chat_s: media(numero(cel(l, "b2c_chat")), numero(cel(l, "b2b_chat"))),
-      sla_email_s: media(numero(cel(l, "b2c_email")), numero(cel(l, "b2b_email"))),
+      // O [Geral] do Intercom (20/10/2026). Só se a planilha não tiver essa coluna, a média do B2C e do B2B.
+      sla_chat_s:
+        pos.geral_chat >= 0
+          ? numero(cel(l, "geral_chat"))
+          : media(numero(cel(l, "b2c_chat")), numero(cel(l, "b2b_chat"))),
+      sla_email_s:
+        pos.geral_email >= 0
+          ? numero(cel(l, "geral_email"))
+          : media(numero(cel(l, "b2c_email")), numero(cel(l, "b2b_email"))),
       csat_positivas: numero(cel(l, "csat_positivas")),
       csat_total: numero(cel(l, "csat_total")),
       sla_b2c_chat_1_s: numero(cel(l, "b2c_chat_1")),

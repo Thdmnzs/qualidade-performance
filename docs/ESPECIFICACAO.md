@@ -495,7 +495,9 @@ contagens do limite de uso.
   pelo nome, então uma coluna nova aparece sozinha. O **SLA geral (percentil)** do Intercom vai entrar como duas colunas
   novas da planilha. Desde 20/10/2026, a planilha tem as colunas "[Geral] SLA chat" e "[Geral] SLA email" (o SLA geral
   do Intercom), que aparecem na tabela da supervisão, no grupo "SLA geral". O colaborador e o fechamento continuam com a média
-  do B2C e do B2B (uma decisão em aberto).
+  do B2C e do B2B (uma decisão em aberto). **Desde 20/10/2026 (a decisão da supervisão), o SLA geral do colaborador, da
+  Visão geral e do fechamento também é o "[Geral]" do Intercom**: a leitura grava o SLA geral a partir dessas colunas (e só
+  usa a média do B2C e do B2B se a planilha não as tiver). As quatro telas usam o mesmo número.
 - **As cores do cartão:** verde claro dentro da meta, vermelho claro fora, branco aguardando, e a borda tracejada
   (com a pílula azul) no informativo, sem meta. No modo escuro, os mesmos sinais em tons escuros.
 - **O dia em destaque (16/10/2026):** nos cartões do colaborador, o número grande é o do **dia escolhido** (por padrão,

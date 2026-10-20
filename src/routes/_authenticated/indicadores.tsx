@@ -452,7 +452,7 @@ function MeusIndicadores() {
         {aba === "sla" && (
           <>
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              O SLA geral (a média do B2C e do B2B)
+              O SLA geral (o do Intercom, com o B2C e o B2B juntos)
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               {comMeta({
@@ -462,7 +462,7 @@ function MeusIndicadores() {
                 ontem: emMinutos(d1?.sla_chat_s),
                 anterior: emMinutos(segundos("sla_chat_s", diasAnt)),
                 descricao:
-                  "Quanto tempo o cliente espera pela sua resposta no chat: a média do B2C e do B2B. É o que vale para a meta.",
+                  "Quanto tempo o cliente espera pela sua resposta no chat, com o B2C e o B2B juntos, como o Intercom mede. É o que vale para a meta.",
               })}
               {comMeta({
                 chave: "sla_email",
@@ -471,7 +471,7 @@ function MeusIndicadores() {
                 ontem: emMinutos(d1?.sla_email_s),
                 anterior: emMinutos(segundos("sla_email_s", diasAnt)),
                 descricao:
-                  "Quanto tempo o cliente espera pela sua resposta por e-mail: a média do B2C e do B2B. É o que vale para a meta.",
+                  "Quanto tempo o cliente espera pela sua resposta por e-mail, com o B2C e o B2B juntos, como o Intercom mede. É o que vale para a meta.",
               })}
             </div>
             {(["b2c", "b2b"] as const).map((seg) => (

@@ -166,3 +166,121 @@ describe("a cópia da aba Dados, para a supervisão", () => {
     expect(c[2]![4]).toBe("3,35"); // o valor como está na planilha (a vírgula, as casas)
   });
 });
+
+describe("o SLA geral pelo [Geral] da planilha (20/10/2026)", () => {
+  // As linhas reais de 18/10 (Thiago) e de 06/10 (Thiago), com as colunas novas no fim
+  const COM_GERAL = [...CABECALHO, "[Geral] SLA chat (s)", "[Geral] SLA email (s)"];
+  it("com as colunas [Geral]: o SLA geral é o do Intercom, e não a média", () => {
+    const [l18, l06] = linhasDaPlanilha([
+      COM_GERAL,
+      [
+        "18/10/2026",
+        "Thiago",
+        "59",
+        "1",
+        "7,80",
+        "7,56",
+        "0,13",
+        "7,44",
+        "8",
+        "9",
+        "88,9%",
+        "65",
+        "129",
+        "82",
+        "130",
+        "129",
+        "",
+        "192",
+        "",
+        "85",
+        "130",
+      ],
+      [
+        "06/10/2026",
+        "Thiago",
+        "35",
+        "0",
+        "3,83",
+        "9,13",
+        "0,00",
+        "9,13",
+        "1",
+        "1",
+        "100,0%",
+        "53",
+        "86",
+        "628",
+        "86",
+        "82",
+        "",
+        "87",
+        "",
+        "172",
+        "86",
+      ],
+    ]);
+    expect(l18).toMatchObject({
+      sla_chat_s: 85,
+      sla_email_s: 130,
+      sla_b2c_chat_g_s: 82,
+      sla_b2b_chat_g_s: 192,
+    }); // e não (82 + 192) ÷ 2 = 137
+    expect(l06!.sla_chat_s).toBe(172); // pela média, 357,5 (fora da meta); pelo [Geral], 172 (dentro)
+  });
+  it("o [Geral] vazio num dia fica vazio (não vira a média)", () => {
+    const [l] = linhasDaPlanilha([
+      COM_GERAL,
+      [
+        "03/10/2026",
+        "Kaio",
+        "37",
+        "0",
+        "7,90",
+        "4,68",
+        "0,00",
+        "4,68",
+        "5",
+        "5",
+        "100,0%",
+        "188",
+        "",
+        "189",
+        "",
+        "143",
+        "",
+        "329",
+        "",
+        "197",
+      ],
+    ]);
+    expect(l).toMatchObject({ sla_chat_s: 197, sla_email_s: null });
+  });
+  it("sem as colunas [Geral] na planilha: a média do B2C e do B2B, como antes", () => {
+    const [l] = linhasDaPlanilha([
+      CABECALHO,
+      [
+        "18/10/2026",
+        "Thiago",
+        "59",
+        "1",
+        "7,80",
+        "7,56",
+        "0,13",
+        "7,44",
+        "8",
+        "9",
+        "88,9%",
+        "65",
+        "129",
+        "82",
+        "130",
+        "129",
+        "",
+        "192",
+        "",
+      ],
+    ]);
+    expect(l!.sla_chat_s).toBe(137);
+  });
+});
