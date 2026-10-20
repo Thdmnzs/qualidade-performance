@@ -86,10 +86,11 @@ describe("itensDoMenu", () => {
     expect(itensDoMenu("colaborador", "colaborador")).not.toContain("/admin/painel");
   });
 
-  it("avaliador na gestão vê avaliações, contestações, a escala e o ranking", () => {
+  it("avaliador na gestão vê avaliações, contestações, o treino da IA, a escala e o ranking", () => {
     expect(itensDoMenu("avaliador", "gestao")).toEqual([
       "/admin/avaliacoes",
       "/admin/contestacoes",
+      "/admin/treinar-a-ia", // 20/10/2026: os avaliadores também treinam a IA
       "/escala",
       "/ranking",
     ]);
@@ -171,9 +172,10 @@ describe("Meu perfil", () => {
 });
 
 describe("aba Histórico", () => {
-  it("só o ADM vê, logo depois de Processos", () => {
+  it("só o ADM vê, logo depois de Processos e do Treinar a IA", () => {
     const itens = itensDoMenu("adm", "gestao");
-    expect(itens.indexOf("/admin/historico")).toBe(itens.indexOf("/admin/processos") + 1);
+    expect(itens.indexOf("/admin/treinar-a-ia")).toBe(itens.indexOf("/admin/processos") + 1);
+    expect(itens.indexOf("/admin/historico")).toBe(itens.indexOf("/admin/treinar-a-ia") + 1);
     expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/historico");
   });
 });

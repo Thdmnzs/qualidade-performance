@@ -17,6 +17,8 @@ import { ProcessoRelacionado, type ProcessoEscolhido } from "@/components/proces
 import { extrairIdDaConversa, linkSeguroDoIntercom } from "@/lib/intercom";
 import { aplicarSugestoes, retirarSugestoes, type Sugestoes } from "@/lib/pre-avaliacao";
 import { preAvaliarFn } from "@/lib/pre-avaliacao.functions";
+import { MOTIVOS, type Motivo } from "@/lib/treinar-a-ia";
+import { registrarMotivos } from "@/lib/treinar-a-ia-api";
 import { hojeEmFortaleza, nomeQuinzena, numeroBR } from "@/lib/format";
 import {
   aceitaAvaliacoes,
@@ -64,6 +66,8 @@ function Avaliacoes() {
   const [textoDoContato, setTextoDoContato] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [respostas, setRespostas] = useState<Record<string, Resposta>>({});
+  // O "por quê?" de cada sugestão da IA mudada pelo avaliador (opcional; alimenta a concordância).
+  const [motivos, setMotivos] = useState<Record<string, Motivo>>({});
   // Editando uma avaliação registrada (07/10/2026): a ficha carrega a avaliação.
   const [editando, setEditando] = useState<AvaliacaoDaGestao | null>(null);
   // Os critérios "Sim" com o campo da dica aberto.
@@ -240,6 +244,18 @@ function Avaliacoes() {
     },
     onSuccess: (registrada) => {
       toast.success(`Avaliação registrada. Nota: ${numeroBR(Number(registrada.nota))}.`);
+      // O "por quê?" das sugestões mudadas (só os critérios ainda mudados). Uma falha aqui não desfaz a avaliação.
+      const mudados = Object.entries(motivos)
+        .filter(
+          ([id]) =>
+            pre.sugeridos.includes(id) && respostas[id] !== pre.sugestoes?.criterios[id]?.resposta,
+        )
+        .map(([criterio_id, motivo]) => ({ criterio_id, motivo }));
+      if (registrada.evaluation_id && mudados.length)
+        registrarMotivos(registrada.evaluation_id, mudados).catch(() =>
+          toast.info("O porquê das mudanças não foi registrado (a avaliação está salva)."),
+        );
+      setMotivos({});
       setRespostas({});
       setObservacoes({});
       setAssunto("");
@@ -259,6 +275,7 @@ function Avaliacoes() {
 
   function limparFicha() {
     setRespostas({});
+    setMotivos({});
     setObservacoes({});
     setDicas({});
     setAssunto("");
@@ -679,6 +696,45 @@ function Avaliacoes() {
                       )}
                     </div>
                   </div>
+                  {pre.estado === "pronta" &&
+                    pre.sugeridos.includes(c.id) &&
+                    !!respostas[c.id] &&
+                    respostas[c.id] !== pre.sugestoes?.criterios[c.id]?.resposta && (
+                      <div
+                        className="mt-2 rounded-lg bg-[#eee8ff] px-3 py-2 text-xs dark:bg-[#2a2347]"
+                        role="group"
+                        aria-label={`Por que você mudou a sugestão da IA no critério ${c.ordem}?`}
+                      >
+                        <span className="font-bold text-[#5b3cc4] dark:text-[#cbbdfb]">
+                          Você mudou a sugestão da IA.
+                        </span>{" "}
+                        Por quê?{" "}
+                        <span className="text-muted-foreground">
+                          (opcional, ajuda a treinar a IA)
+                        </span>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {(Object.keys(MOTIVOS) as Motivo[]).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              aria-pressed={motivos[c.id] === m}
+                              onClick={() =>
+                                setMotivos((x) =>
+                                  x[c.id] === m
+                                    ? Object.fromEntries(
+                                        Object.entries(x).filter(([k]) => k !== c.id),
+                                      )
+                                    : { ...x, [c.id]: m },
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-0.5 font-bold ${motivos[c.id] === m ? "border-[#5b3cc4] bg-[#5b3cc4] text-white" : "border-border bg-card"}`}
+                            >
+                              {MOTIVOS[m]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   {pre.estado === "pronta" &&
                     !respostas[c.id] &&
                     pre.sugestoes?.criterios[c.id]?.motivo && (

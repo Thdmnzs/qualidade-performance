@@ -20,7 +20,7 @@ const normal = (t: string) =>
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
-const SEGMENTO = /^\[(b2c|b2b)\]\s*/i;
+const SEGMENTO = /^\[(b2c|b2b|geral)\]\s*/i; // (20/10/2026) o "[Geral]": o SLA geral do Intercom
 
 /** O grupo e o nome curto de uma coluna da planilha. */
 export function classificar(nome: string): { grupo: string; curto: string } {
@@ -51,8 +51,9 @@ export function classificar(nome: string): { grupo: string; curto: string } {
   const seg = nome.match(SEGMENTO);
   if (seg && n.includes("sla")) {
     const resto = n.replace(SEGMENTO, "");
+    const geral = seg[1]!.toLowerCase() === "geral";
     return {
-      grupo: `SLA do ${seg[1]!.toUpperCase()}${emSegundos ? " (s)" : ""}`,
+      grupo: `${geral ? "SLA geral" : `SLA do ${seg[1]!.toUpperCase()}`}${emSegundos ? " (s)" : ""}`,
       curto: `${resto.includes("primeira resposta") ? "1ª resp. " : ""}${canal(resto)}`
         .replace(/^chat$/, "Chat")
         .replace(/^e-mail$/, "E-mail"),
@@ -68,7 +69,8 @@ export function gruposDaTabela(cabecalho: string[]): Grupo[] {
     nome,
     ...classificar(nome),
   }));
-  if (!colunas.some((c) => c.grupo === "SLA geral (percentil)"))
+  // As duas colunas do SLA geral esperam a planilha só enquanto ela não as tem (o "[Geral]", desde 20/10/2026).
+  if (!colunas.some((c) => c.grupo.startsWith("SLA geral")))
     colunas.push(
       {
         indice: null,

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   PieChart,
   MessageSquareWarning,
+  Sparkles,
   TrendingUp,
   Trophy,
   UserRound,
@@ -52,6 +53,7 @@ const NAV: Record<Rota, NavItem> = {
   "/admin/indicadores": { label: "Indicadores", icon: Gauge },
   "/indicadores": { label: "Indicadores", icon: TrendingUp },
   "/admin/processos": { label: "Processos", icon: BookOpen },
+  "/admin/treinar-a-ia": { label: "Treinar a IA", icon: Sparkles },
   "/admin/historico": { label: "Histórico", icon: History },
   "/admin/colaboradores": { label: "Colaboradores", icon: Users },
 };

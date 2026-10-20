@@ -36,6 +36,7 @@ export const CATEGORIAS: Record<string, string[]> = {
   ],
   Indicadores: ["nome_na_planilha"],
   Segurança: ["senha_alterada"],
+  "Treinar a IA": ["orientacao_da_ia", "exemplar_da_ia"],
   "Acesso rápido": [
     "atalho_grupo_criar",
     "atalho_grupo_editar",
@@ -261,6 +262,15 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         ),
       ];
     }
+    // Treinar a IA (20/10/2026)
+    case "orientacao_da_ia":
+      return n["vazia"]
+        ? [q("apagou a orientação da IA do critério "), b(txt(n["criterio"]) ?? "")]
+        : [q("escreveu a orientação da IA do critério "), b(txt(n["criterio"]) ?? "")];
+    case "exemplar_da_ia":
+      return n["exemplar"]
+        ? [q("marcou como exemplar a avaliação de "), b(txt(n["colaborador"]) ?? alvo)]
+        : [q("tirou dos exemplares a avaliação de "), b(txt(n["colaborador"]) ?? alvo)];
     // A troca de senha pela própria pessoa (16/10/2026): nunca registra a senha
     case "senha_alterada":
       return [q("alterou a própria senha")];

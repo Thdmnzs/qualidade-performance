@@ -471,6 +471,7 @@ contagens do limite de uso.
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro, e o dentro da meta, verde claro. |
+| 20/10/2026 | Treinar a IA: as orientações por critério, o "por quê?" das sugestões mudadas, a concordância e os exemplares. |
 | 16/10/2026 | A troca de senha pela própria pessoa, no Editar perfil. |
 | 16/10/2026 | A Visão geral mostra o resultado na publicação (a prévia, durante a contestação; o oficial, depois do fechamento); e o fechamento (a elegibilidade, o ranking e o bônus) passa a ler os indicadores da planilha. |
 | 14/10/2026 | A tela de Processos em duas colunas (o B2C e o B2B), recolhíveis, do tamanho da janela, na ordem da Flukepédia, com a busca e o botão para o Notion; e as outras referências (o Guia e o Dicionário de Tags). |
@@ -492,7 +493,9 @@ contagens do limite de uso.
 - **A supervisão** vê a **cópia da planilha**, sem nenhum cálculo do CX Hub: o **"Ontem"**, as linhas do dia anterior
   da aba "Dados"; a **"quinzena"**, a aba "Análise" (no período escolhido na própria planilha). As colunas são achadas
   pelo nome, então uma coluna nova aparece sozinha. O **SLA geral (percentil)** do Intercom vai entrar como duas colunas
-  novas da planilha; até lá, ele aparece vazio, "aguardando a planilha".
+  novas da planilha. Desde 20/10/2026, a planilha tem as colunas "[Geral] SLA chat" e "[Geral] SLA email" (o SLA geral
+  do Intercom), que aparecem na tabela da supervisão, no grupo "SLA geral". O colaborador e o fechamento continuam com a média
+  do B2C e do B2B (uma decisão em aberto).
 - **As cores do cartão:** verde claro dentro da meta, vermelho claro fora, branco aguardando, e a borda tracejada
   (com a pílula azul) no informativo, sem meta. No modo escuro, os mesmos sinais em tons escuros.
 - **O dia em destaque (16/10/2026):** nos cartões do colaborador, o número grande é o do **dia escolhido** (por padrão,
@@ -516,3 +519,20 @@ contagens do limite de uso.
 - **No servidor:** a senha atual é conferida numa sessão separada, e só então a senha é trocada, por essa sessão (a
   política do Supabase continua valendo). Até 5 tentativas a cada 15 minutos. Depois da troca, as outras sessões da pessoa
   (outros aparelhos) são encerradas. A troca vai para o Histórico ("alterou a própria senha"), sem nenhuma senha.
+
+## Treinar a IA (20/10/2026)
+
+A IA não é retreinada: o que adapta as sugestões da pré-avaliação ao estilo do time é o que vai junto de cada pedido.
+A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
+
+- **As orientações:** em cada critério, o que conta como sim, médio (só onde a ficha permite) e não, e um exemplo. A IA
+  lê a orientação a cada pré-avaliação. Cada mudança vira uma **versão** (com o autor e a data, e dá para voltar a uma
+  versão antiga), e vai para o Histórico.
+- **O "por quê?":** na ficha, quando o avaliador muda uma sugestão da IA, ele pode dizer por quê (opcional, num clique):
+  a IA não viu algo, a orientação não cobre o caso, o critério do avaliador, ou outro.
+- **A concordância:** em cada critério, quantas vezes a sugestão foi aceita (a sugestão da conversa × a decisão do
+  avaliador), do menor para o maior acordo, com a mudança mais comum e os porquês. Abaixo de 80%, o critério ganha o
+  "Ajustar a orientação".
+- **Os exemplares:** avaliações marcadas com a estrela. Cada pré-avaliação leva até 2, do mesmo processo (ou assunto),
+  com as respostas, as observações e o comentário, **mascarados** (inclusive os nomes do time); nunca uma da própria
+  pessoa avaliada. Para a IA, os exemplos são conteúdo de referência, nunca uma instrução.

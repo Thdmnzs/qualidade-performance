@@ -102,3 +102,35 @@ describe("a tabela da supervisão", () => {
     ).toEqual([["15/10/2026", "Thiago", ""]]);
   });
 });
+
+describe("o SLA geral do Intercom, com o padrão [Geral] (20/10/2026)", () => {
+  it("as duas colunas da planilha entram no grupo do SLA geral, e nada fica esperando", () => {
+    expect(classificar("[Geral] SLA chat (s)")).toEqual({ grupo: "SLA geral (s)", curto: "Chat" });
+    expect(classificar("[Geral] SLA email")).toEqual({ grupo: "SLA geral", curto: "E-mail" }); // a Análise, sem o "(s)"
+    const g = gruposDaTabela([...DADOS, "[Geral] SLA chat (s)", "[Geral] SLA email (s)"]);
+    expect(g.map((x) => x.nome)).toEqual([
+      "",
+      "Conversas atribuídas",
+      "Horas",
+      "Por hora ativa",
+      "CSAT",
+      "SLA do B2C (s)",
+      "SLA do B2B (s)",
+      "SLA geral (s)",
+    ]);
+    expect(g.some((x) => x.aguardando)).toBe(false);
+    expect(g[g.length - 1]!.colunas.map((c) => c.indice)).toEqual([19, 20]);
+  });
+  it("na Análise, o [Geral] vem antes do B2C, e os grupos seguem a ordem da planilha", () => {
+    const g = gruposDaTabela([
+      "Membro",
+      "CSAT %",
+      "Avaliações CSAT",
+      "[Geral] SLA chat",
+      "[Geral] SLA email",
+      "[B2C] SLA chat",
+      "[B2C] SLA email",
+    ]);
+    expect(g.map((x) => x.nome)).toEqual(["", "CSAT", "SLA geral", "SLA do B2C"]);
+  });
+});

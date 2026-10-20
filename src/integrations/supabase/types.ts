@@ -1396,6 +1396,33 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      orientacoes_para_treinar: { Args: never; Returns: Json };
+      versoes_da_orientacao: { Args: { _criterion_id: string }; Returns: Json };
+      salvar_orientacao: {
+        Args: {
+          _criterion_id: string;
+          _sim: string;
+          _medio: string;
+          _nao: string;
+          _exemplo: string;
+        };
+        Returns: undefined;
+      };
+      registrar_motivos_das_mudancas: {
+        Args: { _evaluation_id: string; _motivos: Json };
+        Returns: undefined;
+      };
+      concordancia_da_ia: { Args: { _de: string; _ate: string }; Returns: Json };
+      avaliacoes_para_exemplos: { Args: { _limite?: number }; Returns: Json };
+      marcar_exemplar: { Args: { _evaluation_id: string; _exemplar: boolean }; Returns: undefined };
+      exemplos_para_pre_avaliacao: {
+        Args: {
+          _processo_id: string | null;
+          _assunto: string | null;
+          _excluir_employee: string | null;
+        };
+        Returns: Json;
+      };
       meu_resultado_da_quinzena: { Args: { _fortnight_id: string }; Returns: Json };
       gravar_copia_da_planilha: {
         Args: { _aba: string; _valores: Json; _dia: string | null };

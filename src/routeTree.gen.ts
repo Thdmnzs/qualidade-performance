@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminHistoricoRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminIndicadoresRouteImport } from './routes/_authenticated/admin/indicadores'
 import { Route as AuthenticatedAdminPainelRouteImport } from './routes/_authenticated/admin/painel'
 import { Route as AuthenticatedAdminProcessosRouteImport } from './routes/_authenticated/admin/processos'
+import { Route as AuthenticatedAdminTreinarAIaRouteImport } from './routes/_authenticated/admin/treinar-a-ia'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -146,6 +147,12 @@ const AuthenticatedAdminProcessosRoute =
     path: '/admin/processos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminTreinarAIaRoute =
+  AuthenticatedAdminTreinarAIaRouteImport.update({
+    id: '/admin/treinar-a-ia',
+    path: '/admin/treinar-a-ia',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
+  '/admin/treinar-a-ia': typeof AuthenticatedAdminTreinarAIaRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -189,6 +197,7 @@ export interface FileRoutesByTo {
   '/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/processos': typeof AuthenticatedAdminProcessosRoute
+  '/admin/treinar-a-ia': typeof AuthenticatedAdminTreinarAIaRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -213,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/indicadores': typeof AuthenticatedAdminIndicadoresRoute
   '/_authenticated/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/_authenticated/admin/processos': typeof AuthenticatedAdminProcessosRoute
+  '/_authenticated/admin/treinar-a-ia': typeof AuthenticatedAdminTreinarAIaRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/admin/indicadores'
     | '/admin/painel'
     | '/admin/processos'
+    | '/admin/treinar-a-ia'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin/indicadores'
     | '/admin/painel'
     | '/admin/processos'
+    | '/admin/treinar-a-ia'
     | '/admin'
   id:
     | '__root__'
@@ -282,6 +294,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/indicadores'
     | '/_authenticated/admin/painel'
     | '/_authenticated/admin/processos'
+    | '/_authenticated/admin/treinar-a-ia'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -442,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProcessosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/treinar-a-ia': {
+      id: '/_authenticated/admin/treinar-a-ia'
+      path: '/admin/treinar-a-ia'
+      fullPath: '/admin/treinar-a-ia'
+      preLoaderRoute: typeof AuthenticatedAdminTreinarAIaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -461,6 +481,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminIndicadoresRoute: typeof AuthenticatedAdminIndicadoresRoute
   AuthenticatedAdminPainelRoute: typeof AuthenticatedAdminPainelRoute
   AuthenticatedAdminProcessosRoute: typeof AuthenticatedAdminProcessosRoute
+  AuthenticatedAdminTreinarAIaRoute: typeof AuthenticatedAdminTreinarAIaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -480,6 +501,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminIndicadoresRoute: AuthenticatedAdminIndicadoresRoute,
   AuthenticatedAdminPainelRoute: AuthenticatedAdminPainelRoute,
   AuthenticatedAdminProcessosRoute: AuthenticatedAdminProcessosRoute,
+  AuthenticatedAdminTreinarAIaRoute: AuthenticatedAdminTreinarAIaRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

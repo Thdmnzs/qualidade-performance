@@ -13,6 +13,8 @@ import { textoParaSugerirProcesso, type Mensagem } from "@/lib/intercom";
 import { mascarar } from "@/lib/mascarar";
 import {
   entradaDaResposta,
+  mascararExemplo,
+  type ExemploParaIA,
   MODELO,
   problemasDaResposta,
   montarPedido,
@@ -113,6 +115,33 @@ export async function preAvaliar(p: {
       ? { codigo: ref.codigo, titulo: ref.titulo ?? "", conteudo: ref.conteudo }
       : null;
 
+  // 4b. Até 2 avaliações exemplares do time (20/10/2026): do mesmo processo, ou do mesmo assunto; nunca da
+  // própria pessoa avaliada. Mascaradas como a conversa (inclusive os nomes do time).
+  let exemplos: ExemploParaIA[] = [];
+  try {
+    const { data: brutos } = await supabaseAdmin.rpc("exemplos_para_pre_avaliacao", {
+      _processo_id: ref?.processo_id ?? null,
+      _assunto: contato.assunto ?? null,
+      _excluir_employee: p.employeeId,
+    });
+    if (Array.isArray(brutos) && brutos.length) {
+      const { data: time } = await supabaseAdmin.from("employees").select("nome");
+      const nomesDoTime: Record<string, string> = { ...nomes };
+      for (const e of time ?? []) {
+        if (e.nome) {
+          nomesDoTime[e.nome] = "Atendente";
+          const primeiro = e.nome.split(" ")[0];
+          if (primeiro && primeiro.length > 2) nomesDoTime[primeiro] = "Atendente";
+        }
+      }
+      exemplos = (brutos as unknown as ExemploParaIA[]).map((e) =>
+        mascararExemplo(e, (t) => mascarar(t, nomesDoTime)),
+      );
+    }
+  } catch {
+    exemplos = []; // sem os exemplos, a pré-avaliação segue normal
+  }
+
   // 5. O pedido ao Claude, com tempo máximo de espera.
   const pedido = montarPedido({
     ficha,
@@ -120,6 +149,7 @@ export async function preAvaliar(p: {
     atributos,
     processo,
     dicionario: ref?.dicionario ?? null,
+    ...(exemplos.length ? { exemplos } : {}),
     ...(p.tipo ? { tipo: p.tipo } : {}),
     ...(conversaDoCliente.length ? { conversaDoCliente } : {}),
   });

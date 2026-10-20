@@ -81,6 +81,7 @@ export type Rota =
   | "/admin/colaboradores"
   | "/admin/indicadores"
   | "/admin/processos"
+  | "/admin/treinar-a-ia"
   | "/admin/historico"
   | "/indicadores"
   | "/admin/painel"
@@ -96,6 +97,7 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
       "/admin/contestacoes",
       "/admin/indicadores",
       "/admin/processos",
+      "/admin/treinar-a-ia",
       "/admin/historico",
       "/escala",
       "/ranking",
@@ -104,7 +106,14 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
   }
   if (perfil === "avaliador" && area === "gestao") {
     // O Ranking: desde 07/10/2026, o avaliador vê só o pódio publicado, como o colaborador.
-    return ["/admin/avaliacoes", "/admin/contestacoes", "/escala", "/ranking"];
+    // Treinar a IA (20/10/2026): os avaliadores também escrevem as orientações e marcam os exemplos.
+    return [
+      "/admin/avaliacoes",
+      "/admin/contestacoes",
+      "/admin/treinar-a-ia",
+      "/escala",
+      "/ranking",
+    ];
   }
   // Colaborador, e avaliador na área de colaborador.
   return [
