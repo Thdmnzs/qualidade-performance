@@ -142,9 +142,24 @@ export async function preAvaliar(p: {
   } finally {
     clearTimeout(relogio);
   }
-  // Nunca repassa o corpo do erro (pode conter detalhes do pedido).
-  if (!resposta.ok)
+  // Nunca repassa o corpo do erro à TELA (pode conter detalhes do pedido). Mas registra, só nos registros do
+  // servidor, o tipo e a mensagem do erro (20/10/2026), que dizem o que a Anthropic recusou.
+  if (!resposta.ok) {
+    let tipo = "";
+    let mensagem = "";
+    try {
+      const erro = ((await resposta.json()) as { error?: { type?: string; message?: string } })
+        .error;
+      tipo = erro?.type ?? "";
+      mensagem = (erro?.message ?? "").slice(0, 300);
+    } catch {
+      // o corpo não era JSON: fica só o código
+    }
+    console.error(
+      `[pré-avaliação] a Anthropic recusou o pedido (${resposta.status}) ${tipo}: ${mensagem}`,
+    );
     return { estado: "falhou", motivo: `A IA não respondeu (código ${resposta.status}).` };
+  }
   const corpo = (await resposta.json()) as {
     content?: { type: string; name?: string; input?: unknown }[];
     usage?: { input_tokens?: number; output_tokens?: number };

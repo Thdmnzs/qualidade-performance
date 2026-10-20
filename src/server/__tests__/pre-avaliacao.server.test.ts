@@ -103,6 +103,29 @@ describe("preAvaliar (servidor, com o Claude simulado)", () => {
     );
   });
 
+  it("um 400 da Anthropic: o tipo e a mensagem vão para os registros do servidor, e não para a tela", async () => {
+    const erro = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              type: "error",
+              error: { type: "invalid_request_error", message: "tools.0.input_schema: inválido" },
+            }),
+            { status: 400 },
+          ),
+      ),
+    );
+    const r = await preAvaliar(ids);
+    expect(r).toEqual({ estado: "falhou", motivo: "A IA não respondeu (código 400)." }); // a tela não vê a mensagem
+    expect(erro.mock.calls.flat().join(" ")).toContain(
+      "invalid_request_error: tools.0.input_schema: inválido",
+    );
+    erro.mockRestore();
+  });
+
   it("a mesma conversa: reaproveita a sugestão guardada, sem novo pedido", async () => {
     rpc.mockImplementationOnce(async () => ({
       data: { criterios: {}, comentario: "guardada" },

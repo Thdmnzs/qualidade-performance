@@ -247,3 +247,23 @@ describe("retirarSugestoes: ao trocar de contato", () => {
     expect(r.comentarios).toBe("Meu feedback.");
   });
 });
+
+describe("o esquema da ferramenta (20/10/2026)", async () => {
+  const { ESQUEMA_DA_FERRAMENTA, validarResposta } = await import("../pre-avaliacao");
+  it("sem o valor vazio (null) no esquema: só opções com nome", () => {
+    const resposta =
+      ESQUEMA_DA_FERRAMENTA.input_schema.properties.criterios.items.properties.resposta;
+    expect(resposta).toEqual({ type: "string", enum: ["sim", "medio", "nao", "sem_sugestao"] });
+    expect(JSON.stringify(ESQUEMA_DA_FERRAMENTA)).not.toContain("null");
+  });
+  it('o "sem_sugestao" vira "sem sugestão", com o motivo', () => {
+    const r = validarResposta(
+      {
+        criterios: [{ criterio_id: "c1", resposta: "sem_sugestao", motivo: "Sem o histórico." }],
+        comentario: "",
+      },
+      [{ id: "c1", pergunta: "?", peso: 1, permite_medio: true }] as never,
+    );
+    expect(r!.criterios["c1"]).toEqual({ resposta: null, motivo: "Sem o histórico." });
+  });
+});
