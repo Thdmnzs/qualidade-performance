@@ -101,9 +101,9 @@ describe("os indicadores do colaborador: o dia escolhido em destaque", () => {
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
       "Produtividade",
       "SLA",
-      "Qualidade",
       "CSAT",
-    ]);
+    ]); // 20/10/2026: sem a Qualidade
+    expect(screen.getByRole("heading", { name: "Minhas métricas" })).toBeTruthy();
     expect((await screen.findAllByText("em qui 15/10")).length).toBe(3);
     expect(rotulos()).toEqual([
       "Por hora ativa: total",
@@ -155,21 +155,19 @@ describe("os indicadores do colaborador: o dia escolhido em destaque", () => {
       (screen.getByRole("button", { name: "O dia seguinte" }) as HTMLButtonElement).disabled,
     ).toBe(true); // não passa de ontem
   });
-  it("o Para concorrer continua no topo; a Qualidade, na publicação; e o CSAT do time, o do dia", async () => {
+  it("sem o Para concorrer e sem a aba da Qualidade (a nota foi para as Minhas avaliações); o CSAT do time, o do dia", async () => {
     abrir();
+    await screen.findAllByText("em qui 15/10");
     expect(
-      await screen.findByText(/Para concorrer nesta quinzena|no caminho para concorrer/),
-    ).toBeTruthy();
-    cleanup();
-    abrir();
-    fireEvent.click(screen.getByRole("tab", { name: "Qualidade" }));
-    expect(await screen.findByText("aparece na publicação da quinzena")).toBeTruthy();
+      screen.queryByText(/Para concorrer nesta quinzena|no caminho para concorrer/),
+    ).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Qualidade" })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "CSAT" }));
     expect(rotulos()).toEqual(["CSAT do time"]);
     await waitFor(() =>
       expect(screen.getByRole("tabpanel").querySelector(".cartao-ind .valor")!.textContent).toBe(
         "97,1%",
       ),
-    ); // o do dia
+    );
   });
 });

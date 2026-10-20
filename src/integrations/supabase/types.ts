@@ -23,6 +23,45 @@ export type Database = {
   };
   public: {
     Tables: {
+      mural_comunicados: {
+        Row: {
+          ts: string;
+          autor_nome: string | null;
+          texto: string;
+          respostas: Json;
+          qtd_respostas: number;
+          reacoes_ok: number;
+          apagado: boolean;
+          criado_em: string;
+          editado_em: string | null;
+          atualizado_em: string;
+        };
+        Insert: {
+          ts: string;
+          autor_nome?: string | null;
+          texto?: string;
+          respostas?: Json;
+          qtd_respostas?: number;
+          reacoes_ok?: number;
+          apagado?: boolean;
+          criado_em: string;
+          editado_em?: string | null;
+          atualizado_em?: string;
+        };
+        Update: {
+          ts?: string;
+          autor_nome?: string | null;
+          texto?: string;
+          respostas?: Json;
+          qtd_respostas?: number;
+          reacoes_ok?: number;
+          apagado?: boolean;
+          criado_em?: string;
+          editado_em?: string | null;
+          atualizado_em?: string;
+        };
+        Relationships: [];
+      };
       audit_logs: {
         Row: {
           acao: string;
@@ -1396,6 +1435,8 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      reservar_leitura_do_mural: { Args: { _minutos: number }; Returns: boolean };
+      concluir_leitura_do_mural: { Args: never; Returns: undefined };
       orientacoes_para_treinar: { Args: never; Returns: Json };
       versoes_da_orientacao: { Args: { _criterion_id: string }; Returns: Json };
       salvar_orientacao: {

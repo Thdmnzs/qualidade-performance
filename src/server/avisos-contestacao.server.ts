@@ -101,6 +101,13 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
   const leitura = await lerPlanilhaDosIndicadores("automatica");
   if (!leitura.ok)
     console.error("[tarefa da manhã] a planilha dos indicadores não foi lida:", leitura.erro);
+  // O mural do CX (20/10/2026): a releitura do canal, como mais uma rede de segurança.
+  try {
+    const { lerMuralSePreciso } = await import("@/server/slack-mural.server");
+    await lerMuralSePreciso(0);
+  } catch (e) {
+    console.error("[tarefa da manhã] o mural não foi relido:", e instanceof Error ? e.message : e);
+  }
   const { avisosDeTrocaPendentes } = await import("@/server/central-de-turnos.server");
   const trocas = await avisosDeTrocaPendentes();
   // A central de notificações (13/10/2026): as novidades com mais de 30 dias são apagadas.

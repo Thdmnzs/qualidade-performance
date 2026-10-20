@@ -115,16 +115,40 @@ export function itensDoMenu(perfil: Perfil | undefined, area: Area): Rota[] {
       "/ranking",
     ];
   }
-  // Colaborador, e avaliador na área de colaborador.
+  // Colaborador, e avaliador na área de colaborador (20/10/2026: a ordem nova; a Qualidade é um grupo).
   return [
     "/painel",
-    "/minhas-avaliacoes",
-    "/contestacoes",
     "/indicadores",
     "/escala",
+    "/minhas-avaliacoes",
+    "/contestacoes",
     "/ranking",
     "/perfil",
   ];
+}
+
+/** Um grupo do menu (20/10/2026): os itens vizinhos que ficam juntos, sob um nome. */
+export const GRUPOS_DO_MENU: { nome: string; rotas: Rota[] }[] = [
+  { nome: "Qualidade", rotas: ["/minhas-avaliacoes", "/contestacoes", "/ranking"] },
+];
+export type EntradaDoMenu =
+  { tipo: "item"; rota: Rota } | { tipo: "grupo"; nome: string; rotas: Rota[] };
+
+/**
+ * O menu com os grupos: os itens de um grupo viram uma entrada só, onde o primeiro deles aparece. Um grupo
+ * só se forma com TODOS os itens dele no menu (o ADM, por exemplo, tem o Ranking sem os outros dois).
+ */
+export function menuComGrupos(itens: Rota[]): EntradaDoMenu[] {
+  const saida: EntradaDoMenu[] = [];
+  for (const rota of itens) {
+    const grupo = GRUPOS_DO_MENU.find(
+      (g) => g.rotas.includes(rota) && g.rotas.every((r) => itens.includes(r)),
+    );
+    if (!grupo) saida.push({ tipo: "item", rota });
+    else if (!saida.some((e) => e.tipo === "grupo" && e.nome === grupo.nome))
+      saida.push({ tipo: "grupo", nome: grupo.nome, rotas: grupo.rotas });
+  }
+  return saida;
 }
 
 /** Atalho para trocar de área sem sair (só o avaliador tem as duas). */

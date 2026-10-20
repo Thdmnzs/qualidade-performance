@@ -471,6 +471,7 @@ contagens do limite de uso.
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro, e o dentro da meta, verde claro. |
+| 20/10/2026 | O menu novo do colaborador (Visão geral, Minhas métricas, Escala, Qualidade e Meu perfil); a Visão geral com o Meu dia e o mural do #cx_mural, ao vivo; a nota de qualidade nas Minhas avaliações. |
 | 20/10/2026 | Treinar a IA: as orientações por critério, o "por quê?" das sugestões mudadas, a concordância e os exemplares. |
 | 16/10/2026 | A troca de senha pela própria pessoa, no Editar perfil. |
 | 16/10/2026 | A Visão geral mostra o resultado na publicação (a prévia, durante a contestação; o oficial, depois do fechamento); e o fechamento (a elegibilidade, o ranking e o bônus) passa a ler os indicadores da planilha. |
@@ -539,3 +540,19 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
 - **Os exemplares:** avaliações marcadas com a estrela. Cada pré-avaliação leva até 2, do mesmo processo (ou assunto),
   com as respostas, as observações e o comentário, **mascarados** (inclusive os nomes do time); nunca uma da própria
   pessoa avaliada. Para a IA, os exemplos são conteúdo de referência, nunca uma instrução.
+
+## O menu do colaborador e a Visão geral (20/10/2026)
+
+- **O menu:** Visão geral, **Minhas métricas** (o nome novo dos indicadores), Escala, **Qualidade** (um grupo, com Minhas
+  avaliações, Minhas contestações e Ranking) e Meu perfil.
+- **Minhas métricas:** a Produtividade, o SLA e o CSAT, por dia. Saíram o "Para concorrer nesta quinzena" e a aba da
+  Qualidade.
+- **Minhas avaliações:** no topo, a **nota de qualidade** da última quinzena publicada (com o nível, as avaliações e a
+  anterior). A nota da quinzena em andamento aparece na publicação.
+- **A Visão geral:** o **Meu dia** (pela escala publicada) e o **mural do CX**, com os comunicados do canal #cx_mural do
+  Slack dos últimos 15 dias. O cabeçalho de cada um vem do padrão do canal ("*[tipo] título*", "criticidade: ...", "tempo
+  de leitura: ..."); o "Ler aqui" abre a conversa dentro do CX Hub. O resultado da quinzena saiu da Visão geral.
+- **O mural ao vivo:** o Slack avisa o CX Hub a cada mudança no canal (conferida pela assinatura secreta,
+  SLACK_SIGNING_SECRET), e o banco empurra a mudança para quem está com a tela aberta. A rede de segurança: ao abrir a tela,
+  o servidor relê o canal se a última leitura tem mais de 5 minutos (uma por vez), e a tarefa das 8h também relê. O texto
+  do Slack é desenhado como elementos da tela, nunca como código.

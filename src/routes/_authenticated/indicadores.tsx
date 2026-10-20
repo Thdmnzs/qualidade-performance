@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { CartaoIndicador } from "@/components/cartao-indicador";
@@ -11,8 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { hojeEmFortaleza } from "@/lib/format";
 import {
   formatarValor,
-  nivelQualidade,
-  QUALIDADE_MINIMA,
   textoDaMeta,
   textoDaSituacao,
   type ChaveIndicador,
@@ -24,7 +22,7 @@ import { fetchMetas } from "@/lib/queries";
 export const Route = createFileRoute("/_authenticated/indicadores")({
   head: () => ({
     meta: [
-      { title: "Indicadores · CX Hub" },
+      { title: "Minhas métricas · CX Hub" },
       {
         name: "description",
         content: "Seus indicadores, atualizados todo dia com o dia anterior.",
@@ -60,7 +58,6 @@ type Consolidado = {
 const ABAS = [
   ["produtividade", "Produtividade"],
   ["sla", "SLA"],
-  ["qualidade", "Qualidade"],
   ["csat", "CSAT"],
 ] as const;
 type Aba = (typeof ABAS)[number][0];
@@ -85,7 +82,7 @@ const mediaDosDias = (ds: Dia[], k: keyof Dia) => {
 const ajustada = (d: Dia) => (d.conversas_atribuidas ?? 0) - (d.autoatribuicoes ?? 0);
 
 /**
- * Meus indicadores (16/10/2026): em abas (a Produtividade, o SLA, a Qualidade e o CSAT), atualizados todo
+ * Minhas métricas (20/10/2026; antes "Meus indicadores"): em abas (a Produtividade, o SLA e o CSAT), atualizadas todo
  * dia às 8h com o dia anterior. O valor grande é a quinzena até ontem (parcial: o oficial sai no fechamento);
  * a linha "Ontem", o D-1. Os cartões sem meta são informativos (a borda tracejada, a pílula azul).
  */
@@ -96,27 +93,12 @@ function MeusIndicadores() {
   const ontem = ontemDe(hoje);
   // O dia escolhido no filtro (o padrão é ontem): os cartões mostram o número DESSE dia (16/10/2026).
   const [dia, setDia] = useState(ontem);
-  const q = quinzenaDoDia(ontem); // a quinzena atual (a dos requisitos da elegibilidade)
+  const q = quinzenaDoDia(ontem); // a quinzena atual
   const qDoDia = quinzenaDoDia(dia); // a quinzena do dia escolhido (a da média e do gráfico)
   const anterior = quinzenaDoDia(ontemDe(q.de));
   const { data: metas = {} as Metas } = useQuery({
     queryKey: ["metas-indicadores"],
     queryFn: fetchMetas,
-  });
-  const { data: c } = useQuery({
-    queryKey: ["meus-indicadores", q.de, ontem],
-    enabled: !!employee,
-    queryFn: async () => {
-      const [atual, ant] = await Promise.all([
-        supabase.rpc("meus_indicadores", { _de: q.de, _ate: ontem }),
-        supabase.rpc("meus_indicadores", { _de: anterior.de, _ate: anterior.ate }),
-      ]);
-      if (atual.error) throw atual.error;
-      return {
-        atual: (atual.data?.[0] ?? null) as Consolidado | null,
-        anterior: (ant.data?.[0] ?? null) as Consolidado | null,
-      };
-    },
   });
   const { data: todosOsDias = [] } = useQuery({
     queryKey: ["meus-dias", employee?.id, qDoDia.de, ontem],
@@ -144,25 +126,6 @@ function MeusIndicadores() {
       return ((data?.[0] as Consolidado | undefined)?.csat_time ?? null) as number | null;
     },
   });
-  const { data: quiz = null } = useQuery({
-    queryKey: ["meu-quiz", employee?.id, q.de],
-    enabled: !!employee,
-    queryFn: async () => {
-      const { data: f } = await supabase
-        .from("fortnights")
-        .select("id")
-        .eq("data_inicio", q.de)
-        .maybeSingle();
-      if (!f) return null;
-      const { data } = await supabase
-        .from("quiz_results")
-        .select("entregue")
-        .eq("employee_id", employee!.id)
-        .eq("fortnight_id", f.id)
-        .maybeSingle();
-      return data?.entregue ?? false;
-    },
-  });
 
   if (isLoading) return null;
   if (!employee)
@@ -172,8 +135,6 @@ function MeusIndicadores() {
         texto="Seu acesso não está ligado a um colaborador."
       />
     );
-  const atual = c?.atual ?? null;
-  const ant = c?.anterior ?? null;
   // A quinzena do dia escolhido, ATÉ ele (para a média, na linha de baixo); e o próprio dia (o número grande).
   const dias = todosOsDias.filter((d) => d.dia >= qDoDia.de && d.dia <= dia);
   const diasAnt: Dia[] = [];
@@ -188,7 +149,7 @@ function MeusIndicadores() {
   /**
    * Um cartão com meta (16/10/2026): o número grande é o do DIA escolhido (e a pílula diz se ele bateu a
    * meta). A média da quinzena não aparece aqui: o resultado da quinzena só sai na Visão geral, na
-   * publicação (o "Para concorrer", no topo, continua acompanhando os requisitos).
+   * publicação.
    */
   const comMeta = (p: {
     chave: ChaveIndicador;
@@ -238,82 +199,15 @@ function MeusIndicadores() {
     />
   );
 
-  const requisitos = [
-    {
-      nome: "Qualidade",
-      ok: atual?.qualidade == null ? null : atual.qualidade >= QUALIDADE_MINIMA,
-      alvo: `${QUALIDADE_MINIMA} ou mais`,
-      pct: atual?.qualidade ?? 0,
-      texto:
-        atual?.qualidade == null ? "na publicação" : formatarValor("qualidade", atual.qualidade),
-    },
-    {
-      nome: "Produtividade",
-      ok: naMeta(metas, "produtividade", atual?.produtividade),
-      alvo: metas.produtividade ? textoDaMeta(metas.produtividade) : "—",
-      pct: ((atual?.produtividade ?? 0) / ((metas.produtividade?.meta ?? 1) * 1.25)) * 100,
-      texto: fmt("produtividade", atual?.produtividade) ?? "—",
-    },
-    {
-      nome: "Horas por semana",
-      ok: naMeta(metas, "horas_online", atual?.horas_semanais),
-      alvo: metas.horas_online ? textoDaMeta(metas.horas_online) : "—",
-      pct: ((atual?.horas_semanais ?? 0) / ((metas.horas_online?.meta ?? 1) * 1.25)) * 100,
-      texto: fmt("horas_online", atual?.horas_semanais) ?? "—",
-    },
-    {
-      nome: "Quiz",
-      ok: quiz,
-      alvo: "entregue",
-      pct: quiz ? 100 : 0,
-      texto: quiz ? "entregue" : "pendente",
-    },
-  ];
-  const faltam = diasQueFaltam(hoje, q.ate);
   const segundos = (k: keyof Dia, ds = dias) => mediaDosDias(ds, k);
   const tempo = (s: number | null) => (s == null ? null : formatarValor("sla_chat", s / 60));
 
   return (
     <div>
       <PageHeader
-        titulo="Meus indicadores"
+        titulo="Minhas métricas"
         descricao={`📥 Atualizados todo dia às 8h, com o dia anterior. A quinzena vai de ${ddmm(q.de)} a ${ddmm(q.ate)}.`}
       />
-      <div
-        className={`rounded-2xl border bg-card p-4 ${requisitos.some((r) => r.ok === false) ? "border-destructive/40" : "border-border"}`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="font-bold">
-            {requisitos.some((r) => r.ok === false)
-              ? "⚠️ Para concorrer nesta quinzena, falta:"
-              : "✅ Até agora, você está no caminho para concorrer"}
-          </p>
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold">
-            {faltam === 1 ? "falta 1 dia" : `faltam ${faltam} dias`}
-          </span>
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {requisitos.map((r) => (
-            <div key={r.nome}>
-              <div className="flex justify-between text-xs">
-                <span className="font-bold">{r.nome}</span>
-                <span
-                  className={`font-bold ${r.ok === null ? "text-muted-foreground" : r.ok ? "text-primary" : "text-destructive"}`}
-                >
-                  {r.texto}
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <span
-                  className={`block h-full ${r.ok === false ? "bg-destructive" : "bg-primary"}`}
-                  style={{ width: `${Math.min(100, r.pct)}%` }}
-                />
-              </div>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">a meta: {r.alvo}</p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* O filtro do dia (a peça compartilhada com a supervisão). */}
       <div className="mt-5">
@@ -379,7 +273,6 @@ function MeusIndicadores() {
                 rotulo: "Por hora ativa: ajustada",
                 valor: porHora(dias, ajustada),
                 ontem: d1?.tempo_ativo_min ? ajustada(d1) / (d1.tempo_ativo_min / 60) : null,
-                anterior: ant?.produtividade ?? null,
                 descricao:
                   "As conversas atribuídas, sem as que você mesmo se atribuiu, ÷ as suas horas ativas. É a sua produtividade: a que entra para o bônus e o ranking.",
                 formato: dec,
@@ -495,50 +388,6 @@ function MeusIndicadores() {
               </div>
             </div>
           </>
-        )}
-
-        {aba === "qualidade" && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <CartaoIndicador
-              rotulo="Qualidade"
-              etiqueta="individual"
-              valor={fmt("qualidade", atual?.qualidade)}
-              anterior={fmt("qualidade", ant?.qualidade) ?? "—"}
-              situacao={situacaoDe(
-                atual?.qualidade == null ? null : atual.qualidade >= QUALIDADE_MINIMA,
-              )}
-              textoDaSituacao={textoDaSituacao(
-                atual?.qualidade == null ? null : atual.qualidade >= QUALIDADE_MINIMA,
-                "minimo",
-              )}
-              meta={`mínimo ${QUALIDADE_MINIMA} (nível 4G)`}
-              descricao="A nota das suas avaliações de qualidade, pela ficha de atendimento."
-              legenda={
-                atual?.qualidade == null ? "aparece na publicação da quinzena" : "na quinzena"
-              }
-            />
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <p className="font-bold">Por que a qualidade só aparece na publicação?</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ela vem das avaliações dos seus atendimentos, que a supervisão faz ao longo da
-                quinzena. A nota sai junto do resultado, quando a quinzena é publicada, e você pode
-                contestar uma avaliação a partir daí.
-              </p>
-              {ant?.qualidade != null && (
-                <p className="mt-3 text-sm">
-                  <b>Na quinzena anterior:</b> {formatarValor("qualidade", ant.qualidade)} (nível{" "}
-                  {nivelQualidade(ant.qualidade)}), em {ant.avaliacoes ?? 0}{" "}
-                  {ant.avaliacoes === 1 ? "avaliação" : "avaliações"}.
-                </p>
-              )}
-              <Link
-                to="/minhas-avaliacoes"
-                className="mt-3 inline-block text-sm font-bold text-primary hover:underline"
-              >
-                Ver minhas avaliações →
-              </Link>
-            </div>
-          </div>
         )}
 
         {aba === "csat" && (

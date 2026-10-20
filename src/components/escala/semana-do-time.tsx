@@ -190,7 +190,8 @@ export function SemanaDoTime({
   );
 }
 
-function MeuDia({
+/** O dia da própria pessoa (as horas e os blocos). A Visão geral também usa esta peça (20/10/2026). */
+export function MeuDia({
   linha,
   siglas,
   feriado,

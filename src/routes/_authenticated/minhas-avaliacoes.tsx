@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { DetalheDaAvaliacao } from "@/components/detalhe-da-avaliacao";
 import { EmptyState, PageHeader } from "@/components/page-header";
+import { NotaDeQualidade } from "@/components/qualidade/nota-de-qualidade";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -140,6 +141,8 @@ function MinhasAvaliacoes() {
         titulo="Minhas avaliações"
         descricao="Suas avaliações de qualidade. Elas aparecem aqui quando a quinzena é publicada para contestação."
       />
+      {/* A nota de qualidade (20/10/2026): veio das métricas para cá. */}
+      <NotaDeQualidade quinzenas={quinzenas} employeeId={employee?.id} />
 
       {aguardandoFechamento.map((q) => (
         <p

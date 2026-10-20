@@ -4,6 +4,7 @@ import {
   destinoAposLogin,
   inicioDoPerfil,
   itensDoMenu,
+  menuComGrupos,
   trocaDeArea,
 } from "../areas";
 
@@ -130,17 +131,6 @@ describe("trocaDeArea", () => {
 });
 
 describe("área do colaborador", () => {
-  it("tem Visão geral, Minhas avaliações, Minhas contestações, Indicadores, Escala, Ranking (só o pódio) e Meu perfil, nesta ordem", () => {
-    expect(itensDoMenu("colaborador", "colaborador")).toEqual([
-      "/painel",
-      "/minhas-avaliacoes",
-      "/contestacoes",
-      "/indicadores",
-      "/escala",
-      "/ranking",
-      "/perfil",
-    ]);
-  });
   it("Minhas avaliações é da área do colaborador, e não da gestão", () => {
     expect(areaDoEndereco("/minhas-avaliacoes")).toBe("colaborador");
   });
@@ -177,5 +167,38 @@ describe("aba Histórico", () => {
     expect(itens.indexOf("/admin/treinar-a-ia")).toBe(itens.indexOf("/admin/processos") + 1);
     expect(itens.indexOf("/admin/historico")).toBe(itens.indexOf("/admin/treinar-a-ia") + 1);
     expect(itensDoMenu("avaliador", "gestao")).not.toContain("/admin/historico");
+  });
+});
+
+describe("o menu novo do colaborador (20/10/2026)", () => {
+  it("a ordem: a Visão geral, as Métricas, a Escala, a Qualidade e o Meu perfil", () => {
+    expect(itensDoMenu("colaborador", "colaborador")).toEqual([
+      "/painel",
+      "/indicadores",
+      "/escala",
+      "/minhas-avaliacoes",
+      "/contestacoes",
+      "/ranking",
+      "/perfil",
+    ]);
+  });
+  it("a Qualidade agrupa as Avaliações, as Contestações e o Ranking", () => {
+    expect(menuComGrupos(itensDoMenu("colaborador", "colaborador"))).toEqual([
+      { tipo: "item", rota: "/painel" },
+      { tipo: "item", rota: "/indicadores" },
+      { tipo: "item", rota: "/escala" },
+      {
+        tipo: "grupo",
+        nome: "Qualidade",
+        rotas: ["/minhas-avaliacoes", "/contestacoes", "/ranking"],
+      },
+      { tipo: "item", rota: "/perfil" },
+    ]);
+  });
+  it("o ADM e o avaliador na gestão não ganham grupos (o Ranking fica solto)", () => {
+    expect(menuComGrupos(itensDoMenu("adm", "gestao")).every((e) => e.tipo === "item")).toBe(true);
+    expect(menuComGrupos(itensDoMenu("avaliador", "gestao")).every((e) => e.tipo === "item")).toBe(
+      true,
+    );
   });
 });

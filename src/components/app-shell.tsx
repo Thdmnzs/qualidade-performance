@@ -11,13 +11,15 @@ import {
   LayoutDashboard,
   PieChart,
   MessageSquareWarning,
+  ChevronDown,
+  ShieldCheck,
   Sparkles,
   TrendingUp,
   Trophy,
   UserRound,
   Users,
 } from "lucide-react";
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lerPedidos } from "@/lib/escala-api";
@@ -28,7 +30,14 @@ import { AcessoRapido, AcessoRapidoNoCelular } from "@/components/acesso-rapido"
 import { BotaoTema } from "@/components/botao-tema";
 import { CentralDeNotificacoes } from "@/components/central-de-notificacoes";
 import { MenuDoUsuario } from "@/components/menu-do-usuario";
-import { areaDoEndereco, itensDoMenu, trocaDeArea, type Area, type Rota } from "@/lib/areas";
+import {
+  areaDoEndereco,
+  itensDoMenu,
+  menuComGrupos,
+  trocaDeArea,
+  type Area,
+  type Rota,
+} from "@/lib/areas";
 import { rotuloPerfil } from "@/lib/format";
 
 type NavItem = {
@@ -51,7 +60,7 @@ const NAV: Record<Rota, NavItem> = {
   "/ranking": { label: "Ranking", icon: Trophy },
   "/escala": { label: "Escala", icon: CalendarDays },
   "/admin/indicadores": { label: "Indicadores", icon: Gauge },
-  "/indicadores": { label: "Indicadores", icon: TrendingUp },
+  "/indicadores": { label: "Minhas métricas", icon: TrendingUp },
   "/admin/processos": { label: "Processos", icon: BookOpen },
   "/admin/treinar-a-ia": { label: "Treinar a IA", icon: Sparkles },
   "/admin/historico": { label: "Histórico", icon: History },
@@ -82,7 +91,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
-  const itens = itensDoMenu(perfil, area).map((to) => ({ to, ...NAV[to] }));
+  const rotas = itensDoMenu(perfil, area);
+  const itens = rotas.map((to) => ({ to, ...NAV[to] }));
+  const entradas = menuComGrupos(rotas); // os grupos (20/10/2026): a Qualidade, no menu do colaborador
   // O selo da Escala: para o ADM, os pedidos de férias e as trocas que aguardam a decisão dele.
   const { data: pedidosDeFerias = [] } = useQuery({
     queryKey: ["escala-pedidos"],
@@ -151,22 +162,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="mt-2 text-xs text-muted-foreground">CX Hub</p>
         </div>
         <nav className="mt-4 flex flex-col gap-1">
-          {itens.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              activeOptions={{ exact: item.exact ?? false }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors"
-              activeProps={{ className: "bg-primary/15 text-primary" }}
-              inactiveProps={{
-                className: "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              }}
-            >
-              <item.icon className="size-4" />
-              {item.label}
-              {selo(item.to)}
-            </Link>
-          ))}
+          {entradas.map((e) =>
+            e.tipo === "item" ? (
+              <ItemDoMenu key={e.rota} to={e.rota} selo={selo(e.rota)} />
+            ) : (
+              <GrupoDoMenu key={e.nome} nome={e.nome} rotas={e.rotas} selo={selo} />
+            ),
+          )}
         </nav>
         {/* O acesso rápido (14/10/2026): os links das ferramentas do time, embaixo do menu. */}
         <div className="mt-5 border-t border-border pt-4">
@@ -215,6 +217,65 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
       </div>
+    </div>
+  );
+}
+
+/** Um item do menu lateral. */
+function ItemDoMenu({ to, selo, recuo }: { to: Rota; selo: ReactNode; recuo?: boolean }) {
+  const item = NAV[to];
+  return (
+    <Link
+      to={to}
+      activeOptions={{ exact: item.exact ?? false }}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${recuo ? "pl-10" : ""}`}
+      activeProps={{ className: "bg-primary/15 text-primary" }}
+      inactiveProps={{
+        className: "text-muted-foreground hover:bg-secondary hover:text-foreground",
+      }}
+    >
+      {!recuo && <item.icon className="size-4" />}
+      {item.label}
+      {selo}
+    </Link>
+  );
+}
+
+/** Um grupo do menu lateral (20/10/2026): abre e fecha; abre sozinho quando um item dele está aberto. */
+function GrupoDoMenu({
+  nome,
+  rotas,
+  selo,
+}: {
+  nome: string;
+  rotas: Rota[];
+  selo: (to: string) => ReactNode;
+}) {
+  const caminho = useRouterState({ select: (s) => s.location.pathname });
+  const dentro = rotas.some((r) => caminho === r || caminho.startsWith(`${r}/`));
+  const [aberto, setAberto] = useState(true);
+  const visivel = aberto || dentro;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setAberto((a) => !a)}
+        aria-expanded={visivel}
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-secondary ${dentro ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        <ShieldCheck className="size-4" />
+        {nome}
+        <ChevronDown
+          className={`ml-auto size-4 transition-transform ${visivel ? "" : "-rotate-90"}`}
+        />
+      </button>
+      {visivel && (
+        <div className="mt-0.5 space-y-0.5">
+          {rotas.map((r) => (
+            <ItemDoMenu key={r} to={r} selo={selo(r)} recuo />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
