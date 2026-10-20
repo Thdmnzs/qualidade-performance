@@ -1,7 +1,7 @@
 /**
  * Pré-avaliação pela IA, no servidor (06/10/2026).
  *
- * A chave da API (ANTHROPIC_API_KEY) existe só aqui. Sem ela, a pré-avaliação
+ * A chave da API (ANTHROPIC_API_KEY, ou API_ANTHROPIC) existe só aqui. Sem ela, a pré-avaliação
  * fica "indisponível" e a ficha funciona normalmente.
  *
  * O servidor busca a conversa DE NOVO no Intercom (nunca confia no texto vindo
@@ -38,7 +38,8 @@ export async function preAvaliar(p: {
   conversaId: string;
   tipo?: "interacao" | "ticket_n2" | undefined;
 }): Promise<ResultadoDaPreAvaliacao> {
-  const chave = process.env["ANTHROPIC_API_KEY"];
+  // O nome padrão é ANTHROPIC_API_KEY; a Vercel do projeto tem a chave como API_ANTHROPIC (16/10/2026).
+  const chave = process.env["ANTHROPIC_API_KEY"] || process.env["API_ANTHROPIC"];
   if (!chave) return { estado: "indisponivel" };
 
   // 1. Reaproveitamento (a função também confere se o avaliador pode avaliar este colaborador).

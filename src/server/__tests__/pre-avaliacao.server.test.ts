@@ -77,6 +77,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env["ANTHROPIC_API_KEY"];
+  delete process.env["API_ANTHROPIC"];
 });
 
 describe("preAvaliar (servidor, com o Claude simulado)", () => {
@@ -86,6 +87,20 @@ describe("preAvaliar (servidor, com o Claude simulado)", () => {
     vi.stubGlobal("fetch", envio);
     expect(await preAvaliar(ids)).toEqual({ estado: "indisponivel" });
     expect(envio).not.toHaveBeenCalled();
+  });
+
+  it("a chave com o nome da Vercel do projeto (API_ANTHROPIC) também vale", async () => {
+    delete process.env["ANTHROPIC_API_KEY"];
+    process.env["API_ANTHROPIC"] = "chave-da-vercel";
+    const envio = vi.fn(
+      async (_url: string, _op?: RequestInit) => new Response("{}", { status: 500 }),
+    );
+    vi.stubGlobal("fetch", envio);
+    await preAvaliar(ids);
+    expect(envio).toHaveBeenCalled();
+    expect((envio.mock.calls[0]![1]!.headers as Record<string, string>)["x-api-key"]).toBe(
+      "chave-da-vercel",
+    );
   });
 
   it("a mesma conversa: reaproveita a sugestão guardada, sem novo pedido", async () => {
