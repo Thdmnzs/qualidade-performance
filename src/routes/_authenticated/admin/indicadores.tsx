@@ -5,13 +5,15 @@ import { ExternalLink, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { FiltroDoDia } from "@/components/indicadores/filtro-do-dia";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { dataHoraBR } from "@/lib/format";
+import { dataBR, dataHoraBR, hojeEmFortaleza } from "@/lib/format";
+import { ontemDe } from "@/lib/indicadores-do-dia";
 import { lerPlanilhaAgoraFn } from "@/lib/indicadores.functions";
-import { PLANILHA_DOS_INDICADORES } from "@/lib/planilha-indicadores";
+import { dataDaPlanilha, PLANILHA_DOS_INDICADORES } from "@/lib/planilha-indicadores";
 import {
   gruposDaTabela,
   linhasDosDados,
@@ -33,9 +35,6 @@ type Leitura = {
   ignoradas: { nome: string; linhas: number }[];
   erro: string | null;
 };
-const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-const diaCurto = (iso: string) =>
-  `${SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()]} ${iso.slice(8)}/${iso.slice(5, 7)}`;
 
 /**
  * Os indicadores na visão da supervisão (16/10/2026): a CÓPIA da planilha, arrumada no layout do CX Hub.
@@ -46,7 +45,10 @@ function IndicadoresDaSupervisao() {
   const { isAdmin, isLoading } = usePermissoes();
   const qc = useQueryClient();
   const lerAgora = useServerFn(lerPlanilhaAgoraFn);
-  const [aba, setAba] = useState<"ontem" | "quinzena">("ontem");
+  const [aba, setAba] = useState<"dia" | "quinzena">("dia");
+  // O dia escolhido (20/10/2026; o padrão é ontem), com o mesmo filtro dos colaboradores.
+  const ontem = ontemDe(hojeEmFortaleza());
+  const [dia, setDia] = useState(ontem);
   const [membro, setMembro] = useState("");
   const [lendo, setLendo] = useState(false);
   const { data: copia } = useQuery({
@@ -96,7 +98,11 @@ function IndicadoresDaSupervisao() {
   const daQuinzena = aba === "quinzena";
   const cabecalho = daQuinzena ? analise.cabecalho : dados.cabecalho;
   const posMembro = cabecalho.findIndex((c) => c.trim().toLowerCase() === "membro");
-  const todas = daQuinzena ? analise.linhas : dados.linhas;
+  // As linhas do dia escolhido, da cópia da aba Dados inteira (o "dia" da cópia é o último que a planilha tem).
+  const posData = dados.cabecalho.findIndex((c) => c.trim().toLowerCase() === "data");
+  const linhasDoDia = dados.linhas.filter((l) => dataDaPlanilha(l[posData]) === dia);
+  const ultimoDia = copia?.dados?.dia ?? null;
+  const todas = daQuinzena ? analise.linhas : linhasDoDia;
   const linhas = todas.filter((l) => !membro || l[posMembro] === membro);
   const nomes = [
     ...new Set(
@@ -153,7 +159,7 @@ function IndicadoresDaSupervisao() {
         >
           {(
             [
-              ["ontem", copia?.dados?.dia ? `Ontem · ${diaCurto(copia.dados.dia)}` : "Ontem"],
+              ["dia", "O dia (aba Dados)"],
               ["quinzena", "A quinzena (aba Análise)"],
             ] as const
           ).map(([k, rotulo]) => (
@@ -186,6 +192,16 @@ function IndicadoresDaSupervisao() {
           {linhas.some((l) => l[posMembro] === "TIME") ? " e o TIME" : ""}
         </span>
       </div>
+      {!daQuinzena && (
+        <div className="mt-3">
+          <FiltroDoDia
+            dia={dia}
+            ontem={ontem}
+            aoMudar={setDia}
+            semDados={dados.cabecalho.length > 0 && linhasDoDia.length === 0}
+          />
+        </div>
+      )}
       {daQuinzena && analise.info.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-xl bg-secondary px-4 py-2.5 text-sm">
           {analise.info.map(([k, v]) => (
@@ -201,9 +217,31 @@ function IndicadoresDaSupervisao() {
       <div className="mt-3 max-h-[calc(100vh-15rem)] min-h-64 overflow-auto rounded-2xl border border-border bg-card">
         {cabecalho.length === 0 || linhas.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">
-            {cabecalho.length === 0
-              ? "Ainda não há uma cópia da planilha. Clique em “Ler agora”."
-              : "Nenhuma linha para esse filtro."}
+            {cabecalho.length === 0 ? (
+              "Ainda não há uma cópia da planilha. Clique em “Ler agora”."
+            ) : !daQuinzena && linhasDoDia.length === 0 ? (
+              // Um dia que a planilha ainda não tem (ou que não tem linhas), com a explicação.
+              ultimoDia && dia > ultimoDia ? (
+                <>
+                  A planilha ainda não tem o dia <b>{dataBR(dia)}</b>. A última data coletada é{" "}
+                  <b>{dataBR(ultimoDia)}</b>.{" "}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-1"
+                    onClick={() => setDia(ultimoDia)}
+                  >
+                    Ver {dataBR(ultimoDia).slice(0, 5)}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  A planilha não tem linhas no dia <b>{dataBR(dia)}</b>.
+                </>
+              )
+            ) : (
+              "Nenhuma linha para esse filtro."
+            )}
           </p>
         ) : (
           <TabelaDaPlanilha

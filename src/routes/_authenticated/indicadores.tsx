@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { CartaoIndicador } from "@/components/cartao-indicador";
 import { EvolucaoDoDia } from "@/components/indicadores/evolucao-do-dia";
+import { FiltroDoDia } from "@/components/indicadores/filtro-do-dia";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { usePermissoes } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,11 +83,6 @@ const mediaDosDias = (ds: Dia[], k: keyof Dia) => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 };
 const ajustada = (d: Dia) => (d.conversas_atribuidas ?? 0) - (d.autoatribuicoes ?? 0);
-const somarDias = (iso: string, n: number) => {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
 
 /**
  * Meus indicadores (16/10/2026): em abas (a Produtividade, o SLA, a Qualidade e o CSAT), atualizados todo
@@ -319,50 +315,9 @@ function MeusIndicadores() {
         </div>
       </div>
 
-      {/* O filtro do dia (16/10/2026): os cartões mostram os números do dia escolhido (até ontem). */}
-      <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="O dia dos indicadores">
-        <span className="text-sm font-bold">O dia:</span>
-        <button
-          type="button"
-          aria-label="O dia anterior"
-          onClick={() => setDia(somarDias(dia, -1))}
-          className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-lg font-bold"
-        >
-          ‹
-        </button>
-        <input
-          type="date"
-          aria-label="Escolher o dia"
-          value={dia}
-          max={ontem}
-          onChange={(e) =>
-            e.target.value && setDia(e.target.value > ontem ? ontem : e.target.value)
-          }
-          className="h-9 rounded-lg border border-input bg-background px-2 text-sm font-bold"
-        />
-        <button
-          type="button"
-          aria-label="O dia seguinte"
-          disabled={dia >= ontem}
-          onClick={() => setDia(somarDias(dia, 1))}
-          className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-lg font-bold disabled:opacity-40"
-        >
-          ›
-        </button>
-        {dia !== ontem && (
-          <button
-            type="button"
-            onClick={() => setDia(ontem)}
-            className="h-9 rounded-full border border-border bg-card px-3 text-sm font-bold"
-          >
-            Ontem
-          </button>
-        )}
-        <span className="text-sm text-muted-foreground">
-          {dia === ontem ? "ontem, " : ""}
-          {diaDaSemana(dia)} {ddmm(dia)}
-          {!d1 ? " · sem dados neste dia" : ""}
-        </span>
+      {/* O filtro do dia (a peça compartilhada com a supervisão). */}
+      <div className="mt-5">
+        <FiltroDoDia dia={dia} ontem={ontem} aoMudar={setDia} semDados={!d1} />
       </div>
       <div
         className="mt-5 flex gap-1 overflow-x-auto border-b border-border"

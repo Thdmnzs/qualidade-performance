@@ -67,12 +67,12 @@ describe("a leitura da planilha dos indicadores", () => {
         expect.objectContaining({ dia: "2026-10-13" }),
       ],
     });
-    // as cópias: o dia anterior da Dados (só o 14/10), e a Análise inteira, como estão
+    // as cópias: a Dados inteira (para o filtro do dia), e a Análise inteira, como estão
     const copias = rpc.mock.calls
       .filter(([n]) => n === "gravar_copia_da_planilha")
       .map(([, a]) => a);
     expect(copias).toEqual([
-      { _aba: "dados", _valores: [DADOS.values[0], DADOS.values[1]], _dia: "2026-10-14" },
+      { _aba: "dados", _valores: DADOS.values, _dia: "2026-10-14" }, // a aba inteira, e o último dia dela
       { _aba: "analise", _valores: ANALISE.values, _dia: null },
     ]);
   });

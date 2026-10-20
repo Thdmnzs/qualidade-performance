@@ -10,6 +10,11 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (f: unknown) => f }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/hooks/useAuth", () => ({ usePermissoes: () => ({ isAdmin: true, isLoading: false }) }));
+let HOJE = "2026-10-16"; // ontem = 15/10
+vi.mock("@/lib/format", async (original) => ({
+  ...(await original<object>()),
+  hojeEmFortaleza: () => HOJE,
+}));
 const lerAgora = vi.fn(async () => ({ ok: true, gravadas: 11, linhas: 11, ignoradas: [] }));
 vi.mock("@/lib/indicadores.functions", () => ({ lerPlanilhaAgoraFn: () => lerAgora() }));
 const CAB = [
@@ -78,6 +83,8 @@ const DADOS = [
     "265",
   ],
   ["15/10/2026", "Thiago", "0", "0", "", "", "", "", "", "", "", "", "", "96"],
+  ["14/10/2026", "TIME", "255", "20", "45,00", "5,67", "0,44", "5,22", "38", "38", "100,0%"],
+  ["14/10/2026", "Kaio", "58", "0", "7,85", "7,39", "0,00", "7,39", "12", "12", "100,0%"],
 ];
 const ANALISE = [
   ["Métricas individuais do time de CX"],
@@ -129,13 +136,15 @@ const linhas = () => [...document.querySelectorAll("tbody tr")];
 afterEach(() => {
   cleanup();
   leituras = [];
+  HOJE = "2026-10-16";
   vi.clearAllMocks();
 });
 
 describe("os indicadores na visão da supervisão (a cópia da planilha)", () => {
   it("o Ontem: as linhas da aba Dados, como estão, e o SLA geral esperando a planilha", async () => {
     abrir();
-    expect(await screen.findByRole("tab", { name: "Ontem · qui 15/10" })).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "O dia (aba Dados)" })).toBeTruthy();
+    expect(screen.getByLabelText("Escolher o dia")).toHaveProperty("value", "2026-10-15"); // o padrão é ontem
     await waitFor(() => expect(linhas()).toHaveLength(3));
     expect(document.querySelectorAll("thead tr:nth-child(2) th")).toHaveLength(21);
     expect(screen.getByText("aguardando a planilha")).toBeTruthy();
@@ -205,5 +214,32 @@ describe("os indicadores na visão da supervisão (a cópia da planilha)", () =>
     ];
     abrir();
     expect((await screen.findByRole("alert")).textContent).toContain("não tem acesso à planilha");
+  });
+});
+
+describe("o filtro do dia na supervisão (20/10/2026)", () => {
+  it("a seta volta um dia, e a tabela mostra as linhas dele (as da planilha)", async () => {
+    abrir();
+    await waitFor(() => expect(linhas()).toHaveLength(3)); // 15/10
+    fireEvent.click(screen.getByRole("button", { name: "O dia anterior" }));
+    await waitFor(() => expect(linhas()).toHaveLength(2)); // 14/10: o TIME e o Kaio
+    expect(
+      [...linhas()[1]!.querySelectorAll("td")].slice(0, 3).map((td) => td.textContent),
+    ).toEqual(["14/10/2026", "Kaio", "58"]);
+    fireEvent.click(screen.getByRole("button", { name: "Ontem" }));
+    await waitFor(() => expect(linhas()).toHaveLength(3));
+  });
+  it("um dia que a planilha ainda não tem: a explicação, e o botão para o último dia coletado", async () => {
+    HOJE = "2026-10-20"; // ontem = 19/10; a planilha vai até 15/10
+    abrir();
+    expect(await screen.findByText(/A planilha ainda não tem o dia/)).toBeTruthy();
+    expect(screen.getByText(/sem dados neste dia/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ver 15/10" }));
+    await waitFor(() => expect(linhas()).toHaveLength(3));
+  });
+  it("na quinzena, o filtro do dia some (a aba Análise tem o período dela)", async () => {
+    abrir();
+    fireEvent.click(await screen.findByRole("tab", { name: "A quinzena (aba Análise)" }));
+    expect(screen.queryByLabelText("Escolher o dia")).toBeNull();
   });
 });

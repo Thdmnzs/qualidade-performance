@@ -490,8 +490,9 @@ contagens do limite de uso.
   a **Qualidade** (na publicação) e o **CSAT do time**. Os números da quinzena são parciais (até ontem); o oficial sai
   no fechamento. A conta da quinzena: as somas (as conversas, as horas, as avaliações) e as taxas pelas somas; o SLA,
   a média dos dias.
-- **A supervisão** vê a **cópia da planilha**, sem nenhum cálculo do CX Hub: o **"Ontem"**, as linhas do dia anterior
-  da aba "Dados"; a **"quinzena"**, a aba "Análise" (no período escolhido na própria planilha). As colunas são achadas
+- **A supervisão** vê a **cópia da planilha**, sem nenhum cálculo do CX Hub: **"O dia"**, as linhas de um dia da aba
+  "Dados" (desde 20/10/2026, com o mesmo filtro do colaborador: as setas, o campo de data e o atalho "Ontem"; a leitura
+  guarda a aba inteira, e um dia que a planilha ainda não tem mostra a última data coletada); a **"quinzena"**, a aba "Análise" (no período escolhido na própria planilha). As colunas são achadas
   pelo nome, então uma coluna nova aparece sozinha. O **SLA geral (percentil)** do Intercom vai entrar como duas colunas
   novas da planilha. Desde 20/10/2026, a planilha tem as colunas "[Geral] SLA chat" e "[Geral] SLA email" (o SLA geral
   do Intercom), que aparecem na tabela da supervisão, no grupo "SLA geral". O colaborador e o fechamento continuam com a média

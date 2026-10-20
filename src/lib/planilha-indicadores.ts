@@ -154,3 +154,21 @@ export function copiaDoDia(valores: unknown[][], dia: string): string[][] {
     ...corpo.filter((l) => dataDaPlanilha(l[pos]) === dia).map(comoTexto),
   ];
 }
+
+/**
+ * A cópia da aba "Dados" inteira, para a supervisão (20/10/2026: o filtro do dia): o cabeçalho e todas as
+ * linhas, como estão na planilha (os textos, sem conta); e o último dia que ela tem.
+ */
+export function copiaDaAba(valores: unknown[][]): {
+  valores: string[][];
+  ultimoDia: string | null;
+} {
+  const comoTexto = (l: unknown[]) => l.map((c) => (c == null ? "" : String(c)));
+  const [cabecalho = [], ...corpo] = valores;
+  const pos = cabecalho.findIndex((c) => normal(String(c ?? "")) === COLUNAS.dia);
+  const dias = corpo.map((l) => dataDaPlanilha(l[pos])).filter((d): d is string => !!d);
+  return {
+    valores: valores.map(comoTexto),
+    ultimoDia: dias.length ? dias.reduce((a, b) => (a > b ? a : b)) : null,
+  };
+}
