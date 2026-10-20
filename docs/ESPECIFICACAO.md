@@ -471,6 +471,7 @@ contagens do limite de uso.
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro, e o dentro da meta, verde claro. |
+| 20/10/2026 | As instabilidades na Visão geral: o #instabilidade do Slack (os incidentes, as manutenções e as mensagens do time), ao vivo. |
 | 20/10/2026 | O menu novo do colaborador (Visão geral, Minhas métricas, Escala, Qualidade e Meu perfil); a Visão geral com o Meu dia e o mural do #cx_mural, ao vivo; a nota de qualidade nas Minhas avaliações. |
 | 20/10/2026 | Treinar a IA: as orientações por critério, o "por quê?" das sugestões mudadas, a concordância e os exemplares. |
 | 16/10/2026 | A troca de senha pela própria pessoa, no Editar perfil. |
@@ -556,3 +557,8 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   SLACK_SIGNING_SECRET), e o banco empurra a mudança para quem está com a tela aberta. A rede de segurança: ao abrir a tela,
   o servidor relê o canal se a última leitura tem mais de 5 minutos (uma por vez), e a tarefa das 8h também relê. O texto
   do Slack é desenhado como elementos da tela, nunca como código.
+- **As instabilidades:** acima do mural, o quadro do canal **#instabilidade** (privado). Os avisos automáticos (como o
+  Statuspage do Pagar.me) têm as etapas de cada incidente juntas, pelo endereço dele: os **ativos** ficam em destaque (a
+  gravidade, o sistema, a etapa e há quanto tempo começou), as **manutenções** programadas aparecem com o dia e o horário,
+  e os **resolvidos dos últimos 7 dias** ficam numa linha cada, com a linha do tempo. As mensagens de pessoas no canal
+  aparecem como avisos simples, com a conversa. Ao vivo, como o mural; um incidente novo dá um aviso na tela.

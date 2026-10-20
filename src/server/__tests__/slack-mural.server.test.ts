@@ -9,16 +9,27 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     rpc: (n: string, a?: unknown) => rpc(n, a),
     from: () => ({
       upsert: (a: unknown) => upsert(a),
-      update: () => ({
-        eq: (c: string, v: string) => eqApagado(c, v),
-        gte: () => ({ not: async () => ({ error: null }) }),
-      }),
+      update: () => {
+        const filtros: [string, string][] = [];
+        const c: Record<string, unknown> = {};
+        c["eq"] = (col: string, v: string) => (filtros.push([col, v]), eqApagado(col, v), c);
+        c["gte"] = () => c;
+        c["not"] = async () => ({ error: null });
+        c["then"] = (ok: (v: unknown) => void) => ok({ error: null });
+        return c;
+      },
     }),
   },
 }));
 process.env["SLACK_BOT_TOKEN"] = "xoxb-teste";
-const { assinaturaValida, CANAL_DO_MURAL, lerMuralSePreciso, tratarEvento } =
-  await import("../slack-mural.server");
+const {
+  assinaturaValida,
+  CANAL_DE_INSTABILIDADE,
+  CANAL_DO_MURAL,
+  lerMuralSePreciso,
+  textoDaMensagem,
+  tratarEvento,
+} = await import("../slack-mural.server");
 
 // O Slack simulado: o canal, as conversas e as pessoas
 const PAI = {
@@ -130,6 +141,7 @@ describe("os avisos do Slack no mural", () => {
       deleted_ts: PAI.ts,
       previous_message: { ts: PAI.ts },
     } as never);
+    expect(eqApagado).toHaveBeenCalledWith("canal", CANAL_DO_MURAL);
     expect(eqApagado).toHaveBeenCalledWith("ts", PAI.ts);
   });
   it("um aviso de outro canal é ignorado (nada é lido nem gravado)", async () => {
@@ -147,7 +159,11 @@ describe("os avisos do Slack no mural", () => {
 describe("a releitura do canal", () => {
   it("com a reserva: lê o canal (sem as entradas no canal), grava, e conclui", async () => {
     expect(await lerMuralSePreciso(5)).toBe(true);
-    expect(upsert).toHaveBeenCalledTimes(1); // só o comunicado (a entrada no canal não)
+    expect(upsert).toHaveBeenCalledTimes(2); // os dois canais (e, em cada um, só a mensagem: a entrada no canal não)
+    expect(upsert.mock.calls.map(([l]) => (l as { canal: string }).canal)).toEqual([
+      CANAL_DO_MURAL,
+      CANAL_DE_INSTABILIDADE,
+    ]);
     expect(rpc.mock.calls.map(([n]) => n)).toEqual([
       "reservar_leitura_do_mural",
       "concluir_leitura_do_mural",
@@ -165,5 +181,52 @@ describe("a releitura do canal", () => {
     rpc.mockResolvedValueOnce({ data: false, error: null });
     expect(await lerMuralSePreciso(5)).toBe(false);
     expect(chamadas).toEqual([]);
+  });
+});
+
+describe("as instabilidades (20/10/2026)", () => {
+  it("o texto de um aviso do Statuspage, nos blocos (com a situação pelo texto alternativo da imagem)", () => {
+    const texto = textoDaMensagem({
+      text: "",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            text: "*Incident: Resolved*\n*<https://status.pagar.me/incidents/8dp|Instabilidade: Transacional - PIX>*\nEntre 00:54 e 01:35 passamos por uma instabilidade.",
+          },
+        },
+        {
+          type: "context",
+          elements: [
+            { type: "image", alt_text: "operational" },
+            { type: "mrkdwn", text: "Transacional - Transacional - PIX" },
+          ],
+        },
+        { type: "actions", elements: [{ type: "button", text: "View all updates" }] },
+      ],
+    });
+    expect(texto).toBe(
+      "*Incident: Resolved*\n*<https://status.pagar.me/incidents/8dp|Instabilidade: Transacional - PIX>*\nEntre 00:54 e 01:35 passamos por uma instabilidade.\noperational\nTransacional - Transacional - PIX",
+    );
+    expect(texto).not.toContain("View all updates"); // os botões ficam de fora
+  });
+  it("os anexos (o formato antigo das integrações), e o texto comum quando não há nada além", () => {
+    expect(
+      textoDaMensagem({
+        attachments: [
+          { title: "Instabilidade", title_link: "https://x.io/i/1", text: "A API caiu." },
+        ],
+      }),
+    ).toBe("*<https://x.io/i/1|Instabilidade>*\nA API caiu.");
+    expect(textoDaMensagem({ text: "o PIX caiu de novo?" })).toBe("o PIX caiu de novo?");
+  });
+  it("um aviso do #instabilidade é gravado no canal dele", async () => {
+    await tratarEvento({
+      type: "message",
+      channel: CANAL_DE_INSTABILIDADE,
+      ts: PAI.ts,
+      text: "o PIX caiu?",
+    } as never);
+    expect((upsert.mock.calls[0]![0] as { canal: string }).canal).toBe(CANAL_DE_INSTABILIDADE);
   });
 });

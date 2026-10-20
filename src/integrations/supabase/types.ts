@@ -25,6 +25,7 @@ export type Database = {
     Tables: {
       mural_comunicados: {
         Row: {
+          canal: string;
           ts: string;
           autor_nome: string | null;
           texto: string;
@@ -37,6 +38,7 @@ export type Database = {
           atualizado_em: string;
         };
         Insert: {
+          canal: string;
           ts: string;
           autor_nome?: string | null;
           texto?: string;
@@ -49,6 +51,7 @@ export type Database = {
           atualizado_em?: string;
         };
         Update: {
+          canal?: string;
           ts?: string;
           autor_nome?: string | null;
           texto?: string;

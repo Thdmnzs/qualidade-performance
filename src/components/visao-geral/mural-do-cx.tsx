@@ -8,7 +8,7 @@ import { lerComunicado, linhasDe, type Linha } from "@/lib/mural";
 import { atualizarMuralFn } from "@/lib/mural.functions";
 
 type Resposta = { ts: string; autor_nome: string | null; texto: string };
-type Comunicado = {
+export type Comunicado = {
   ts: string;
   autor_nome: string | null;
   texto: string;
@@ -21,15 +21,15 @@ type Comunicado = {
 
 const CANAL = "C02FDSRANCD";
 const DIAS = 15;
-const linkDoSlack = (ts?: string) =>
-  `https://slack.com/app_redirect?channel=${CANAL}${ts ? `&message_ts=${ts}` : ""}`;
+const linkDoSlack = (ts?: string, canal = CANAL) =>
+  `https://slack.com/app_redirect?channel=${canal}${ts ? `&message_ts=${ts}` : ""}`;
 const CORES: Record<string, string> = {
   alta: "bg-[#FDE4E2] text-[#9B1C1C] dark:bg-[#3A1C1A] dark:text-[#F6C9C4]",
   média: "bg-[#FFF1C2] text-[#7A5410] dark:bg-[#3A2A12] dark:text-[#E8C27A]",
   media: "bg-[#FFF1C2] text-[#7A5410] dark:bg-[#3A2A12] dark:text-[#E8C27A]",
   baixa: "bg-[#E7F5EC] text-[#0F5A2B] dark:bg-[#12301F] dark:text-[#9EE3B4]",
 };
-const quando = (iso: string) => {
+export const quando = (iso: string) => {
   const d = new Date(iso);
   const hoje = new Date();
   const hora = d.toLocaleTimeString("pt-BR", {
@@ -55,7 +55,7 @@ const quando = (iso: string) => {
 };
 
 /** O texto do Slack desenhado como elementos (nunca como HTML). */
-function TextoDoSlack({ linhas }: { linhas: Linha[] }) {
+export function TextoDoSlack({ linhas }: { linhas: Linha[] }) {
   const blocos: React.ReactNode[] = [];
   let lista: Linha[] = [];
   const parte = (l: Linha, k: number) =>
@@ -104,16 +104,19 @@ function TextoDoSlack({ linhas }: { linhas: Linha[] }) {
   return <div className="space-y-1 text-sm leading-relaxed">{blocos}</div>;
 }
 
-function Cartao({
+export function Cartao({
   c,
   novo,
   aberto,
   aoAbrir,
+  canal = CANAL,
 }: {
   c: Comunicado;
   novo: boolean;
   aberto: boolean;
   aoAbrir: () => void;
+  /** O canal da mensagem (o padrão é o #cx_mural), para o "Abrir no Slack". */
+  canal?: string;
 }) {
   const cab = lerComunicado(c.texto);
   return (
@@ -187,7 +190,7 @@ function Cartao({
             </button>
           )}
           <a
-            href={linkDoSlack(c.ts)}
+            href={linkDoSlack(c.ts, canal)}
             target="_blank"
             rel="noopener noreferrer"
             className="font-bold text-muted-foreground hover:text-foreground"
@@ -227,6 +230,7 @@ export function MuralDoCx({ pessoa }: { pessoa: string }) {
         .select(
           "ts, autor_nome, texto, respostas, qtd_respostas, reacoes_ok, criado_em, editado_em",
         )
+        .eq("canal", CANAL) // só o #cx_mural (20/10/2026: a tabela guarda também o #instabilidade)
         .eq("apagado", false)
         .gte("criado_em", desde)
         .order("criado_em", { ascending: false })
@@ -252,9 +256,13 @@ export function MuralDoCx({ pessoa }: { pessoa: string }) {
   useEffect(() => {
     const canal = supabase
       .channel("mural-do-cx")
-      .on("postgres_changes", { event: "*", schema: "public", table: "mural_comunicados" }, () => {
-        void qc.invalidateQueries({ queryKey: ["mural-do-cx"] });
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "mural_comunicados", filter: `canal=eq.${CANAL}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["mural-do-cx"] });
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(canal);

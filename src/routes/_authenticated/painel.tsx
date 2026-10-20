@@ -4,6 +4,7 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { AniversariantesDeHoje } from "@/components/parabens/aniversariantes-de-hoje";
 import { MeuDiaNaVisaoGeral } from "@/components/visao-geral/meu-dia";
 import { MuralDoCx } from "@/components/visao-geral/mural-do-cx";
+import { QuadroDeInstabilidades } from "@/components/visao-geral/quadro-de-instabilidades";
 import { useCurrentEmployee, usePermissoes } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -20,7 +21,7 @@ const SAUDACAO = (h: number) => (h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Bo
 
 /**
  * A Visão geral (20/10/2026, a nova versão): a tela inicial do colaborador, com o "Meu dia" da escala e o
- * mural do CX (os comunicados do #cx_mural do Slack, ao vivo). O resultado da quinzena saiu daqui.
+ * mural do CX (os comunicados do #cx_mural do Slack, ao vivo), com as instabilidades (o #instabilidade) acima dele.
  */
 function VisaoGeral() {
   const { data: employee, isLoading: carregandoEmp } = useCurrentEmployee();
@@ -61,7 +62,10 @@ function VisaoGeral() {
         <div className="lg:sticky lg:top-4 lg:self-start">
           <MeuDiaNaVisaoGeral />
         </div>
-        <MuralDoCx pessoa={employee.id} />
+        <div className="min-w-0 space-y-4">
+          <QuadroDeInstabilidades />
+          <MuralDoCx pessoa={employee.id} />
+        </div>
       </div>
     </div>
   );

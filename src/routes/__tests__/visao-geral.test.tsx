@@ -10,7 +10,9 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (f: unknown) => f }));
 const toast = vi.fn();
-vi.mock("sonner", () => ({ toast: (t: string) => toast(t) }));
+vi.mock("sonner", () => ({
+  toast: Object.assign((t: string) => toast(t), { error: (t: string) => toast(t) }),
+}));
 vi.mock("@/components/parabens/aniversariantes-de-hoje", () => ({
   AniversariantesDeHoje: () => null,
 }));
@@ -62,11 +64,38 @@ const PIX = {
   editado_em: null,
 };
 let LISTA: unknown[] = [];
+// O #instabilidade (os avisos reais do Pagar.me), e o canal pedido em cada consulta
+const INST = "C027Y8CP9U4";
+const URL_PIX = "https://status.pagar.me/incidents/8dp250w89vlc";
+const aviso = (etapa: string, situacao: string, corpo: string) =>
+  `*Incident: ${etapa}*\n*<${URL_PIX}|Instabilidade: Transacional - PIX>*\n${corpo}\n${situacao}\nTransacional - Transacional - PIX`;
+const avisoDoPix = (
+  ts: string,
+  etapa: string,
+  situacao: string,
+  corpo: string,
+  criado_em: string,
+) => ({
+  ts,
+  autor_nome: "Pagarme Status",
+  texto: aviso(etapa, situacao, corpo),
+  respostas: [],
+  qtd_respostas: 0,
+  reacoes_ok: 0,
+  criado_em,
+  editado_em: null,
+});
+const ha = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+let INSTABILIDADES: unknown[] = [];
 let aoMudar: (() => void) | null = null;
+let aoMudarInst: (() => void) | null = null;
 const consulta = () => {
   const c: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "gte", "order", "limit"]) c[m] = () => c;
-  c["then"] = (ok: (v: unknown) => void) => ok({ data: LISTA, error: null });
+  let canal = "";
+  for (const m of ["select", "gte", "order", "limit"]) c[m] = () => c;
+  c["eq"] = (col: string, v: string) => (col === "canal" ? (canal = v) : null, c);
+  c["then"] = (ok: (v: unknown) => void) =>
+    ok({ data: canal === INST ? INSTABILIDADES : LISTA, error: null });
   return c;
 };
 vi.mock("@/integrations/supabase/client", () => ({
@@ -74,7 +103,10 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: () => consulta(),
     channel: () => {
       const canal = {
-        on: (_e: string, _f: unknown, cb: () => void) => ((aoMudar = cb), canal),
+        on: (_e: string, f: { filter?: string }, cb: () => void) => (
+          f.filter?.includes(INST) ? (aoMudarInst = cb) : (aoMudar = cb),
+          canal
+        ),
         subscribe: () => canal,
       };
       return canal;
@@ -94,6 +126,7 @@ const abrir = () =>
   );
 beforeEach(() => {
   LISTA = [ALINHAMENTO, PIX];
+  INSTABILIDADES = [];
   localStorage.clear();
 });
 afterEach(() => {
@@ -123,7 +156,9 @@ describe("a Visão geral nova (20/10/2026)", () => {
   });
   it("o mural: o cabeçalho do alinhamento, e o comunicado sem o padrão", async () => {
     abrir();
-    const cartoes = await screen.findAllByRole("article");
+    const cartoes = await within(await screen.findByLabelText("O mural do CX")).findAllByRole(
+      "article",
+    );
     expect(cartoes).toHaveLength(2);
     const a = within(cartoes[0]!);
     expect(
@@ -169,10 +204,14 @@ describe("a Visão geral nova (20/10/2026)", () => {
       PIX,
     ];
     await act(async () => aoMudar!());
-    await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(3));
-    expect(screen.getAllByRole("article")[0]!.textContent).toContain(
-      "Novo processo de portabilidade",
+    await waitFor(() =>
+      expect(within(screen.getByLabelText("O mural do CX")).getAllByRole("article")).toHaveLength(
+        3,
+      ),
     );
+    expect(
+      within(screen.getByLabelText("O mural do CX")).getAllByRole("article")[0]!.textContent,
+    ).toContain("Novo processo de portabilidade");
     expect(toast).toHaveBeenCalledWith("📣 Novo no mural: Novo processo de portabilidade");
     expect(screen.getByLabelText("A conversa")).toBeTruthy();
   });
@@ -180,5 +219,103 @@ describe("a Visão geral nova (20/10/2026)", () => {
     localStorage.setItem("cxhub:mural:visita:e1", "2026-10-16T00:00:00Z");
     abrir();
     expect(await screen.findByText(/1 novo desde a sua última visita/)).toBeTruthy();
+  });
+});
+
+describe("as instabilidades na Visão geral (20/10/2026)", () => {
+  const quadro = () => screen.getByLabelText("Instabilidades");
+  it("sem nada acontecendo: o aviso pequeno, e o mural continua com os comunicados dele", async () => {
+    abrir();
+    expect(
+      await within(await screen.findByLabelText("Instabilidades")).findByText(
+        "✅ Nenhuma instabilidade agora",
+      ),
+    ).toBeTruthy();
+    expect(
+      await within(screen.getByLabelText("O mural do CX")).findAllByRole("article"),
+    ).toHaveLength(2);
+  });
+  it("o incidente resolvido: uma linha, e a linha do tempo com as três etapas", async () => {
+    INSTABILIDADES = [
+      avisoDoPix(
+        "3",
+        "Resolved",
+        "operational",
+        "Entre 00:54 e 01:35 passamos por uma instabilidade.",
+        ha(60 * 30),
+      ),
+      avisoDoPix(
+        "2",
+        "Monitoring",
+        "degraded_performance",
+        "Desde 01h00 estamos com nosso ambiente estável.",
+        ha(60 * 30 + 25),
+      ),
+      avisoDoPix(
+        "1",
+        "Identified",
+        "major_outage",
+        "Identificamos às 00:54 uma instabilidade.",
+        ha(60 * 30 + 28),
+      ),
+    ];
+    abrir();
+    fireEvent.click(
+      await within(await screen.findByLabelText("Instabilidades")).findByRole("button", {
+        name: "Ver as atualizações (3)",
+      }),
+    );
+    const etapas = within(quadro())
+      .getAllByRole("listitem")
+      .map((l) => l.textContent!.match(/Identificado|Monitorando|Resolvido/)![0]);
+    expect(etapas).toEqual(["Identificado", "Monitorando", "Resolvido"]);
+    expect(within(quadro()).getByText("✅ Nenhuma instabilidade agora")).toBeTruthy();
+  });
+  it("um incidente ativo em destaque; e um novo, chegando com a tela aberta, dá o aviso", async () => {
+    INSTABILIDADES = [
+      avisoDoPix(
+        "1",
+        "Identified",
+        "major_outage",
+        "Identificamos uma instabilidade no PIX.",
+        ha(3),
+      ),
+    ];
+    abrir();
+    const alerta = await within(await screen.findByLabelText("Instabilidades")).findByRole("alert");
+    expect(alerta.textContent).toContain("AGORA · queda total");
+    expect(alerta.textContent).toContain("Transacional - PIX");
+    INSTABILIDADES = [
+      ...INSTABILIDADES,
+      {
+        ...avisoDoPix("9", "Investigating", "partial_outage", "A API está lenta.", ha(1)),
+        texto:
+          "*Incident: Investigating*\n*<https://status.pagar.me/incidents/novo|Instabilidade: API>*\nA API está lenta.\npartial_outage\nAPI Pagar.me v5.0",
+      },
+    ];
+    await act(async () => aoMudarInst!());
+    await waitFor(() => expect(within(quadro()).getAllByRole("alert")).toHaveLength(2));
+    expect(toast).toHaveBeenCalledWith("⚠️ Instabilidade agora: API Pagar.me v5.0 (queda parcial)");
+  });
+  it("a mensagem de uma pessoa: o aviso simples, com a conversa no Ler aqui", async () => {
+    INSTABILIDADES = [
+      {
+        ts: "5",
+        autor_nome: "Kaio",
+        texto: "o PIX caiu de novo?",
+        respostas: [{ ts: "6", autor_nome: "Carol", texto: "Sim, já estamos vendo!" }],
+        qtd_respostas: 1,
+        reacoes_ok: 0,
+        criado_em: ha(10),
+        editado_em: null,
+      },
+    ];
+    abrir();
+    fireEvent.click(
+      await within(await screen.findByLabelText("Instabilidades")).findByRole("button", {
+        name: "Ler aqui",
+      }),
+    );
+    expect(within(quadro()).getByText("Sim, já estamos vendo!")).toBeTruthy();
   });
 });
