@@ -153,6 +153,14 @@ describe("a releitura do canal", () => {
       "concluir_leitura_do_mural",
     ]);
   });
+  it("uma leitura que falha (por exemplo, sem a permissão no Slack) não conta como feita", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ ok: false, error: "missing_scope" })),
+    );
+    await expect(lerMuralSePreciso(5)).rejects.toThrow("missing_scope");
+    expect(rpc.mock.calls.map(([n]) => n)).toEqual(["reservar_leitura_do_mural"]); // sem o "concluir"
+  });
   it("sem a reserva (a última leitura é recente, ou outra está em andamento): nada", async () => {
     rpc.mockResolvedValueOnce({ data: false, error: null });
     expect(await lerMuralSePreciso(5)).toBe(false);

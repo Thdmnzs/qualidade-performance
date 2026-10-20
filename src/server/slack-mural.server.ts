@@ -145,36 +145,35 @@ export async function lerMuralSePreciso(minutos = 5): Promise<boolean> {
     _minutos: minutos,
   });
   if (!reservada) return false;
-  try {
-    const desde = String(Math.floor(Date.now() / 1000) - DIAS_DO_MURAL * 86_400);
-    const todas: Mensagem[] = [];
-    let cursor: string | undefined;
-    do {
-      const r = await slack<{ messages: Mensagem[]; response_metadata?: { next_cursor?: string } }>(
-        "conversations.history",
-        {
-          channel: CANAL_DO_MURAL,
-          oldest: desde,
-          limit: "200",
-          ...(cursor ? { cursor } : {}),
-        },
-      );
-      todas.push(...r.messages.filter(ehComunicado));
-      cursor = r.response_metadata?.next_cursor || undefined;
-    } while (cursor);
-    for (const m of todas) await gravarComunicado(m);
-    // O que sumiu do canal (apagado no Slack) some do mural também.
-    const vivos = todas.map((m) => m.ts);
-    if (vivos.length)
-      await supabaseAdmin
-        .from("mural_comunicados")
-        .update({ apagado: true })
-        .gte("criado_em", new Date(Number(desde) * 1000).toISOString())
-        .not("ts", "in", `(${vivos.map((t) => `"${t}"`).join(",")})`);
-    return true;
-  } finally {
-    await supabaseAdmin.rpc("concluir_leitura_do_mural");
-  }
+  const desde = String(Math.floor(Date.now() / 1000) - DIAS_DO_MURAL * 86_400);
+  const todas: Mensagem[] = [];
+  let cursor: string | undefined;
+  do {
+    const r = await slack<{ messages: Mensagem[]; response_metadata?: { next_cursor?: string } }>(
+      "conversations.history",
+      {
+        channel: CANAL_DO_MURAL,
+        oldest: desde,
+        limit: "200",
+        ...(cursor ? { cursor } : {}),
+      },
+    );
+    todas.push(...r.messages.filter(ehComunicado));
+    cursor = r.response_metadata?.next_cursor || undefined;
+  } while (cursor);
+  for (const m of todas) await gravarComunicado(m);
+  // O que sumiu do canal (apagado no Slack) some do mural também.
+  const vivos = todas.map((m) => m.ts);
+  if (vivos.length)
+    await supabaseAdmin
+      .from("mural_comunicados")
+      .update({ apagado: true })
+      .gte("criado_em", new Date(Number(desde) * 1000).toISOString())
+      .not("ts", "in", `(${vivos.map((t) => `"${t}"`).join(",")})`);
+  // Só uma leitura que DEU CERTO conta como feita (20/10/2026). Numa falha, a reserva vence sozinha em 2
+  // minutos, e a próxima tentativa acontece então (em vez de esperar 5 minutos como se tivesse lido).
+  await supabaseAdmin.rpc("concluir_leitura_do_mural");
+  return true;
 }
 
 type Evento = {
