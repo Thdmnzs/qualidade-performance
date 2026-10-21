@@ -585,3 +585,18 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   rascunho; numa semana publicada, só com a confirmação, e a semana volta para rascunho.
 - **Os núcleos** (o ADM, na aba "Núcleos"): de qual núcleo cada pessoa faz parte (rede, cxtech, quali, log, F&R, cob
   B2B e auto; mais de um por pessoa), no estilo das folgas fixas. Começam vazios; cada mudança vai para o Histórico.
+
+## A verificação em duas etapas (21/10/2026)
+
+- **Obrigatória para todos.** Além da senha, o código de 6 dígitos de um aplicativo autenticador (o Google
+  Authenticator, o Microsoft Authenticator, o Authy...; o padrão TOTP, do Supabase Auth). Na primeira entrada (inclusive
+  depois de definir a primeira senha), a pessoa cadastra o aplicativo na tela "Proteja a sua conta", e só então entra.
+- **Os códigos de recuperação:** 10, de uso único, mostrados uma vez só no cadastro (a pessoa confirma que guardou).
+  Guardados embaralhados (bcrypt); usar um desliga o aplicativo antigo, e a pessoa cadastra o novo. Até 5 tentativas a
+  cada 15 minutos.
+- **O desligamento pelo ADM** (na tela de Colaboradores), para quem perdeu o celular e os códigos: confirmado com a
+  senha do ADM (que precisa estar com a verificação em dia). Os códigos da pessoa perdem a validade e as sessões dela se
+  encerram. Um ADM não desliga a própria verificação.
+- **A sessão** se encerra depois de 2 horas sem uso, e no máximo 9 horas depois do login.
+- **A etapa 1** (as telas e o servidor) confere a exigência na guarda da área logada. **A etapa 2** (a conferência no
+  banco e no servidor, que recusa uma sessão sem o código em todo lugar) vem depois, com o time já cadastrado.

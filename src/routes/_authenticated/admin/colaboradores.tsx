@@ -23,6 +23,8 @@ import { lerSituacaoDosDados } from "@/lib/dados-pessoais-api";
 import { textoDoQueFalta } from "@/lib/dados-pessoais";
 import { FichaDoAdm } from "@/components/dados-pessoais/ficha-do-adm";
 import { alterarStatusFn, criarAcessoFn, gerarLinkDeSenhaFn } from "@/lib/acessos.functions";
+import { verificacaoDoTimeFn } from "@/lib/verificacao.functions";
+import { VerificacaoDaPessoa } from "@/components/verificacao/desligar-verificacao";
 import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/colaboradores")({
@@ -60,6 +62,12 @@ function Colaboradores() {
   const gerarLinkDeSenha = useServerFn(gerarLinkDeSenhaFn);
   const alterarStatus = useServerFn(alterarStatusFn);
   const atualizarLista = () => qc.invalidateQueries({ queryKey: ["colaboradores"] });
+  // A verificação em duas etapas de cada pessoa (21/10/2026): { id do cadastro: quando foi ativada }.
+  const verificacaoDoTime = useServerFn(verificacaoDoTimeFn);
+  const { data: verificacao = {} } = useQuery({
+    queryKey: ["verificacao-do-time"],
+    queryFn: () => verificacaoDoTime(),
+  });
   const { data: lista = [], isLoading } = useQuery({
     queryKey: ["colaboradores"],
     queryFn: fetchColaboradores,
@@ -290,6 +298,13 @@ function Colaboradores() {
                   >
                     Link de senha
                   </Button>
+                )}
+                {c.status === "ativo" && c.tem_acesso && c.id !== eu?.id && (
+                  <VerificacaoDaPessoa
+                    employeeId={c.id}
+                    nome={c.nome}
+                    ativaEm={verificacao[c.id]}
+                  />
                 )}
                 <Button
                   size="sm"

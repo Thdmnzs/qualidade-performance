@@ -1438,6 +1438,13 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      guardar_codigos_de_recuperacao: {
+        Args: { _user_id: string; _codigos: string[] };
+        Returns: undefined;
+      };
+      usar_codigo_de_recuperacao: { Args: { _user_id: string; _codigo: string }; Returns: boolean };
+      apagar_codigos_e_sessoes: { Args: { _user_id: string }; Returns: undefined };
+      verificacao_do_time: { Args: never; Returns: Json };
       nucleos_do_time: { Args: never; Returns: Json };
       definir_nucleos: { Args: { _employee_id: string; _nucleos: string[] }; Returns: undefined };
       apelidos_da_escala_do_time: { Args: never; Returns: Json };

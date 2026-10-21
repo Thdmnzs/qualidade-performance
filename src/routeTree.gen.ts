@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
+import { Route as ProtegerAContaRouteImport } from './routes/proteger-a-conta'
+import { Route as RecuperarAcessoRouteImport } from './routes/recuperar-acesso'
+import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authenticated/contestacoes'
 import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
@@ -50,6 +53,21 @@ const AuthRoute = AuthRouteImport.update({
 const DefinirSenhaRoute = DefinirSenhaRouteImport.update({
   id: '/definir-senha',
   path: '/definir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtegerAContaRoute = ProtegerAContaRouteImport.update({
+  id: '/proteger-a-conta',
+  path: '/proteger-a-conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarAcessoRoute = RecuperarAcessoRouteImport.update({
+  id: '/recuperar-acesso',
+  path: '/recuperar-acesso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificarRoute = VerificarRouteImport.update({
+  id: '/verificar',
+  path: '/verificar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedContestacoesRoute =
@@ -164,6 +182,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
+  '/proteger-a-conta': typeof ProtegerAContaRoute
+  '/recuperar-acesso': typeof RecuperarAcessoRoute
+  '/verificar': typeof VerificarRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
   '/escala': typeof AuthenticatedEscalaRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -188,6 +209,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
+  '/proteger-a-conta': typeof ProtegerAContaRoute
+  '/recuperar-acesso': typeof RecuperarAcessoRoute
+  '/verificar': typeof VerificarRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
   '/escala': typeof AuthenticatedEscalaRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -214,6 +238,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/definir-senha': typeof DefinirSenhaRoute
+  '/proteger-a-conta': typeof ProtegerAContaRoute
+  '/recuperar-acesso': typeof RecuperarAcessoRoute
+  '/verificar': typeof VerificarRoute
   '/_authenticated/contestacoes': typeof AuthenticatedContestacoesRoute
   '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -240,6 +267,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/definir-senha'
+    | '/proteger-a-conta'
+    | '/recuperar-acesso'
+    | '/verificar'
     | '/contestacoes'
     | '/escala'
     | '/indicadores'
@@ -264,6 +294,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/definir-senha'
+    | '/proteger-a-conta'
+    | '/recuperar-acesso'
+    | '/verificar'
     | '/contestacoes'
     | '/escala'
     | '/indicadores'
@@ -289,6 +322,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/definir-senha'
+    | '/proteger-a-conta'
+    | '/recuperar-acesso'
+    | '/verificar'
     | '/_authenticated/contestacoes'
     | '/_authenticated/escala'
     | '/_authenticated/indicadores'
@@ -315,6 +351,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   DefinirSenhaRoute: typeof DefinirSenhaRoute
+  ProtegerAContaRoute: typeof ProtegerAContaRoute
+  RecuperarAcessoRoute: typeof RecuperarAcessoRoute
+  VerificarRoute: typeof VerificarRoute
   ApiAvisosContestacoesRoute: typeof ApiAvisosContestacoesRoute
   ApiSlackEventosRoute: typeof ApiSlackEventosRoute
 }
@@ -347,6 +386,27 @@ declare module '@tanstack/react-router' {
       path: '/definir-senha'
       fullPath: '/definir-senha'
       preLoaderRoute: typeof DefinirSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proteger-a-conta': {
+      id: '/proteger-a-conta'
+      path: '/proteger-a-conta'
+      fullPath: '/proteger-a-conta'
+      preLoaderRoute: typeof ProtegerAContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar-acesso': {
+      id: '/recuperar-acesso'
+      path: '/recuperar-acesso'
+      fullPath: '/recuperar-acesso'
+      preLoaderRoute: typeof RecuperarAcessoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verificar': {
+      id: '/verificar'
+      path: '/verificar'
+      fullPath: '/verificar'
+      preLoaderRoute: typeof VerificarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/contestacoes': {
@@ -533,6 +593,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   DefinirSenhaRoute: DefinirSenhaRoute,
+  ProtegerAContaRoute: ProtegerAContaRoute,
+  RecuperarAcessoRoute: RecuperarAcessoRoute,
+  VerificarRoute: VerificarRoute,
   ApiAvisosContestacoesRoute: ApiAvisosContestacoesRoute,
   ApiSlackEventosRoute: ApiSlackEventosRoute,
 }

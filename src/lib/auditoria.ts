@@ -48,6 +48,9 @@ export const CATEGORIAS: Record<string, string[]> = {
   Escala: [
     "escala_publicar",
     "escala_importar",
+    "verificacao_codigos_gerados",
+    "verificacao_recuperada",
+    "verificacao_desligada",
     "nucleos_da_pessoa",
     "escala_mudar_dia",
     "escala_criar_sigla",
@@ -184,6 +187,13 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         b(r.alvo ?? "um colaborador"),
         ...(txt(n["perfil"]) ? [q(` para ${PERFIL[String(n["perfil"])] ?? n["perfil"]}`)] : []),
       ];
+    // A verificação em duas etapas (21/10/2026)
+    case "verificacao_codigos_gerados":
+      return [q("ativou a verificação em duas etapas (e recebeu os códigos de recuperação)")];
+    case "verificacao_recuperada":
+      return [q("usou um código de recuperação (o aplicativo antigo foi desligado)")];
+    case "verificacao_desligada":
+      return [q("desligou a verificação em duas etapas de "), b(txt(n["colaborador"]) ?? alvo)];
     // A importação e os núcleos (20/10/2026)
     case "escala_importar": {
       const ini = String(n["inicio"] ?? "");

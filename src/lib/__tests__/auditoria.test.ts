@@ -301,5 +301,15 @@ describe("o acesso rápido no Histórico", () => {
         valor_novo: { colaborador: "Katia Tchu", nucleos: ["F&R", "log"] },
       }),
     ).toBe("definiu os núcleos de Katia Tchu: F&R, log");
+    expect(
+      texto({
+        acao: "verificacao_desligada",
+        alvo: "",
+        valor_novo: { colaborador: "Amanda Silva" },
+      }),
+    ).toBe("desligou a verificação em duas etapas de Amanda Silva");
+    expect(texto({ acao: "verificacao_recuperada", alvo: "", valor_novo: {} })).toBe(
+      "usou um código de recuperação (o aplicativo antigo foi desligado)",
+    );
   });
 });
