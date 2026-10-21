@@ -40,14 +40,13 @@ const ddmm = (iso: string) => `${iso.slice(8)}/${iso.slice(5, 7)}`;
 type Escolha = "criar" | "folga" | "vazio";
 
 /**
- * O arquivo em linhas: o CSV pela regra própria; o XLSX pela biblioteca (a primeira aba). A versão UNIVERSAL da
- * biblioteca (21/10/2026): a do navegador lê num trabalhador em segundo plano (um Web Worker criado de um "blob:"),
- * que a política de segurança do site bloqueia, e a leitura ficava parada para sempre.
+ * O arquivo em linhas: o CSV e o XLSX (a primeira aba) pelas regras próprias. O XLSX (21/10/2026) é lido sem nenhum
+ * trabalhador em segundo plano, que a política de segurança do site bloqueia (ver src/lib/ler-xlsx.ts).
  */
 export async function lerArquivo(f: File): Promise<unknown[][]> {
   if (/\.xlsx$/i.test(f.name)) {
-    const { readSheet } = await import("read-excel-file/universal");
-    return (await readSheet(await bytesDoArquivo(f))) as unknown[][];
+    const { lerXlsx } = await import("@/lib/ler-xlsx");
+    return lerXlsx(new Uint8Array(await bytesDoArquivo(f)));
   }
   return lerCsv(await textoDoArquivo(f));
 }

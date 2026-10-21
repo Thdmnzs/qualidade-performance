@@ -140,22 +140,44 @@ describe("a importação da escala, com o arquivo real", () => {
 });
 
 describe("o XLSX (21/10/2026): a leitura sem o trabalhador em segundo plano", () => {
-  it("o XLSX real (com formatação e uma segunda aba) é lido, com o Worker proibido como a CSP do site faz", async () => {
-    const original = globalThis.Worker;
-    // @ts-expect-error a simulação da CSP: criar um trabalhador falha
+  const XLSX = () =>
+    readFileSync(`${process.cwd()}/src/lib/__tests__/fixtures/escala-19-a-25-10.xlsx`);
+  /**
+   * Um XLSX com uma segunda aba de 5 MB de texto: a tela lê a primeira aba e ignora a outra. (A prova de que nenhum
+   * trabalhador em segundo plano é criado, com a fflate do navegador, está em src/lib/__tests__/ler-xlsx.test.ts.)
+   */
+  async function xlsxGrande() {
+    const { strToU8, unzipSync, zipSync } = await import("fflate");
+    const partes = unzipSync(new Uint8Array(XLSX()));
+    const linha = (r: number) =>
+      `<row r="${r}">${Array.from({ length: 30 }, (_, k) => `<c r="${String.fromCharCode(65 + (k % 26))}${r}" t="inlineStr"><is><t>histórico da semana ${r}</t></is></c>`).join("")}</row>`;
+    const aba2 = `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${Array.from({ length: 2500 }, (_, r) => linha(r + 1)).join("")}</sheetData></worksheet>`;
+    return zipSync({ ...partes, "xl/worksheets/sheet2.xml": strToU8(aba2) });
+  }
+  /** Como a CSP do navegador faz: o trabalhador é CRIADO sem erro, mas nunca carrega nem responde. */
+  function comOTrabalhadorBloqueado() {
+    const original = { Worker: globalThis.Worker, url: URL.createObjectURL };
     globalThis.Worker = class {
-      constructor() {
-        throw new Error("Bloqueado pela CSP");
-      }
+      onmessage = null;
+      onerror = null;
+      postMessage() {}
+      terminate() {}
+      addEventListener() {}
+    } as unknown as typeof Worker;
+    URL.createObjectURL = () => "blob:bloqueado";
+    return () => {
+      globalThis.Worker = original.Worker;
+      URL.createObjectURL = original.url;
     };
+  }
+  it("um XLSX com uma aba grande a mais é lido (só a primeira aba)", async () => {
+    const desfazer = comOTrabalhadorBloqueado();
     try {
+      const bytes = await xlsxGrande();
+      expect(bytes.length).toBeGreaterThan(100 * 1024);
       const { lerArquivo } = await import("../importar-escala");
       const { lerPlanilhaDaEscala } = await import("@/lib/importar-escala");
-      const bytes = readFileSync(
-        `${process.cwd()}/src/lib/__tests__/fixtures/escala-19-a-25-10.xlsx`,
-      );
-      const linhas = await lerArquivo(new File([bytes], "escala_cx_-_19_a_25_10.xlsx"));
-      const lida = lerPlanilhaDaEscala(linhas);
+      const lida = lerPlanilhaDaEscala(await lerArquivo(new File([bytes], "escala.xlsx")));
       expect(lida.dias.map((d) => d.length)).toEqual([14, 14, 14, 14, 14, 5, 4]);
       expect(lida.dias[0]![1]!.siglas.slice(0, 7)).toEqual([
         "i",
@@ -170,19 +192,23 @@ describe("o XLSX (21/10/2026): a leitura sem o trabalhador em segundo plano", ()
         { tipo: "celula", dia: 5, apelido: "Thiago", hora: 7, valor: "," },
       ]);
     } finally {
-      globalThis.Worker = original;
+      desfazer();
     }
   });
-  it("na tela: o XLSX lido mostra os dias e as pessoas", async () => {
-    abrir(<ImportarEscala pessoas={PESSOAS} />);
-    const bytes = readFileSync(
-      `${process.cwd()}/src/lib/__tests__/fixtures/escala-19-a-25-10.xlsx`,
-    );
-    fireEvent.change(screen.getByLabelText("O arquivo da escala"), {
-      target: { files: [new File([bytes], "escala.xlsx")] },
-    });
-    expect(await screen.findByText(/lido: 7 dias, 14 pessoas/, {}, { timeout: 5000 })).toBeTruthy();
-  });
+  it("na tela: o XLSX grande lido mostra os dias e as pessoas", async () => {
+    const desfazer = comOTrabalhadorBloqueado();
+    try {
+      abrir(<ImportarEscala pessoas={PESSOAS} />);
+      fireEvent.change(screen.getByLabelText("O arquivo da escala"), {
+        target: { files: [new File([await xlsxGrande()], "escala.xlsx")] },
+      });
+      expect(
+        await screen.findByText(/lido: 7 dias, 14 pessoas/, {}, { timeout: 8000 }),
+      ).toBeTruthy();
+    } finally {
+      desfazer();
+    }
+  }, 15000);
 });
 
 describe("o tamanho do arquivo (21/10/2026)", () => {
