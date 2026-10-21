@@ -12,8 +12,10 @@ import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 export const avisarTrocaFn = createServerFn({ method: "POST" })
   .middleware([enviarTokenDaSessao, requireSupabaseAuth, limiteDeUso("aviso_slack", 120, 600)])
   .validator(z.object({ trocaId: z.string().uuid() }))
-  .handler(async ({ data }) => {
-    const { avisarTroca } = await import("@/server/central-de-turnos.server");
+  .handler(async ({ data, context }) => {
+    const { avisarTroca, podeAvisarTroca } = await import("@/server/central-de-turnos.server");
+    // Só uma das pessoas da troca, ou um ADM (21/10/2026, a revisão de segurança).
+    if (!(await podeAvisarTroca(data.trocaId, context.userId))) return { ok: false };
     try {
       await avisarTroca(data.trocaId);
     } catch (e) {

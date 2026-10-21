@@ -598,5 +598,12 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   senha do ADM (que precisa estar com a verificação em dia). Os códigos da pessoa perdem a validade e as sessões dela se
   encerram. Um ADM não desliga a própria verificação.
 - **A sessão** se encerra depois de 2 horas sem uso, e no máximo 9 horas depois do login.
-- **A etapa 1** (as telas e o servidor) confere a exigência na guarda da área logada. **A etapa 2** (a conferência no
-  banco e no servidor, que recusa uma sessão sem o código em todo lugar) vem depois, com o time já cadastrado.
+- **A etapa 1** (as telas e o servidor) confere a exigência na guarda da área logada.
+- **A etapa 2** (21/10/2026): uma sessão de pessoa **sem o código** é recusada em todo lugar, mesmo chamando o banco
+  direto. (1) A porta principal do banco (a API): uma conferência antes de cada pedido; a única exceção é a consulta do
+  próprio perfil (a do login). (2) Toda tabela tem a regra restritiva "exige a verificação"; **toda tabela nova precisa
+  dela também**. As funções que identificam quem chama (current_employee_id, is_admin, is_avaliador) respondem "ninguém"
+  para uma sessão sem o código (o tempo real e as fotos fecham por elas). (3) O login das funções do servidor recusa a
+  sessão sem o código; a única exceção é o uso de um código de recuperação. O caminho de volta, se preciso:
+  `alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';`
+- **O aviso das trocas** (a revisão de segurança): só uma das pessoas da troca, ou um ADM, dispara o aviso pela tela.

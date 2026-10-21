@@ -50,6 +50,19 @@ async function comReserva(id: string, evento: Evento, acao: () => Promise<void>)
 }
 
 /** O aviso e o fim que faltam (chamado logo depois de aceitar, decidir ou cancelar). */
+/**
+ * Quem pode disparar o aviso de uma troca pela tela (21/10/2026, a revisão de segurança): uma das duas pessoas da
+ * troca, ou um ADM. (A tarefa da manhã, que é do servidor, chama o aviso sem esta conferência.)
+ */
+export async function podeAvisarTroca(id: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc("pode_avisar_troca", {
+    _id: id,
+    _user_id: userId,
+  });
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
 export async function avisarTroca(id: string): Promise<void> {
   if (!centralDeTurnosConfigurada()) return;
   const d = await dados(id);

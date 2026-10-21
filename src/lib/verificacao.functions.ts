@@ -2,7 +2,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  requireSupabaseAuth,
+  requireSupabaseAuthSemOCodigo,
+} from "@/integrations/supabase/auth-middleware";
 import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
 import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 
@@ -31,8 +34,13 @@ export const gerarCodigosDeRecuperacaoFn = createServerFn({ method: "POST" })
   );
 
 // Até 5 tentativas a cada 15 minutos (contra quem tente adivinhar um código).
+// A única função do servidor que aceita uma sessão SEM o código do celular (é para quem perdeu o celular).
 export const usarCodigoDeRecuperacaoFn = createServerFn({ method: "POST" })
-  .middleware([...autenticado, limiteDeUso("usar_codigo_de_recuperacao", 5, 900)])
+  .middleware([
+    enviarTokenDaSessao,
+    requireSupabaseAuthSemOCodigo,
+    limiteDeUso("usar_codigo_de_recuperacao", 5, 900),
+  ])
   .validator(z.object({ codigo: z.string().min(1).max(20) }))
   .handler(async ({ data, context }) =>
     comErrosSeguros(async () => {
