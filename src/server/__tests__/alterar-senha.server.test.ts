@@ -12,6 +12,11 @@ vi.mock("@supabase/supabase-js", () => ({
 const insert = vi.fn(async (_a: unknown) => ({ error: null }));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
+    // O Histórico pela função do banco (21/10/2026); o "insert" fica para conferir que ninguém grava direto.
+    rpc: (n: string, a: Record<string, unknown>) =>
+      n === "registrar_no_historico"
+        ? insert({ ...a, acao: a["_acao"], usuario_id: a["_usuario_id"] })
+        : null,
     from: (t: string) =>
       t === "employees"
         ? {

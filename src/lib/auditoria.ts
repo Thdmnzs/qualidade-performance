@@ -189,7 +189,11 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
       ];
     // A verificação em duas etapas (21/10/2026)
     case "verificacao_codigos_gerados":
-      return [q("ativou a verificação em duas etapas (e recebeu os códigos de recuperação)")];
+      return [
+        q("ativou a verificação em duas etapas (e recebeu os códigos de recuperação)"),
+        // Um registro feito depois, pela correção do Histórico de 21/10/2026, com o horário real da ativação.
+        ...(n["recuperado"] ? [q(" · registro recuperado")] : []),
+      ];
     case "verificacao_recuperada":
       return [q("usou um código de recuperação (o aplicativo antigo foi desligado)")];
     case "verificacao_desligada":

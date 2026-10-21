@@ -1438,6 +1438,16 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      registrar_no_historico: {
+        Args: {
+          _usuario_id: string;
+          _acao: string;
+          _entidade: string;
+          _registro_id: string | null;
+          _valor_novo: Json;
+        };
+        Returns: undefined;
+      };
       guardar_codigos_de_recuperacao: {
         Args: { _user_id: string; _codigos: string[] };
         Returns: undefined;

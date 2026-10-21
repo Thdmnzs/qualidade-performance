@@ -56,13 +56,14 @@ export async function alterarSenha(p: {
     .select("id, nome")
     .eq("user_id", p.userId)
     .maybeSingle();
-  await supabaseAdmin.from("audit_logs").insert({
-    usuario_id: p.userId,
-    usuario_nome: eu?.nome ?? null,
-    acao: "senha_alterada",
-    entidade: "auth",
-    registro_id: eu?.id ?? null,
-    valor_anterior: null,
-    valor_novo: { colaborador: eu?.nome ?? null },
+  // O Histórico pela função do banco (21/10/2026): o servidor não grava direto na tabela, e o registro era recusado.
+  const { error: erroDoHistorico } = await supabaseAdmin.rpc("registrar_no_historico", {
+    _usuario_id: p.userId,
+    _acao: "senha_alterada",
+    _entidade: "auth",
+    _registro_id: eu?.id ?? null,
+    _valor_novo: { colaborador: eu?.nome ?? null },
   });
+  if (erroDoHistorico)
+    console.error("[troca de senha] o Histórico não foi registrado:", erroDoHistorico.message);
 }

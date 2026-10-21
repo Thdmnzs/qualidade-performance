@@ -311,5 +311,10 @@ describe("o acesso rápido no Histórico", () => {
     expect(texto({ acao: "verificacao_recuperada", alvo: "", valor_novo: {} })).toBe(
       "usou um código de recuperação (o aplicativo antigo foi desligado)",
     );
+    expect(
+      texto({ acao: "verificacao_codigos_gerados", alvo: "", valor_novo: { recuperado: true } }),
+    ).toBe(
+      "ativou a verificação em duas etapas (e recebeu os códigos de recuperação) · registro recuperado",
+    );
   });
 });

@@ -76,10 +76,14 @@ describe("o desligamento pelo ADM", () => {
     expect(signIn).toHaveBeenCalledWith({ email: "carol@fluke.com.br", password: "a-senha" });
     expect(deleteFactor).toHaveBeenCalledWith({ id: "f1", userId: "alvo" });
     expect(rpc).toHaveBeenCalledWith("apagar_codigos_e_sessoes", { _user_id: "alvo" });
-    expect(insert.mock.calls.at(-1)![0]).toMatchObject({
-      acao: "verificacao_desligada",
-      valor_novo: { colaborador: "Amanda Silva" },
+    expect(rpc).toHaveBeenCalledWith("registrar_no_historico", {
+      _usuario_id: "adm",
+      _acao: "verificacao_desligada",
+      _entidade: "verificacao",
+      _registro_id: DESLIGAR.employeeId,
+      _valor_novo: { colaborador: "Amanda Silva" },
     });
+    expect(insert).not.toHaveBeenCalled(); // pela função do banco, e nunca direto na tabela
   });
   it("com a senha errada: nada é desligado", async () => {
     signIn.mockResolvedValueOnce({

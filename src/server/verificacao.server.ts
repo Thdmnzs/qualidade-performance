@@ -25,19 +25,15 @@ async function registrar(
   registroId: string | null,
   valorNovo: Record<string, unknown>,
 ) {
-  const { data: eu } = await supabaseAdmin
-    .from("employees")
-    .select("nome")
-    .eq("user_id", usuarioId)
-    .maybeSingle();
-  await supabaseAdmin.from("audit_logs").insert({
-    usuario_id: usuarioId,
-    usuario_nome: eu?.nome ?? null,
-    acao,
-    entidade: "verificacao",
-    registro_id: registroId,
-    valor_novo: valorNovo as never,
+  // Pela função do banco (o servidor não grava direto no Histórico); uma falha fica no registro do servidor.
+  const { error } = await supabaseAdmin.rpc("registrar_no_historico", {
+    _usuario_id: usuarioId,
+    _acao: acao,
+    _entidade: "verificacao",
+    _registro_id: registroId,
+    _valor_novo: valorNovo as never,
   });
+  if (error) console.error("[verificação] o Histórico não foi registrado:", error.message);
 }
 
 /** Os 10 códigos novos (os antigos deixam de valer). Só numa sessão que acabou de confirmar o aplicativo (aal2). */
