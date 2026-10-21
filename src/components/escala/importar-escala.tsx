@@ -22,7 +22,9 @@ import {
   type PlanilhaLida,
 } from "@/lib/importar-escala";
 
-const LIMITE_DO_ARQUIVO = 2 * 1024 * 1024; // 2 MB: uma escala de uma semana tem poucos KB
+// 20 MB (21/10/2026; antes 2 MB): um XLSX com formatação, cores e várias abas passa fácil dos 2 MB. A leitura é
+// no navegador (o arquivo não vai para o servidor, só a semana montada), então o limite só protege o navegador.
+const LIMITE_DO_ARQUIVO = 20 * 1024 * 1024;
 const PASSOS = [
   "1. O arquivo",
   "2. As pessoas",
@@ -126,7 +128,9 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
     setErro(null);
     if (!/\.(csv|xlsx)$/i.test(f.name)) return setErro("O arquivo precisa ser CSV ou XLSX.");
     if (f.size > LIMITE_DO_ARQUIVO)
-      return setErro("O arquivo é grande demais para uma escala (o limite é de 2 MB).");
+      return setErro(
+        "O arquivo é grande demais (o limite é de 20 MB). Se for um XLSX, tente salvar só a aba da escala, ou exportar como CSV.",
+      );
     try {
       const l = lerPlanilhaDaEscala(await lerArquivo(f));
       if (l.dias.every((d) => d.length === 0))

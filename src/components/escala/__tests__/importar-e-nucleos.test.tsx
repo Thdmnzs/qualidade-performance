@@ -139,6 +139,25 @@ describe("a importação da escala, com o arquivo real", () => {
   });
 });
 
+describe("o tamanho do arquivo (21/10/2026)", () => {
+  it("um arquivo de 5 MB passa; um de mais de 20 MB é recusado", async () => {
+    abrir(<ImportarEscala pessoas={PESSOAS} />);
+    const grande = (mb: number) => {
+      const f = new File([CSV], "escala.csv", { type: "text/csv" });
+      Object.defineProperty(f, "size", { value: mb * 1024 * 1024 });
+      return f;
+    };
+    fireEvent.change(screen.getByLabelText("O arquivo da escala"), {
+      target: { files: [grande(5)] },
+    });
+    expect(await screen.findByText(/lido: 7 dias, 14 pessoas/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("O arquivo da escala"), {
+      target: { files: [grande(21)] },
+    });
+    expect((await screen.findByRole("alert")).textContent).toContain("o limite é de 20 MB");
+  });
+});
+
 describe("os núcleos", () => {
   it("as marcas de cada pessoa, e marcar grava os núcleos (mais de um)", async () => {
     abrir(<NucleosDoTime pessoas={PESSOAS} />);
