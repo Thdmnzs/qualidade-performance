@@ -1438,6 +1438,13 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      nucleos_do_time: { Args: never; Returns: Json };
+      definir_nucleos: { Args: { _employee_id: string; _nucleos: string[] }; Returns: undefined };
+      apelidos_da_escala_do_time: { Args: never; Returns: Json };
+      importar_semana_da_escala: {
+        Args: { _inicio: string; _dias: Json; _apelidos: Json; _confirmar: boolean };
+        Returns: undefined;
+      };
       reservar_leitura_do_mural: { Args: { _minutos: number }; Returns: boolean };
       concluir_leitura_do_mural: { Args: never; Returns: undefined };
       orientacoes_para_treinar: { Args: never; Returns: Json };

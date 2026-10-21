@@ -213,3 +213,41 @@ export async function definirHorarioDeTrabalho(employeeId: string, h: HorarioDeT
   });
   falhar(error);
 }
+
+// ---------- Os núcleos e a importação da escala (20/10/2026): só o ADM ----------
+export const NUCLEOS = ["rede", "cxtech", "quali", "log", "F&R", "cob B2B", "auto"] as const;
+export type Nucleo = (typeof NUCLEOS)[number];
+/** Os núcleos de cada pessoa: { id da pessoa: ["auto", "cxtech"] }. */
+export async function lerNucleos(): Promise<Record<string, Nucleo[]>> {
+  const { data, error } = await supabase.rpc("nucleos_do_time");
+  falhar(error);
+  return (data ?? {}) as unknown as Record<string, Nucleo[]>;
+}
+export async function definirNucleos(employeeId: string, nucleos: Nucleo[]) {
+  const { error } = await supabase.rpc("definir_nucleos", {
+    _employee_id: employeeId,
+    _nucleos: nucleos,
+  });
+  falhar(error);
+}
+/** Os apelidos guardados da planilha da escala: { "ruby": id da pessoa }. */
+export async function lerApelidosDaEscala(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.rpc("apelidos_da_escala_do_time");
+  falhar(error);
+  return (data ?? {}) as unknown as Record<string, string>;
+}
+/** A importação: os 7 dias de uma vez, e os apelidos novos. Numa semana publicada, só com `confirmar`. */
+export async function importarSemana(
+  inicio: string,
+  dias: Record<string, { employee_id: string; horas: (string | null)[] }[]>,
+  apelidos: Record<string, string>,
+  confirmar: boolean,
+) {
+  const { error } = await supabase.rpc("importar_semana_da_escala", {
+    _inicio: inicio,
+    _dias: dias,
+    _apelidos: apelidos,
+    _confirmar: confirmar,
+  });
+  falhar(error);
+}

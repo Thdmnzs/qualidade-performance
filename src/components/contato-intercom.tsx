@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { dataBR, dataHoraBR } from "@/lib/format";
-import { linkSeguroDoIntercom, textoParaSugerirProcesso } from "@/lib/intercom";
+import { linkSeguroDoIntercom, textoParaSugerirProcesso, type NotaDoLead } from "@/lib/intercom";
 import {
   buscarContatoFn,
   contatoEmAbertoFn,
@@ -348,8 +348,78 @@ export function ContatoIntercom({
         </Dialog>
       </section>
 
+      {/* As notas do lead (20/10/2026): as notas do contato no Intercom, acima da classificação. */}
+      {contato && contato.notasDoLead !== undefined && <NotasDoLead notas={contato.notasDoLead} />}
       {contato && !contato.ticket && <ClassificacaoDoAtendimento atributos={contato.atributos} />}
     </div>
+  );
+}
+
+/**
+ * As notas do lead (20/10/2026), como na barra do Intercom: as notas do contato (o CNPJ, o painel do cliente,
+ * o Wave...), da mais nova para a mais antiga, com os links clicáveis. O texto vem sem nenhum HTML.
+ */
+export function NotasDoLead({ notas }: { notas: NotaDoLead[] | null }) {
+  if (notas && notas.length === 0) return null; // sem notas, o painel não ocupa espaço
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-border bg-card p-5"
+      aria-label="As notas do lead"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-display text-base font-bold">👤 Notas do lead</h3>
+        {notas && (
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold">
+            {notas.length}
+          </span>
+        )}
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        As notas do cliente no Intercom. Às vezes trazem um alinhamento sobre ele.
+      </p>
+      {notas === null ? (
+        <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-sm text-muted-foreground">
+          Não foi possível ler as notas do lead no Intercom agora. Elas continuam visíveis na barra
+          lateral da conversa, no Intercom.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {notas.map((n) => (
+            <li
+              key={n.id}
+              className="rounded-xl border-l-4 border-[#E0A800] bg-[#FFF8E1] px-3 py-2.5 text-sm text-[#111311] dark:bg-[#2E2610] dark:text-[#F5ECD0]"
+            >
+              {n.linhas.map((linha, i) => (
+                <p key={i} className="break-words [overflow-wrap:anywhere]">
+                  {linha.map((p, k) =>
+                    p.url ? (
+                      <a
+                        key={k}
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-[#2B5FC9] underline dark:text-[#9DBBF7]"
+                      >
+                        {p.texto}
+                      </a>
+                    ) : (
+                      <span key={k}>{p.texto}</span>
+                    ),
+                  )}
+                </p>
+              ))}
+              {(n.autor || n.quando) && (
+                <p className="mt-1 text-[11px] opacity-70">
+                  {n.autor ?? ""}
+                  {n.autor && n.quando ? " · " : ""}
+                  {n.quando ? dataHoraBR(new Date(n.quando * 1000).toISOString()) : ""}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

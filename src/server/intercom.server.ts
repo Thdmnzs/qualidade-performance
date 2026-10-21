@@ -26,6 +26,9 @@ import {
   type Mensagem,
   atributosDaConversa,
   type Atributo,
+  notasDoLead,
+  type NotaDoIntercom,
+  type NotaDoLead,
 } from "@/lib/intercom";
 import {
   assuntoDoTicket,
@@ -223,6 +226,11 @@ export type Contato = {
   mensagens: Mensagem[];
   /** Classificação do atendimento (critério 14): só os cinco campos. Num ticket, os campos do ticket. */
   atributos: Atributo[];
+  /**
+   * As notas do lead (20/10/2026): as notas do contato no Intercom (o CNPJ, os links do painel e do Wave...).
+   * null quando o Intercom não as entregou (por exemplo, o token sem a permissão de ler os contatos).
+   */
+  notasDoLead?: NotaDoLead[] | null;
   /** Só nos tickets de back-office (o tipo `ticket_n2`). */
   ticket?: {
     numero: string | null;
@@ -339,7 +347,23 @@ async function paraContato(
     atendenteEscreveu: atendenteEscreveu(c, adminId),
     mensagens: montarTranscricao(c),
     atributos: atributosDaConversa(c),
+    notasDoLead: await notasDoContato(c),
   };
+}
+
+/** As notas do contato da conversa (as "Notas do lead"). Uma falha não atrapalha a ficha: vira null. */
+async function notasDoContato(c: ConversaIntercom): Promise<NotaDoLead[] | null> {
+  const contato = c.contacts?.contacts?.[0]?.id;
+  if (!contato) return [];
+  try {
+    const r = await chamar<{ data?: NotaDoIntercom[] }>(
+      `/contacts/${encodeURIComponent(String(contato))}/notes`,
+    );
+    if (!r.ok) return null;
+    return notasDoLead(r.dados.data).slice(0, 20);
+  } catch {
+    return null;
+  }
 }
 
 /** Conversas ENCERRADAS atribuídas ao atendente no período (todas as páginas, para o sorteio ser justo). */

@@ -100,6 +100,8 @@ export type ConversaIntercom = {
   /** A origem: o tipo (conversation, email, whatsapp...) e, no chat do site, a página onde começou. */
   source?: (Parte & { subject?: string | null; type?: string | null; url?: string | null }) | null;
   conversation_parts?: { conversation_parts?: Parte[] | null } | null;
+  /** O cliente (o "lead") da conversa: é por ele que o Intercom entrega as notas do contato. */
+  contacts?: { contacts?: { id: string | number }[] | null } | null;
 };
 
 export type Mensagem = {
@@ -269,4 +271,69 @@ export function textoParaSugerirProcesso(c: {
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+/* ======================= As notas do lead (20/10/2026) ======================= */
+
+/** Um pedaço de uma linha de uma nota: um texto, ou um link seguro (http ou https). */
+export type PedacoDaNota = { texto: string; url?: string };
+/** Uma nota do contato no Intercom (as "Notas do lead"), com o texto em linhas e os links preservados. */
+export type NotaDoLead = {
+  id: string;
+  autor: string | null;
+  quando: number | null;
+  linhas: PedacoDaNota[][];
+};
+export type NotaDoIntercom = {
+  id: string | number;
+  body?: string | null;
+  created_at?: number | null;
+  author?: { name?: string | null } | null;
+};
+
+const MARCA = "\u0000";
+/**
+ * O HTML de uma nota em linhas, com os links (20/10/2026). Os links seguros viram pedaços com o endereço; todo
+ * o resto do HTML vira texto puro (pela mesma função das mensagens), então nada vindo do Intercom vira código.
+ */
+export function linhasDaNota(html: string | null | undefined): PedacoDaNota[][] {
+  if (!html) return [];
+  const links: PedacoDaNota[] = [];
+  const marcado = html.replace(
+    /<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a\s*>/gi,
+    (_, __, href: string, miolo: string) => {
+      const url = htmlParaTexto(href).trim();
+      const texto = htmlParaTexto(miolo).trim() || url;
+      if (!/^https?:\/\//i.test(url)) return texto; // um endereço que não é http(s) vira só o texto
+      links.push({ texto, url });
+      return `${MARCA}${links.length - 1}${MARCA}`;
+    },
+  );
+  return (
+    htmlParaTexto(marcado)
+      .split("\n")
+      .map((linha) => {
+        const pedacos: PedacoDaNota[] = [];
+        linha.split(new RegExp(`${MARCA}(\\d+)${MARCA}`)).forEach((t, i) => {
+          if (i % 2) pedacos.push(links[Number(t)]!);
+          else if (t) pedacos.push({ texto: t });
+        });
+        return pedacos;
+      })
+      // Uma linha só com pontuação (como a nota "." do Intercom) não diz nada, e sai.
+      .filter((l) => l.some((p) => p.url || /[\p{L}\p{N}]/u.test(p.texto)))
+  );
+}
+
+/** As notas do Intercom, da mais nova para a mais antiga (como na barra do Intercom). */
+export function notasDoLead(notas: NotaDoIntercom[] | null | undefined): NotaDoLead[] {
+  return [...(notas ?? [])]
+    .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
+    .map((n) => ({
+      id: String(n.id),
+      autor: n.author?.name ?? null,
+      quando: n.created_at ?? null,
+      linhas: linhasDaNota(n.body),
+    }))
+    .filter((n) => n.linhas.length > 0);
 }

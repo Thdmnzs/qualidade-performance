@@ -1,6 +1,8 @@
 import { pessoasDaEscala } from "@/lib/escala";
 import { createFileRoute } from "@tanstack/react-router";
 import { FolgasFixas } from "@/components/escala/folgas-fixas";
+import { ImportarEscala } from "@/components/escala/importar-escala";
+import { NucleosDoTime } from "@/components/escala/nucleos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrocasDoTime, TrocasParaAprovar } from "@/components/escala/trocas";
 import { useCallback, useMemo, useState } from "react";
@@ -86,7 +88,9 @@ function Escala() {
 
 // ---------- O ADM: monta a semana e lança as férias ----------
 function MontagemDoAdm() {
-  const [aba, setAba] = useState<"semana" | "ferias" | "trocas" | "folgas">("semana");
+  const [aba, setAba] = useState<
+    "semana" | "importar" | "ferias" | "trocas" | "folgas" | "nucleos"
+  >("semana");
   const [ajuste, setAjuste] = useState<{ inicio: string; dia: number } | null>(null);
   const { data: cadastros = [] } = useQuery({
     queryKey: ["colaboradores"],
@@ -102,9 +106,11 @@ function MontagemDoAdm() {
       <Abas
         abas={[
           ["semana", "Montar a semana"],
+          ["importar", "Importar a escala"],
           ["ferias", "Férias"],
           ["trocas", "Trocas"],
           ["folgas", "Folgas fixas"],
+          ["nucleos", "Núcleos"],
         ]}
         atual={aba}
         aoTrocar={setAba}
@@ -121,6 +127,10 @@ function MontagemDoAdm() {
         />
       ) : aba === "ferias" ? (
         <MontarFerias pessoas={pessoas} />
+      ) : aba === "importar" ? (
+        <ImportarEscala pessoas={pessoas} />
+      ) : aba === "nucleos" ? (
+        <NucleosDoTime pessoas={pessoas} />
       ) : aba === "folgas" ? (
         <FolgasFixas />
       ) : (

@@ -285,5 +285,21 @@ describe("o acesso rápido no Histórico", () => {
       }),
     ).toBe("ligou o nome da planilha “Luiz Fernando” a Luiz Oliveira");
     expect(categoriaDe("nome_na_planilha")).toBe("Indicadores");
+    expect(
+      texto({
+        acao: "escala_importar",
+        alvo: "",
+        valor_novo: { inicio: "2026-10-19", voltou_para_rascunho: true },
+      }),
+    ).toBe(
+      "importou a escala da semana de 19/10 (a semana estava publicada, e voltou para rascunho)",
+    );
+    expect(
+      texto({
+        acao: "nucleos_da_pessoa",
+        alvo: "",
+        valor_novo: { colaborador: "Katia Tchu", nucleos: ["F&R", "log"] },
+      }),
+    ).toBe("definiu os núcleos de Katia Tchu: F&R, log");
   });
 });

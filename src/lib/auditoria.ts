@@ -47,6 +47,8 @@ export const CATEGORIAS: Record<string, string[]> = {
   ],
   Escala: [
     "escala_publicar",
+    "escala_importar",
+    "nucleos_da_pessoa",
     "escala_mudar_dia",
     "escala_criar_sigla",
     "ferias_marcar",
@@ -182,6 +184,26 @@ export function fraseDoRegistro(r: Registro): Pedaco[] {
         b(r.alvo ?? "um colaborador"),
         ...(txt(n["perfil"]) ? [q(` para ${PERFIL[String(n["perfil"])] ?? n["perfil"]}`)] : []),
       ];
+    // A importação e os núcleos (20/10/2026)
+    case "escala_importar": {
+      const ini = String(n["inicio"] ?? "");
+      return [
+        q("importou a escala da semana de "),
+        b(ini ? `${ini.slice(8, 10)}/${ini.slice(5, 7)}` : "—"),
+        ...(n["voltou_para_rascunho"]
+          ? [q(" (a semana estava publicada, e voltou para rascunho)")]
+          : []),
+      ];
+    }
+    case "nucleos_da_pessoa": {
+      const lista = Array.isArray(n["nucleos"]) ? (n["nucleos"] as string[]) : [];
+      return [
+        q("definiu os núcleos de "),
+        b(txt(n["colaborador"]) ?? alvo),
+        q(": "),
+        b(lista.length ? lista.join(", ") : "nenhum"),
+      ];
+    }
     case "escala_publicar": {
       const ini = String(n["inicio"] ?? "");
       return [

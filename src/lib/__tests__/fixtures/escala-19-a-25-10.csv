@@ -1,0 +1,132 @@
+demanda,,2,1,2,3,4,4,3,4,4,4,4,4,3,3,2,2,49,,,,,,,,,,,
+segunda,,segunda feira,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,2,3,4,4,3,4,4,4,4,4,3,3,2,2,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,folga,,,,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Suelen,8,i,i,i,i,P,i,cob B2B,i,i,,,,,,,,7,0,0,0,1,0,0,0,0,0,1,8
+Fran,8,férias,,,,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Katia,8,i,i,i,log,log,P,i,F&R,F&R,,,,,,,,4,0,0,0,0,2,0,2,0,0,1,8
+Vitor,8,,,,cx,cx,cx,cx,P,cx,cx,cx,cx,,,,,0,0,0,0,0,0,0,0,8,0,1,8
+Ardson,8,,,,i,i,cxtech,cxtech,P,cxtech,auto,auto,auto,,,,,2,0,3,0,0,0,3,0,0,0,1,8
+Carol ,8,,,,cx,cx,cx,cx,P,1:1,cx,cx,cx,,,,,0,0,0,0,0,0,0,0,7,1,1,8
+Rachel,8,,,,quali,i,i,quali,P,i,quali,quali,quali,,,,,3,0,0,5,0,0,0,0,0,0,1,8
+Simone,8,,,,i,i,i,i,P,i,i,i,i,,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Luiz,8,,,,,i,i,i,i,P,i,i,i,i,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Kaio,8,,,,,,folga,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Virmaud,8,,,,,,,rede,rede,rede,rede,P,i,i,i,cxtech,,3,4,1,0,0,0,0,0,0,0,1,8
+Thiago,8,,,,,,,,i,i,i,i,P,i,i,i,i,8,0,0,0,0,0,0,0,0,0,1,8
+Amanda,8,,,,,,,,i,1:1,i,i,i,P,i,i,i,7,0,0,0,0,0,0,0,0,1,1,8
+,,,,,,,,,,,,,,,,,,50,4,4,5,1,2,3,2,15,2,11,88
+demanda,,3,1,2,3,4,4,3,4,4,4,3,3,3,2,2,2,47,,,,,,,,,,,
+terça,,terça feira ,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,2,3,4,4,3,4,4,4,3,3,3,2,2,2,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,i,i,i,rede,P,i,rede,rede,rede,,,,,,,,4,4,0,0,0,0,0,0,0,0,1,8
+Suelen,8,i,i,i,i,P,i,i,cob B2B,cob B2B,,,,,,,,6,0,0,0,2,0,0,0,0,0,1,8
+Fran,8,,rede,rede,i,i,P,quali,quali,quali,quali,,,,,,,2,2,0,4,0,0,0,0,0,0,1,8
+Katia,8,,log,log,i,i,P,F&R,F&R,F&R,i,,,,,,,3,0,0,0,0,2,0,3,0,0,1,8
+Vitor,8,,,,cx,cx,cx,cx,P,cx,cx,cx,cx,,,,,0,0,0,0,0,0,0,0,8,0,1,8
+Ardson,8,,,,cxtech,cxtech,auto,auto,P,auto,auto,auto,auto,,,,,0,0,2,0,0,0,6,0,0,0,1,8
+Carol ,8,,,,cx,cx,cx,cx,1:1,P,1:1,cx,cx,,,,,0,0,0,0,0,0,0,0,6,2,1,8
+Rachel,8,,,,quali,i,quali,quali,P,i,i,quali,quali,,,,,3,0,0,5,0,0,0,0,0,0,1,8
+Simone,8,, ,,folga,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Luiz,8,,,,,i,i,i,i,P,1:1,i,i,i,,,,7,0,0,0,0,0,0,0,0,1,1,8
+Kaio,8,,,,,,i,i,i,i,P,i,i,i,i,,,8,0,0,0,0,0,0,0,0,0,1,8
+Virmaud,8,,,,,,,cxtech,1:1,cxtech,i,P,i,cxtech,cxtech,i,,3,0,4,0,0,0,0,0,0,1,1,8
+Thiago,8,,,,,,,,i,i,auto,auto,P,auto,auto,auto,i,3,0,0,0,0,0,5,0,0,0,1,8
+Amanda,8,,,,,,,,i,i,i,i,P,i,i,i,i,8,0,0,0,0,0,0,0,0,0,1,8
+,,,,,,,,,,,,,,,,,,47,6,6,9,2,2,11,3,14,4,13,104
+demanda,,3,2,2,3,4,4,4,5,4,4,3,3,3,2,2,2,50,,,,,,,,,,,
+quarta,,quarta feira,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,2,3,4,4,4,5,4,4,3,3,3,2,2,1,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,i,i,i,i,P,rede,rede,rede,rede,,,,,,,,4,4,0,0,0,0,0,0,0,0,1,8
+Suelen,8,i,i,i,cob B2B,P,cob B2B,1:1,i,i,,,,,,,,5,0,0,0,2,0,0,0,0,1,1,8
+Fran,8,,rede,rede,i,i,P,rede,rede,quali,quali,,,,,,,2,4,0,2,0,0,0,0,0,0,1,8
+Katia,8,,log,log,i,i,P,i,F&R,F&R,1:1,,,,,,,3,0,0,0,0,2,0,2,0,1,1,8
+Vitor,8,,,,cx,cx,cx,cx,P,cx,cx,cx,cx,,,,,0,0,0,0,0,0,0,0,8,0,1,8
+Ardson,8,,,,cxtech,cxtech,i,auto,P,auto,i,i,auto,,,,,3,0,2,0,0,0,3,0,0,0,1,8
+Carol ,8,,,,cx,cx,cx,1:1,P,cx,1:1,1:1,cx,,,,,0,0,0,0,0,0,0,0,5,3,1,8
+Rachel,8,,,,quali,i,i,quali,P,quali,quali,quali,i,,,,,3,0,0,5,0,0,0,0,0,0,1,8
+Simone,8,, ,,folga,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Luiz,8,,,,,i,i,i,i,P,i,i,i,i,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Kaio,8,,,,,,i,i,i,i,P,1:1,i,i,i,,,7,0,0,0,0,0,0,0,0,1,1,8
+Virmaud,8,,,,,,,i,i,i,i,P,cxtech,cxtech,cxtech,i,,5,0,3,0,0,0,0,0,0,0,1,8
+Thiago,8,,,,,,,,folga,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Amanda,8,,,,,,,,i,i,i,i,P,i,i,i,i,8,0,0,0,0,0,0,0,0,0,1,8
+,,,,,,,,,,,,,,,,,,48,8,5,7,2,2,3,2,13,6,12,96
+demanda,,3,2,3,4,4,4,4,4,4,4,3,3,3,2,2,2,51,,,,,,,,,,,
+quinta,,quinta feira ,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,3,4,4,4,4,4,4,4,3,3,3,2,2,1,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,i,i,i,i,P,1:1,rede,rede,rede,,,,,,,,4,3,0,0,0,0,0,0,0,1,1,8
+Suelen,8,folga,,,,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Fran,8,i,i,i,rede,P,rede,1:1,quali,quali,,,,,,,,3,2,0,2,0,0,0,0,0,1,1,8
+Katia,8,,log,i,i,P,log,F&R,F&R,i,i,,,,,,,4,0,0,0,0,2,0,2,0,0,1,8
+Vitor,8,,,,férias,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Ardson,8,,,,cxtech,i,i,i,P,auto,auto,auto,auto,,,,,3,0,1,0,0,0,4,0,0,0,1,8
+Carol ,8,,,,cx,cx,1:1,1:1,P,1:1,cx,cx,cx,,,,,0,0,0,0,0,0,0,0,5,3,1,8
+Rachel,8,,,,i,i,quali,quali,P,i,quali,quali,quali,,,,,3,0,0,5,0,0,0,0,0,0,1,8
+Simone,8,, ,,i,i,i,i,P,1:1,i,i,i,,,,,7,0,0,0,0,0,0,0,0,1,1,8
+Luiz,8,,,,,i,i,i,i,P,i,i,i,i,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Kaio,8,,,,,,i,i,i,i,P,i,i,i,i,,,8,0,0,0,0,0,0,0,0,0,1,8
+Virmaud,8,,,,,,,cxtech,i,i,i,P,cxtech,cxtech,cxtech,i,,4,0,4,0,0,0,0,0,0,0,1,8
+Thiago,8,,,,,,,,i,auto,auto,auto,P,i,i,i,i,5,0,0,0,0,0,3,0,0,0,1,8
+Amanda,8,,,,,,,,folga,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+,,,,,,,,,,,,,,,,,,49,5,5,7,0,2,7,2,5,6,11,88
+demanda,,2,1,2,3,4,4,3,3,3,3,3,3,3,2,2,2,43,,,,,,,,,,,
+sexta,,sexta feira,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,2,3,4,4,3,3,3,3,3,3,3,2,2,2,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,i,i,i,rede,P,rede,rede,rede,rede,,,,,,,,3,5,0,0,0,0,0,0,0,0,1,8
+Suelen,8,i,i,i,i,P,i,i,cob B2B,cob B2B,,,,,,,,6,0,0,0,2,0,0,0,0,0,1,8
+Fran,8,,rede,rede,quali,i,P,quali,quali,quali,cx,,,,,,,1,2,0,4,0,0,0,0,1,0,1,8
+Katia,8,,F&R,F&R,i,i,P,log,log,log,cx,,,,,,,2,0,0,0,0,3,0,2,1,0,1,8
+Vitor,8,,,,férias,,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Ardson,8,,,,cxtech,1:1,cxtech,cxtech,P,cxtech,cx,i,auto,,,,,1,0,4,0,0,0,1,0,1,1,1,8
+Carol ,8,,,,cx,1:1,cx,1:1,P,cx,cx,1:1,cx,,,,,0,0,0,0,0,0,0,0,5,3,1,8
+Rachel,8,,,,quali,i,i,1:1,P,quali,cx,quali,i,,,,,3,0,0,3,0,0,0,0,1,1,1,8
+Simone,8,, ,,i,i,i,i,P,i,i,i,i,,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Luiz,8,,,,,folga,,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Kaio,8,,,,,,i,i,i,i,i,P,i,i,i,,,8,0,0,0,0,0,0,0,0,0,1,8
+Virmaud,8,,,,,,,folga,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Thiago,8,,,,,,,,i,auto,auto,1:1,P,i,cxtech,i,i,4,0,1,0,0,0,2,0,0,1,1,8
+Amanda,8,,,,,,,,i,i,i,i,P,i,i,i,i,8,0,0,0,0,0,0,0,0,0,1,8
+,,,,,,,,,,,,,,,,,,44,7,5,7,2,3,3,2,9,6,11,88
+demanda,,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,29,,,,,,,,,,,
+sábado,,sábado ,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,2,2,2,3,2,2,3,2,3,2,2,2,2,2,2,1,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Ruby,8,i,i,i,i,P,i,rede,rede,rede,,,,,,,,5,3,0,0,0,0,0,0,0,0,1,8
+Suelen,8,i,i,i,i,i,P,i,i,i,,,,,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Simone,8,,,,i,i,i,i,P,i,i,i,i,,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Kaio,8,,,,,,,i,i,i,i,P,i,i,i,i,,8,0,0,0,0,0,0,0,0,0,1,8
+Thiago,8,,",",,,,,,cxtech,cxtech,cxtech,i,P,i,i,i,i,5,0,3,0,0,0,0,0,0,0,1,8
+,,,,,,,,,,,,,,,,,,34,3,3,0,0,0,0,0,0,0,5,40
+demanda,,2,1,1,2,2,2,2,2,2,2,2,1,2,2,1,1,27,,,,,,,,,,,
+domingo,,domingo ,,,,,,,,,,,,,,,,,,,,,,,,,,,
+analistas online,,1,1,1,1,2,2,2,2,2,2,2,1,2,1,1,1,,,,,,,,,,,,
+analista ,hr/dia,6h,7h,8h,9h,10h,11h,12h,13h,14h,15h,16h,17h,18h,19h,20h,21h,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+Amanda,8,i,i,i,i,i,i,i,i,P,,,,,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Luiz,8,,,,,i,i,i,P,i,i,i,i,i,,,,8,0,0,0,0,0,0,0,0,0,1,8
+Virmaud,8,,,,,,eleições,,,,,,,,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Simone,8,,,,,,,,i,i,i,i,P,i,i,i,i,8,0,0,0,0,0,0,0,0,0,1,8
+,,,,,,,,,,,,,,,,,,24,0,0,0,0,0,0,0,0,0,3,24
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,total semana,,296,33,28,35,7,11,27,11,56,24,66,528
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,atend,rede,cxtech,quali,cob B2B,log,auto,F&R,outros,1:1,pausa,total
+,,,,,,,,,,,,,,,,,Ruby,20,19,0,0,0,0,0,0,0,1,5,40
+,,,,,,,,,,,,,,,,,Suelen,32,0,0,0,7,0,0,0,0,1,5,40
+,,,,,,,,,,,,,,,,,Fran,8,10,0,12,0,0,0,0,1,1,4,32
+,,,,,,,,,,,,,,,,,Katia,0,0,0,0,0,0,0,0,24,0,3,24
+,,,,,,,,,,,,,,,,,Vitor,16,0,0,0,0,11,0,11,1,1,5,40
+,,,,,,,,,,,,,,,,,Ardson,9,0,12,0,0,0,17,0,1,1,5,40
+,,,,,,,,,,,,,,,,,Carol ,0,0,0,0,0,0,0,0,28,12,5,40
+,,,,,,,,,,,,,,,,,Rachel,39,0,0,0,0,0,0,0,0,1,5,40
+,,,,,,,,,,,,,,,,,Simone,31,0,0,0,0,0,0,0,0,1,4,32
+,,,,,,,,,,,,,,,,,Luiz,15,0,0,23,0,0,0,0,1,1,5,40
+,,,,,,,,,,,,,,,,,Kaio,39,0,0,0,0,0,0,0,0,1,5,40
+,,,,,,,,,,,,,,,,,Virmaud,15,4,12,0,0,0,0,0,0,1,4,32
+,,,,,,,,,,,,,,,,,Thiago,39,0,0,0,0,0,0,0,0,1,5,40
+,,,,,,,,,,,,,,,,,Amanda,15,4,12,0,0,0,0,0,0,1,4,32

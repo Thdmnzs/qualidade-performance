@@ -471,6 +471,7 @@ contagens do limite de uso.
 | 14/10/2026 | O acesso rápido na barra lateral, e o nome da plataforma passa a ser CX Hub. |
 | 14/10/2026 | O acesso rápido passa a ser editado pelo ADM (a lista vai para o banco). |
 | 16/10/2026 | Os indicadores pela planilha "CX - Métricas individuais do time": a leitura todo dia às 8h (e o "Ler agora"); o colaborador vê os dele todo dia (o D-1), em abas (a Produtividade, o SLA, a Qualidade e o CSAT); a supervisão vê a cópia da planilha (o "Ontem", da aba Dados; a quinzena, da aba Análise), sem nenhum cálculo do CX Hub; o "nome na planilha" liga cada linha ao cadastro; o cartão fora da meta passa a ser vermelho claro, e o dentro da meta, verde claro. |
+| 20/10/2026 | As notas do lead na ficha de avaliação; a importação da escala (CSV ou XLSX); os núcleos de cada pessoa. A revisão de segurança (o Vite sem vulnerabilidades). |
 | 20/10/2026 | O resultado da quinzena nas Minhas métricas (com a conta da planilha), e a elegibilidade ao lado da nota, nas Minhas avaliações. |
 | 20/10/2026 | As instabilidades na Visão geral: o #instabilidade do Slack (os incidentes, as manutenções e as mensagens do time), ao vivo. |
 | 20/10/2026 | O menu novo do colaborador (Visão geral, Minhas métricas, Escala, Qualidade e Meu perfil); a Visão geral com o Meu dia e o mural do #cx_mural, ao vivo; a nota de qualidade nas Minhas avaliações. |
@@ -568,3 +569,19 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   conta é a da aba Análise da planilha (conferida com ela): a produtividade e o CSAT pelas somas, o SLA pela média dos dias.
 - **A elegibilidade** (nas Minhas avaliações, ao lado da nota): a da última quinzena publicada, com os motivos; a prévia
   durante a contestação, e o oficial depois do fechamento.
+
+## As notas do lead, a importação da escala e os núcleos (20/10/2026)
+
+- **As notas do lead** (na ficha de avaliação, para o ADM e o avaliador): as notas do **contato** no Intercom (o CNPJ, os
+  links do painel do cliente e do Wave...), da mais nova para a mais antiga, logo acima da classificação do atendimento,
+  com os links clicáveis (só http e https). O HTML da nota vira texto (nada vira código), e as notas sem conteúdo (como
+  um ponto sozinho) saem. Se o Intercom não as entregar, a ficha segue, com um aviso.
+- **A importação da escala** (o ADM, na aba "Importar a escala"): a planilha da supervisão, em CSV ou XLSX, no formato
+  da "escala cx" (um bloco por dia; uma linha por pessoa, com a sigla de cada hora, das 6h às 21h). Em quatro passos: o
+  arquivo e a semana; as pessoas (os apelidos ligam sozinhos pelo primeiro nome ou pelo apelido da planilha dos
+  indicadores, e os outros são ligados uma vez e lembrados); os pontos a resolver (uma sigla que o CX Hub não tem, que
+  pode ser criada, tratada como folga ou deixada vazia; e uma célula com algo que não é uma sigla); e a conferência. A
+  folga e as férias, que a planilha marca na primeira hora, ocupam o dia inteiro. A importação substitui os 7 dias do
+  rascunho; numa semana publicada, só com a confirmação, e a semana volta para rascunho.
+- **Os núcleos** (o ADM, na aba "Núcleos"): de qual núcleo cada pessoa faz parte (rede, cxtech, quali, log, F&R, cob
+  B2B e auto; mais de um por pessoa), no estilo das folgas fixas. Começam vazios; cada mudança vai para o Histórico.
