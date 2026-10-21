@@ -39,14 +39,32 @@ const somar = (iso: string, dias: number) => {
 const ddmm = (iso: string) => `${iso.slice(8)}/${iso.slice(5, 7)}`;
 type Escolha = "criar" | "folga" | "vazio";
 
-/** O arquivo em linhas: o CSV pela regra própria; o XLSX pela biblioteca (só a primeira aba). */
-async function lerArquivo(f: File): Promise<unknown[][]> {
+/**
+ * O arquivo em linhas: o CSV pela regra própria; o XLSX pela biblioteca (a primeira aba). A versão UNIVERSAL da
+ * biblioteca (21/10/2026): a do navegador lê num trabalhador em segundo plano (um Web Worker criado de um "blob:"),
+ * que a política de segurança do site bloqueia, e a leitura ficava parada para sempre.
+ */
+export async function lerArquivo(f: File): Promise<unknown[][]> {
   if (/\.xlsx$/i.test(f.name)) {
-    const { readSheet } = await import("read-excel-file/browser");
-    return (await readSheet(f)) as unknown[][];
+    const { readSheet } = await import("read-excel-file/universal");
+    return (await readSheet(await bytesDoArquivo(f))) as unknown[][];
   }
   return lerCsv(await textoDoArquivo(f));
 }
+/** Os bytes do arquivo, pelo FileReader (o `file.arrayBuffer()` não existe em navegadores mais antigos). */
+const bytesDoArquivo = (f: Blob) =>
+  new Promise<ArrayBuffer>((ok, falhou) => {
+    const leitor = new FileReader();
+    leitor.onload = () => ok(leitor.result as ArrayBuffer);
+    leitor.onerror = () => falhou(leitor.error);
+    leitor.readAsArrayBuffer(f);
+  });
+/** Uma leitura que demora demais vira um erro (e não uma tela parada). */
+const comPrazo = <T,>(p: Promise<T>, ms: number) =>
+  Promise.race([
+    p,
+    new Promise<never>((_, falhou) => setTimeout(() => falhou(new Error("prazo")), ms)),
+  ]);
 /** O texto do arquivo, pelo FileReader (o `file.text()` não existe em navegadores mais antigos). */
 const textoDoArquivo = (f: Blob) =>
   new Promise<string>((ok, falhou) => {
@@ -93,6 +111,7 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
   const [dia, setDia] = useState(0);
   const [confirmar, setConfirmar] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [lendo, setLendo] = useState(false);
   const situacao = semanas.find((s) => s.inicio === inicio)?.situacao ?? null;
   const apelidos = useMemo(
     () => [...new Set((lida?.dias ?? []).flat().map((l) => l.apelido))],
@@ -131,8 +150,9 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
       return setErro(
         "O arquivo é grande demais (o limite é de 20 MB). Se for um XLSX, tente salvar só a aba da escala, ou exportar como CSV.",
       );
+    setLendo(true);
     try {
-      const l = lerPlanilhaDaEscala(await lerArquivo(f));
+      const l = lerPlanilhaDaEscala(await comPrazo(lerArquivo(f), 30_000));
       if (l.dias.every((d) => d.length === 0))
         return setErro(
           "Não encontrei nenhum dia (segunda, terça...) com pessoas no arquivo. Ele está no formato da escala?",
@@ -141,8 +161,14 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
       setArquivo(f.name);
       setEscolhidas({});
       setDecisoes({});
-    } catch {
-      setErro("Não consegui ler o arquivo. Confira se ele é a planilha da escala, em CSV ou XLSX.");
+    } catch (e) {
+      setErro(
+        (e as Error).message === "prazo"
+          ? "A leitura do arquivo demorou demais. Tente exportar a planilha como CSV e importar de novo."
+          : "Não consegui ler o arquivo. Confira se ele é a planilha da escala, em CSV ou XLSX.",
+      );
+    } finally {
+      setLendo(false);
     }
   }
 
@@ -221,7 +247,7 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
             <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-primary/60 p-6 text-center hover:bg-secondary/50">
               <span className="text-3xl">📄</span>
               <span className="mt-2 block font-bold">
-                {arquivo ?? "Escolha o arquivo da escala"}
+                {lendo ? "Lendo o arquivo..." : (arquivo ?? "Escolha o arquivo da escala")}
               </span>
               <span className="block text-xs text-muted-foreground">
                 {lida
@@ -233,7 +259,10 @@ export function ImportarEscala({ pessoas }: { pessoas: { id: string; nome: strin
                 accept=".csv,.xlsx"
                 className="sr-only"
                 aria-label="O arquivo da escala"
-                onChange={(e) => escolherArquivo(e.target.files?.[0])}
+                onChange={(e) => {
+                  void escolherArquivo(e.target.files?.[0]);
+                  e.target.value = ""; // para escolher o mesmo arquivo de novo, depois de corrigi-lo
+                }}
               />
             </label>
             {erro && (

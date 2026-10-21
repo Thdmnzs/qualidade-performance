@@ -139,6 +139,52 @@ describe("a importação da escala, com o arquivo real", () => {
   });
 });
 
+describe("o XLSX (21/10/2026): a leitura sem o trabalhador em segundo plano", () => {
+  it("o XLSX real (com formatação e uma segunda aba) é lido, com o Worker proibido como a CSP do site faz", async () => {
+    const original = globalThis.Worker;
+    // @ts-expect-error a simulação da CSP: criar um trabalhador falha
+    globalThis.Worker = class {
+      constructor() {
+        throw new Error("Bloqueado pela CSP");
+      }
+    };
+    try {
+      const { lerArquivo } = await import("../importar-escala");
+      const { lerPlanilhaDaEscala } = await import("@/lib/importar-escala");
+      const bytes = readFileSync(
+        `${process.cwd()}/src/lib/__tests__/fixtures/escala-19-a-25-10.xlsx`,
+      );
+      const linhas = await lerArquivo(new File([bytes], "escala_cx_-_19_a_25_10.xlsx"));
+      const lida = lerPlanilhaDaEscala(linhas);
+      expect(lida.dias.map((d) => d.length)).toEqual([14, 14, 14, 14, 14, 5, 4]);
+      expect(lida.dias[0]![1]!.siglas.slice(0, 7)).toEqual([
+        "i",
+        "i",
+        "i",
+        "i",
+        "P",
+        "i",
+        "cob B2B",
+      ]);
+      expect(lida.problemas).toEqual([
+        { tipo: "celula", dia: 5, apelido: "Thiago", hora: 7, valor: "," },
+      ]);
+    } finally {
+      globalThis.Worker = original;
+    }
+  });
+  it("na tela: o XLSX lido mostra os dias e as pessoas", async () => {
+    abrir(<ImportarEscala pessoas={PESSOAS} />);
+    const bytes = readFileSync(
+      `${process.cwd()}/src/lib/__tests__/fixtures/escala-19-a-25-10.xlsx`,
+    );
+    fireEvent.change(screen.getByLabelText("O arquivo da escala"), {
+      target: { files: [new File([bytes], "escala.xlsx")] },
+    });
+    expect(await screen.findByText(/lido: 7 dias, 14 pessoas/, {}, { timeout: 5000 })).toBeTruthy();
+  });
+});
+
 describe("o tamanho do arquivo (21/10/2026)", () => {
   it("um arquivo de 5 MB passa; um de mais de 20 MB é recusado", async () => {
     abrir(<ImportarEscala pessoas={PESSOAS} />);
