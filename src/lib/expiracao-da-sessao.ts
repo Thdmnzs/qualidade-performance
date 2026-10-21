@@ -1,9 +1,16 @@
 /**
- * O prazo da sessão (09/10/2026): 30 minutos sem uso, e no máximo 9 horas desde
+ * O prazo da sessão (09/10/2026; o tempo sem uso, 21/10/2026): 2 horas sem uso, e no máximo 9 horas desde
  * o login. O Supabase só oferece isso no plano Pro, então o CX Hub confere por
  * conta própria. O "uso" vale em QUALQUER aba (o registro é compartilhado).
  */
-export const INATIVIDADE_MS = 30 * 60_000;
+// 2 horas sem uso (21/10/2026; antes 30 minutos): com a verificação em duas etapas, entrar de novo pede o código do
+// aplicativo, e 30 minutos derrubavam a sessão a toda hora.
+export const INATIVIDADE_MS = 2 * 60 * 60_000;
+/** O prazo sem uso por extenso ("2 horas", "30 minutos"), para os textos nunca ficarem diferentes da conta. */
+export const TEXTO_DA_INATIVIDADE = (() => {
+  const min = INATIVIDADE_MS / 60_000;
+  return min % 60 === 0 ? `${min / 60} ${min === 60 ? "hora" : "horas"}` : `${min} minutos`;
+})();
 export const LIMITE_MS = 9 * 60 * 60_000;
 export const AVISO_MS = 60_000;
 
@@ -38,7 +45,7 @@ export function situacaoDaSessao(
 }
 
 export const MENSAGEM_DO_FIM: Record<MotivoDoFim, string> = {
-  inatividade: "Sua sessão foi encerrada depois de 30 minutos sem uso. Entre novamente.",
+  inatividade: `Sua sessão foi encerrada depois de ${TEXTO_DA_INATIVIDADE} sem uso. Entre novamente.`,
   limite: "Sua sessão atingiu o limite de 9 horas e foi encerrada. Entre novamente.",
 };
 

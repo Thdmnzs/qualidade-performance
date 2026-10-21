@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { INATIVIDADE_MS } from "@/lib/expiracao-da-sessao";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -33,23 +34,23 @@ describe("o vigia da sessão", () => {
     render(<VigiaDaSessao userId="u1" />);
     expect(lerRegistro("u1")).toEqual({ inicio: Date.now(), atividade: Date.now() });
   });
-  it("29 minutos e meio sem uso: o aviso, com 'Continuar conectado'", async () => {
+  it("meio minuto antes do prazo sem uso: o aviso, com 'Continuar conectado'", async () => {
     render(<VigiaDaSessao userId="u1" />);
-    await passar(29.5 * MIN);
+    await passar(INATIVIDADE_MS - 0.5 * MIN);
     expect(screen.getByText("Você ainda está aí?")).toBeTruthy();
     expect(sair).not.toHaveBeenCalled();
   });
   it("'Continuar conectado' renova o prazo, e o aviso some", async () => {
     render(<VigiaDaSessao userId="u1" />);
-    await passar(29.5 * MIN);
+    await passar(INATIVIDADE_MS - 0.5 * MIN);
     fireEvent.click(screen.getByRole("button", { name: "Continuar conectado" }));
     await passar(10 * MIN);
     expect(screen.queryByText("Você ainda está aí?")).toBeNull();
     expect(sair).not.toHaveBeenCalled();
   });
-  it("30 minutos sem uso: encerra só esta sessão e vai para o login, com o motivo", async () => {
+  it("no prazo sem uso: encerra só esta sessão e vai para o login, com o motivo", async () => {
     render(<VigiaDaSessao userId="u1" />);
-    await passar(30 * MIN + 5_000);
+    await passar(INATIVIDADE_MS + 5_000);
     expect(sair).toHaveBeenCalledWith({ scope: "local" });
     expect(navegar).toHaveBeenCalledWith({
       to: "/auth",

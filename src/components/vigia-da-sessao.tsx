@@ -16,6 +16,7 @@ import {
   registrarAtividade,
   situacaoDaSessao,
   type MotivoDoFim,
+  TEXTO_DA_INATIVIDADE,
 } from "@/lib/expiracao-da-sessao";
 
 const EVENTOS_DE_USO = ["pointerdown", "keydown", "wheel", "touchstart", "scroll"] as const;
@@ -23,7 +24,7 @@ const INTERVALO_DE_ESCRITA_MS = 15_000; // o uso é gravado no máximo a cada 15
 const INTERVALO_DE_CONFERENCIA_MS = 5_000;
 
 /**
- * O vigia da sessão (09/10/2026): registra o uso, confere o prazo (30 minutos sem
+ * O vigia da sessão (09/10/2026): registra o uso, confere o prazo (2 horas sem
  * uso, ou 9 horas desde o login), avisa 1 minuto antes e encerra no prazo.
  * Encerra só a sessão DESTE navegador (as outras, como no celular, continuam).
  */
@@ -76,7 +77,7 @@ export function VigiaDaSessao({ userId }: { userId: string }) {
           <DialogDescription>
             {aviso === "limite"
               ? "A sessão dura no máximo 9 horas e vai ser encerrada em menos de 1 minuto. Salve o que estiver fazendo; depois, é só entrar de novo."
-              : "Por segurança, a sessão vai ser encerrada em menos de 1 minuto, depois de 30 minutos sem uso."}
+              : `Por segurança, a sessão vai ser encerrada em menos de 1 minuto, depois de ${TEXTO_DA_INATIVIDADE} sem uso.`}
           </DialogDescription>
         </DialogHeader>
         <Button

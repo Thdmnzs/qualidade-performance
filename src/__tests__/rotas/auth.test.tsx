@@ -86,7 +86,7 @@ describe("a sessão encerrada pelo prazo", () => {
     motivoNaUrl = { motivo: "inatividade" };
     render(<Pagina />);
     expect(screen.getByRole("status").textContent).toBe(
-      "Sua sessão foi encerrada depois de 30 minutos sem uso. Entre novamente.",
+      "Sua sessão foi encerrada depois de 2 horas sem uso. Entre novamente.",
     );
   });
 });

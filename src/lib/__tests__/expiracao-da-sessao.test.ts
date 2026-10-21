@@ -5,26 +5,29 @@ import {
   lerRegistro,
   registrarAtividade,
   situacaoDaSessao,
+  INATIVIDADE_MS,
 } from "../expiracao-da-sessao";
 
 const MIN = 60_000;
 const H = 60 * MIN;
 const T0 = Date.UTC(2026, 9, 9, 11, 0); // 08h em Fortaleza
 
-describe("situacaoDaSessao: 30 minutos sem uso, e no máximo 9 horas", () => {
+describe("situacaoDaSessao: o prazo sem uso (2 horas), e no máximo 9 horas", () => {
   it("em uso, dentro dos prazos: ativa", () => {
     expect(situacaoDaSessao(T0 + 10 * MIN, { inicio: T0, atividade: T0 + 5 * MIN })).toEqual({
       estado: "ativa",
     });
   });
-  it("29 minutos sem uso: o aviso de inatividade (1 minuto antes)", () => {
-    expect(situacaoDaSessao(T0 + 29.5 * MIN, { inicio: T0, atividade: T0 })).toMatchObject({
+  it("meio minuto antes do prazo sem uso: o aviso de inatividade", () => {
+    expect(
+      situacaoDaSessao(T0 + (INATIVIDADE_MS - 0.5 * MIN), { inicio: T0, atividade: T0 }),
+    ).toMatchObject({
       estado: "aviso",
       motivo: "inatividade",
     });
   });
-  it("30 minutos sem uso: expirada por inatividade (o caso do navegador fechado)", () => {
-    expect(situacaoDaSessao(T0 + 30 * MIN, { inicio: T0, atividade: T0 })).toEqual({
+  it("no prazo sem uso: expirada por inatividade (o caso do navegador fechado)", () => {
+    expect(situacaoDaSessao(T0 + INATIVIDADE_MS, { inicio: T0, atividade: T0 })).toEqual({
       estado: "expirada",
       motivo: "inatividade",
     });
