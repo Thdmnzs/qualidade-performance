@@ -4,14 +4,16 @@ import { datasDaSelecao, hojeIso, nomeCurto } from "@/lib/escala";
 import type { FeriasDoAno } from "@/lib/escala-api";
 
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-const ROSA = "#F4B6B6";
+// As férias em dois tons (22/10/2026): as já tiradas (antes de hoje), mais escuras; as por vir (de hoje em diante), mais claras.
+export const FERIAS_TIRADAS = "#D9777A";
+export const FERIAS_POR_VIR = "#FBDADA";
 const VERDE = "#00E000";
 const PEDIDO = "repeating-linear-gradient(45deg, #F4B6B6 0 5px, #FBE1E1 5px 10px)"; // o pedido aguardando, tracejado
 const iso = (ano: number, m: number, d: number) =>
   `${ano}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
 /**
- * O calendário do ano: os dias nas linhas, os meses nas colunas. As férias em rosa, os
+ * O calendário do ano: os dias nas linhas, os meses nas colunas. As férias em rosa (as já tiradas mais escuras, as por vir mais claras), os
  * feriados em verde (com "feriado" e o nome, quando os dois coincidem), os livres em cinza.
  * Editável (o ADM): clicar num dia, ou clicar e ARRASTAR para baixo, dentro do mês.
  */
@@ -103,10 +105,19 @@ export function CalendarioDeFerias({
                     p.nome.toLowerCase().startsWith(busca) ||
                     nomeCurto(p.nome, todos).toLowerCase().startsWith(busca),
                 );
-              const fundo = feriado ? VERDE : pessoas.length ? ROSA : undefined;
+              const jaTiradas = data < hoje;
+              const fundo = feriado
+                ? VERDE
+                : pessoas.length
+                  ? jaTiradas
+                    ? FERIAS_TIRADAS
+                    : FERIAS_POR_VIR
+                  : undefined;
               const titulo = [
                 feriado ? "Feriado" : "",
-                pessoas.length ? `Férias: ${pessoas.map((p) => p.nome).join(" e ")}` : "",
+                pessoas.length
+                  ? `Férias${jaTiradas ? " (já tiradas)" : ""}: ${pessoas.map((p) => p.nome).join(" e ")}`
+                  : "",
                 pedidosDoDia.length
                   ? `Pedido aguardando: ${pedidosDoDia.map((p) => p.nome).join(" e ")}`
                   : "",
@@ -189,9 +200,15 @@ export function LegendaDasFerias({
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span
         className="rounded-full px-2.5 py-1 font-bold text-[#0D0F0D]"
-        style={{ background: ROSA }}
+        style={{ background: FERIAS_TIRADAS }}
       >
-        Férias
+        Férias já tiradas
+      </span>
+      <span
+        className="rounded-full px-2.5 py-1 font-bold text-[#0D0F0D]"
+        style={{ background: FERIAS_POR_VIR }}
+      >
+        Férias por vir
       </span>
       <span
         className="rounded-full px-2.5 py-1 font-bold text-[#0D0F0D]"
