@@ -287,10 +287,7 @@ export function MuralDoCx({ pessoa }: { pessoa: string }) {
     <section aria-label="O mural do CX">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          📣 O mural do CX{" "}
-          <span className="font-medium normal-case tracking-normal">
-            · do canal #cx_mural no Slack
-          </span>
+          📣 O mural do CX
         </p>
         <span className="flex items-center gap-2 text-xs">
           <span className="inline-block size-2 animate-pulse rounded-full bg-primary" aria-hidden />

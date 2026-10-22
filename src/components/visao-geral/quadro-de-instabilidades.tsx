@@ -129,8 +129,7 @@ export function QuadroDeInstabilidades() {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          ⚠️ Instabilidades{" "}
-          <span className="font-medium normal-case tracking-normal">· do canal #instabilidade</span>
+          ⚠️ Instabilidades
         </p>
         <span className="flex items-center gap-2 text-xs">
           <span className="inline-block size-2 animate-pulse rounded-full bg-primary" aria-hidden />

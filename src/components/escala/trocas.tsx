@@ -565,12 +565,11 @@ function JanelaDePedirTroca({
         {passo === 1 && (
           <div>
             <p className="font-bold">Com quem você quer trocar?</p>
-            <p className="text-xs text-muted-foreground">
-              {minhasFolgas.length
-                ? `Você folga: ${minhasFolgas.map((d) => DIAS_DA_SEMANA[d]!.toLowerCase()).join(" e ")}. `
-                : ""}
-              A supervisão não entra nas trocas.
-            </p>
+            {minhasFolgas.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Você folga: {minhasFolgas.map((d) => DIAS_DA_SEMANA[d]!.toLowerCase()).join(" e ")}.
+              </p>
+            )}
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {colegas.map((c) => (
                 <button

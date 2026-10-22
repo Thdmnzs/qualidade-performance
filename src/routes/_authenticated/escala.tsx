@@ -191,7 +191,7 @@ function SemanaPublicada() {
   });
   return (
     <div className="space-y-4">
-      <PageHeader titulo="Escala" descricao="A escala do time, publicada pela supervisão." />
+      <PageHeader titulo="Escala" />
       {carregandoSemanas || (inicio && isLoading) ? (
         <p className="text-sm text-muted-foreground">Carregando a escala...</p>
       ) : !inicio || !semana ? (

@@ -53,10 +53,7 @@ function VisaoGeral() {
   );
   return (
     <div>
-      <PageHeader
-        titulo={`${SAUDACAO(hora)}, ${employee.nome.split(" ")[0]}!`}
-        descricao="O seu dia na escala, e os comunicados do time."
-      />
+      <PageHeader titulo={`${SAUDACAO(hora)}, ${employee.nome.split(" ")[0]}!`} />
       <AniversariantesDeHoje />
       <div className="mt-4 grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-4 lg:self-start">
