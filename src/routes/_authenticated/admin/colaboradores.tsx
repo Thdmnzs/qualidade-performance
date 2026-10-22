@@ -25,6 +25,8 @@ import { FichaDoAdm } from "@/components/dados-pessoais/ficha-do-adm";
 import { alterarStatusFn, criarAcessoFn, gerarLinkDeSenhaFn } from "@/lib/acessos.functions";
 import { verificacaoDoTimeFn } from "@/lib/verificacao.functions";
 import { VerificacaoDaPessoa } from "@/components/verificacao/desligar-verificacao";
+import { HumorDaPessoa } from "@/components/humor/humor-da-pessoa";
+import { lerHumorDoTime } from "@/lib/perfil-api";
 import { LOGIN_VALIDO, normalizarEmail, normalizarLogin, rotuloPerfil } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/colaboradores")({
@@ -67,6 +69,11 @@ function Colaboradores() {
   const { data: verificacao = {} } = useQuery({
     queryKey: ["verificacao-do-time"],
     queryFn: () => verificacaoDoTime(),
+  });
+  // O humor do time (21/10/2026): só o ADM vê.
+  const { data: humores = new Map() } = useQuery({
+    queryKey: ["humor-do-time"],
+    queryFn: lerHumorDoTime,
   });
   const { data: lista = [], isLoading } = useQuery({
     queryKey: ["colaboradores"],
@@ -305,6 +312,9 @@ function Colaboradores() {
                     nome={c.nome}
                     ativaEm={verificacao[c.id]}
                   />
+                )}
+                {c.status === "ativo" && c.tem_acesso && (
+                  <HumorDaPessoa humor={humores.get(c.id)} />
                 )}
                 <Button
                   size="sm"

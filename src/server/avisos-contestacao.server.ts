@@ -101,6 +101,10 @@ export async function tarefaDosAvisos(request: Request): Promise<Response> {
   const leitura = await lerPlanilhaDosIndicadores("automatica");
   if (!leitura.ok)
     console.error("[tarefa da manhã] a planilha dos indicadores não foi lida:", leitura.erro);
+  // O termômetro do humor (21/10/2026): os registros de mais de 90 dias são apagados.
+  const { error: erroDoHumor } = await supabaseAdmin.rpc("apagar_humores_antigos");
+  if (erroDoHumor)
+    console.error("[tarefa da manhã] os humores antigos não foram apagados:", erroDoHumor.message);
   // O mural do CX (20/10/2026): a releitura do canal, como mais uma rede de segurança.
   try {
     const { lerMuralSePreciso } = await import("@/server/slack-mural.server");

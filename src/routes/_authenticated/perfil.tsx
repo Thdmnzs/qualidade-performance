@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MuralDosParabens } from "@/components/parabens/mural";
+import { PerfilSemGamificacao } from "@/components/perfil/perfil-sem-gamificacao";
+import { lerFuncionalidades } from "@/lib/perfil-api";
 import { BookOpen, Lock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -74,6 +76,11 @@ type Situacao = "todas" | "ganhas" | "bloqueadas" | "embreve";
 const DIMS = Object.keys(DIMENSOES) as Dimensao[];
 
 function Perfil() {
+  // A chave da gamificação (21/10/2026): desligada, o perfil enxuto; ligada, o perfil completo de sempre.
+  const { data: funcionalidades } = useQuery({
+    queryKey: ["funcionalidades"],
+    queryFn: lerFuncionalidades,
+  });
   const qc = useQueryClient();
   const { data: employee, isLoading } = useCurrentEmployee();
   const { temAreaDeColaborador } = usePermissoes();
@@ -257,7 +264,8 @@ function Perfil() {
     }
   }, [employee?.id, ganhasCarregadas, nv.nivel]);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
+  if (isLoading || !funcionalidades)
+    return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!temAreaDeColaborador || !employee) {
     return (
       <EmptyState
@@ -266,6 +274,8 @@ function Perfil() {
       />
     );
   }
+  // A gamificação em espera (21/10/2026): o perfil enxuto, até a supervisão ligar a chave de novo.
+  if (!funcionalidades["gamificacao"]) return <PerfilSemGamificacao employee={employee} />;
 
   const pct = Math.round(nv.progresso * 100);
   const nomeDe = (n: number) => catalogo.find((c) => c.numero === n)?.nome ?? `Conquista ${n}`;

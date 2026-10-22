@@ -1438,6 +1438,25 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      apagar_humores_antigos: { Args: never; Returns: number };
+      funcionalidades_ativas: { Args: never; Returns: Json };
+      definir_funcionalidade: { Args: { _chave: string; _ativa: boolean }; Returns: undefined };
+      meus_nucleos: { Args: never; Returns: string[] };
+      meu_horario: { Args: never; Returns: Json };
+      registrar_humor: { Args: { _nivel: number; _comentario: string }; Returns: undefined };
+      meus_humores: {
+        Args: { _dias: number };
+        Returns: { dia: string; nivel: number; comentario: string | null }[];
+      };
+      humor_do_time: {
+        Args: never;
+        Returns: {
+          employee_id: string;
+          hoje: number | null;
+          comentario_de_hoje: string | null;
+          ultimos: Json;
+        }[];
+      };
       pode_avisar_troca: { Args: { _id: string; _user_id: string }; Returns: boolean };
       registrar_no_historico: {
         Args: {

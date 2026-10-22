@@ -607,3 +607,18 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   sessão sem o código; a única exceção é o uso de um código de recuperação. O caminho de volta, se preciso:
   `alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';`
 - **O aviso das trocas** (a revisão de segurança): só uma das pessoas da troca, ou um ADM, dispara o aviso pela tela.
+
+## O Meu perfil, o termômetro do humor e a gamificação em espera (21/10/2026)
+
+- **A gamificação em espera:** a chave "gamificacao" (a tabela funcionalidades), desligada. Com ela desligada, o fechamento
+  não calcula conquistas, só as capas livres (sinal, ondas, brilho, faixas e aurora) e a moldura "nenhuma" ficam
+  disponíveis, e a moldura da temporada some. As regras originais ficam guardadas (as funções "_completo"/"_completa"); o
+  ADM liga de volta com `definir_funcionalidade('gamificacao', true)`, e o perfil completo (o nível, o XP e as conquistas)
+  volta a aparecer.
+- **O Meu perfil enxuto** (com a gamificação em espera): o topo (a capa, a foto, o nome e o Editar perfil); o **"Sobre
+  mim"** (os núcleos, o horário de trabalho e a folga fixa da própria pessoa); **a minha semana** (a escala publicada, por
+  dia) e **as minhas férias** (as marcadas e os pedidos); e o mural dos parabéns.
+- **O termômetro do humor:** 5 níveis (de muito mal a muito bem), uma marca por dia (que pode ser trocada até o fim do
+  dia) e um comentário opcional de até 280 caracteres. Só a pessoa e o ADM veem (os avaliadores não), e não vai para o
+  Histórico. Fica 90 dias (a tarefa da manhã apaga o resto). Em Colaboradores, o ADM vê o de hoje, os 14 dias e o aviso
+  "abaixo do habitual" (a média dos 3 últimos registros 0,75 ponto abaixo da dos 14 dias, com 5 registros ou mais).
