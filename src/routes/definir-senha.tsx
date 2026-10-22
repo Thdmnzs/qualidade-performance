@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { inicioDoPerfil } from "@/lib/areas";
 import { lerCodigoDoLink, type TipoDoLink } from "@/lib/link-de-acesso";
 import { REGRAS_SENHA, senhaAtendeRegras } from "@/lib/senha";
+import { precisaDoCodigoParaTrocarASenha } from "@/lib/verificacao";
 import { conferirPrefixoDeSenhaFn } from "@/lib/senha.functions";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -77,6 +78,9 @@ function DefinirSenha() {
   const [confirmacao, setConfirmacao] = useState("");
   // A conferência de senhas vazadas (a peça compartilhada com a troca de senha).
   const [salvando, setSalvando] = useState(false);
+  // Quem já tem a verificação em duas etapas (22/10/2026): o código do celular antes de gravar a senha nova.
+  const [precisaDoCodigo, setPrecisaDoCodigo] = useState(false);
+  const [codigo, setCodigo] = useState("");
 
   const [continuando, setContinuando] = useState(false);
 
@@ -135,6 +139,28 @@ function DefinirSenha() {
     e.preventDefault();
     if (!senhaValida || !confere) return;
     setSalvando(true);
+    // Com o aplicativo cadastrado, o Supabase só troca a senha numa sessão com o código do celular.
+    const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (precisaDoCodigoParaTrocarASenha(nivel)) {
+      if (!precisaDoCodigo || codigo.length !== 6) {
+        setPrecisaDoCodigo(true);
+        setSalvando(false);
+        return;
+      }
+      const { data: fatores } = await supabase.auth.mfa.listFactors();
+      const fator = fatores?.totp.find((f) => f.status === "verified");
+      const { error: erroDoCodigo } = fator
+        ? await supabase.auth.mfa.challengeAndVerify({ factorId: fator.id, code: codigo })
+        : { error: new Error("sem fator") };
+      if (erroDoCodigo) {
+        setSalvando(false);
+        setCodigo("");
+        toast.error(
+          "O código não confere. Confira o horário do celular e digite o código que está aparecendo agora.",
+        );
+        return;
+      }
+    }
     const { error } = await supabase.auth.updateUser({ password: senha });
     if (error) {
       setSalvando(false);
@@ -231,6 +257,33 @@ function DefinirSenha() {
                   <p className="text-xs text-destructive">As senhas não conferem.</p>
                 )}
               </div>
+
+              {precisaDoCodigo && (
+                <div
+                  className="space-y-1.5 rounded-xl border border-primary/40 p-3"
+                  aria-label="O código do celular"
+                >
+                  <p className="text-sm font-bold">📱 O código do seu celular</p>
+                  <p className="text-xs text-muted-foreground">
+                    Você já tem a verificação em duas etapas. Digite o código do aplicativo para
+                    confirmar a senha nova.
+                  </p>
+                  <Input
+                    autoFocus
+                    aria-label="O código de 6 dígitos"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
+                    className="h-11 text-center text-xl font-bold tracking-[0.5em]"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Sem o celular? Peça a um ADM para desligar a sua verificação, e use o link de
+                    novo.
+                  </p>
+                </div>
+              )}
 
               <Button
                 type="submit"

@@ -45,11 +45,19 @@ export async function alterarSenha(p: {
   });
   if (error || data.user?.id !== p.userId)
     throw new ErroDaTroca(error?.code === "over_request_rate_limit" ? "limite" : "senha_atual");
-  try {
-    const { error: erroDaTroca } = await separada.auth.updateUser({ password: p.nova });
-    if (erroDaTroca) throw new ErroDaTroca(erroDaTroca.code ?? "erro");
-  } finally {
-    await separada.auth.signOut({ scope: "local" });
+  // A sessão separada serve SÓ para conferir a senha atual (22/10/2026): ela não tem o código do celular, e o
+  // Supabase recusa trocar a senha de quem tem a verificação em duas etapas por uma sessão assim. A senha nova é
+  // gravada pelo servidor, para a própria pessoa (a sessão DELA, que chamou esta função, já passou pelo código).
+  await separada.auth.signOut({ scope: "local" }).catch(() => {});
+  const { error: erroDaTroca } = await supabaseAdmin.auth.admin.updateUserById(p.userId, {
+    password: p.nova,
+  });
+  if (erroDaTroca) {
+    console.error(
+      "[troca de senha] a senha nova não foi gravada:",
+      erroDaTroca.code ?? erroDaTroca.message,
+    );
+    throw new ErroDaTroca(erroDaTroca.code ?? "erro");
   }
   const { data: eu } = await supabaseAdmin
     .from("employees")

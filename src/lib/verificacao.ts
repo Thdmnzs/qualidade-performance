@@ -38,3 +38,10 @@ export function normalizarCodigo(t: string): string | null {
   const limpo = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return limpo.length === 8 ? `${limpo.slice(0, 4)}-${limpo.slice(4)}` : null;
 }
+
+/**
+ * Trocar a senha pede o código do celular? (22/10/2026) Sim, quando a pessoa já tem o aplicativo cadastrado e a
+ * sessão ainda não passou pelo código (o Supabase recusa a troca nesse caso). No primeiro acesso, não.
+ */
+export const precisaDoCodigoParaTrocarASenha = (n: Nivel | null | undefined) =>
+  n?.currentLevel !== "aal2" && n?.nextLevel === "aal2";

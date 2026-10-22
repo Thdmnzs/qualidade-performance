@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 let entrar: { data: { user: { id: string } | null }; error: { code?: string } | null };
 let trocar: { error: { code?: string } | null };
 const signInWithPassword = vi.fn(async (_a: unknown) => entrar);
-const updateUser = vi.fn(async (_a: unknown) => trocar);
+// A sessão separada, como o Supabase de verdade desde a verificação em duas etapas: sem o código do celular, ela
+// RECUSA trocar a senha (o problema de 22/10/2026). Ela só pode servir para conferir a senha atual.
+const updateUser = vi.fn(async (_a: unknown) => ({ error: { code: "insufficient_aal" } }));
+// A gravação pelo servidor, para a própria pessoa.
+const updateUserById = vi.fn(async (_id: string, _a: unknown) => trocar);
 const signOut = vi.fn(async (_a: unknown) => ({ error: null }));
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({ auth: { signInWithPassword, updateUser, signOut } }),
@@ -12,6 +16,7 @@ vi.mock("@supabase/supabase-js", () => ({
 const insert = vi.fn(async (_a: unknown) => ({ error: null }));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
+    auth: { admin: { updateUserById: (id: string, a: unknown) => updateUserById(id, a) } },
     // O Histórico pela função do banco (21/10/2026); o "insert" fica para conferir que ninguém grava direto.
     rpc: (n: string, a: Record<string, unknown>) =>
       n === "registrar_no_historico"
@@ -49,7 +54,8 @@ describe("a troca de senha no servidor", () => {
       email: "thiago@fluke.com",
       password: "Antiga!2025x",
     });
-    expect(updateUser).toHaveBeenCalledWith({ password: "Nova!Senha2026" });
+    expect(updateUserById).toHaveBeenCalledWith("u1", { password: "Nova!Senha2026" }); // pelo servidor, para a própria pessoa
+    expect(updateUser).not.toHaveBeenCalled(); // e nunca pela sessão separada (que o Supabase recusaria)
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     const registro = insert.mock.calls[0]![0] as Record<string, unknown>;
     expect(registro).toMatchObject({ acao: "senha_alterada", usuario_id: "u1" });
@@ -58,13 +64,13 @@ describe("a troca de senha no servidor", () => {
   it("a senha atual errada: nada é trocado", async () => {
     entrar = { data: { user: null }, error: { code: "invalid_credentials" } };
     await expect(alterarSenha(PEDIDO)).rejects.toMatchObject({ codigo: "senha_atual" });
-    expect(updateUser).not.toHaveBeenCalled();
+    expect(updateUserById).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
   });
   it("a senha de OUTRA pessoa (o e-mail não é o da sessão): nada é trocado", async () => {
     entrar = { data: { user: { id: "outra" } }, error: null };
     await expect(alterarSenha(PEDIDO)).rejects.toBeInstanceOf(ErroDaTroca);
-    expect(updateUser).not.toHaveBeenCalled();
+    expect(updateUserById).not.toHaveBeenCalled();
   });
   it("uma nova fraca (ou igual à atual) é recusada antes de ir ao Supabase", async () => {
     await expect(alterarSenha({ ...PEDIDO, nova: "fraca" })).rejects.toMatchObject({

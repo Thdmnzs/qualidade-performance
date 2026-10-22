@@ -1,7 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { ALFABETO, destinoDaVerificacao, gerarCodigos, normalizarCodigo } from "../verificacao";
+import {
+  ALFABETO,
+  destinoDaVerificacao,
+  gerarCodigos,
+  normalizarCodigo,
+  precisaDoCodigoParaTrocarASenha,
+} from "../verificacao";
 
 describe("a verificação em duas etapas: para onde mandar a pessoa", () => {
   it("sem o aplicativo: cadastrar (é obrigatório para todos)", () => {
@@ -36,5 +42,20 @@ describe("os códigos de recuperação", () => {
   it("o código como a pessoa digita", () => {
     expect(normalizarCodigo(" r4tp 2wza ")).toBe("R4TP-2WZA");
     expect(normalizarCodigo("R4TP-2WZ")).toBeNull();
+  });
+});
+
+describe("trocar a senha pelo link pede o código do celular? (22/10/2026)", () => {
+  it("sim, para quem já tem o aplicativo e ainda não digitou o código (o Supabase recusaria a troca)", () => {
+    expect(precisaDoCodigoParaTrocarASenha({ currentLevel: "aal1", nextLevel: "aal2" })).toBe(true);
+  });
+  it("não, no primeiro acesso (sem o aplicativo), nem com o código já digitado", () => {
+    expect(precisaDoCodigoParaTrocarASenha({ currentLevel: "aal1", nextLevel: "aal1" })).toBe(
+      false,
+    );
+    expect(precisaDoCodigoParaTrocarASenha({ currentLevel: "aal2", nextLevel: "aal2" })).toBe(
+      false,
+    );
+    expect(precisaDoCodigoParaTrocarASenha(null)).toBe(false);
   });
 });
