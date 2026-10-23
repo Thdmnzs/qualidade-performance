@@ -59,7 +59,9 @@ export async function alterarSenha(p: {
       Authorization: `Bearer ${p.token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ password: p.nova }),
+    // A senha atual vai junto (23/10/2026): o projeto exige a senha atual numa troca pela sessão da pessoa (o
+    // "current_password_required"), para quem pegar uma sessão aberta não conseguir trocar a senha.
+    body: JSON.stringify({ password: p.nova, current_password: p.atual }),
   });
   if (!resposta.ok) {
     const corpo = (await resposta.json().catch(() => ({}))) as {

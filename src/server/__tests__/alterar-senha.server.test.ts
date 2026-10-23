@@ -70,7 +70,11 @@ describe("a troca de senha no servidor", () => {
     expect((opcoes.headers as Record<string, string>)["Authorization"]).toBe(
       "Bearer o-token-da-pessoa",
     );
-    expect(JSON.parse(opcoes.body as string)).toEqual({ password: "Nova!Senha2026" });
+    // A senha atual vai junto: o projeto exige ("current_password_required"), e sem ela a troca é recusada.
+    expect(JSON.parse(opcoes.body as string)).toEqual({
+      password: "Nova!Senha2026",
+      current_password: "Antiga!2025x",
+    });
     expect(updateUserById).not.toHaveBeenCalled();
     expect(updateUser).not.toHaveBeenCalled(); // e nunca pela sessão separada (que o Supabase recusaria)
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });

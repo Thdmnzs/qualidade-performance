@@ -45,7 +45,7 @@ export function ouvirOServidorDeLogin(page: Page) {
   });
 }
 
-/** Apaga o que foi digitado num campo, sem avisar a tela (a foto de uma falha não mostra a senha). */
+/** Apaga o que foi digitado num campo (a foto de uma falha não mostra a senha). */
 export async function apagarDaTela(
   page: Page,
   ...rotulos: ({ placeholder: string } | { label: string })[]
@@ -55,7 +55,15 @@ export async function apagarDaTela(
       "placeholder" in r
         ? page.getByPlaceholder(r.placeholder)
         : page.getByLabel(r.label, { exact: true });
-    await campo.evaluate((el) => ((el as HTMLInputElement).value = "")).catch(() => {});
+    // Os campos são "controlados" pela tela: apagar só o campo não basta (a tela o preenche de novo). Apaga avisando a
+    // tela, como o teclado faria. O pedido já saiu com o valor digitado, então apagar agora não o atrapalha.
+    await campo
+      .evaluate((el) => {
+        const definir = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+        definir.call(el, "");
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      })
+      .catch(() => {});
   }
 }
 
