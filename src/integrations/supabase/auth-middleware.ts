@@ -109,6 +109,8 @@ function exigenciaDoLogin(exigirOCodigo: boolean) {
         supabase,
         userId: claims.sub,
         claims,
+        /** A sessão da própria pessoa (23/10/2026): para a troca de senha, que precisa ser feita por ela. */
+        token,
       },
     });
   });

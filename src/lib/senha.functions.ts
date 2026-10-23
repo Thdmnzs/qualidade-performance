@@ -35,7 +35,13 @@ export const alterarMinhaSenhaFn = createServerFn({ method: "POST" })
     const email = (context.claims as { email?: string }).email;
     if (!email) return { ok: false as const, erro: "Sua sessão não tem um e-mail. Entre de novo." };
     try {
-      await alterarSenha({ userId: context.userId, email, atual: data.atual, nova: data.nova });
+      await alterarSenha({
+        userId: context.userId,
+        email,
+        atual: data.atual,
+        nova: data.nova,
+        token: context.token,
+      });
       return { ok: true as const };
     } catch (e) {
       return {

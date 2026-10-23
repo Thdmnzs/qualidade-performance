@@ -22,6 +22,8 @@ export async function alterarSenha(p: {
   email: string;
   atual: string;
   nova: string;
+  /** A sessão da própria pessoa (a que já passou pelo código do celular). */
+  token: string;
 }): Promise<void> {
   const problema = problemaDaTroca({ atual: p.atual, nova: p.nova, confirmacao: p.nova });
   if (problema)
@@ -45,19 +47,28 @@ export async function alterarSenha(p: {
   });
   if (error || data.user?.id !== p.userId)
     throw new ErroDaTroca(error?.code === "over_request_rate_limit" ? "limite" : "senha_atual");
-  // A sessão separada serve SÓ para conferir a senha atual (22/10/2026): ela não tem o código do celular, e o
-  // Supabase recusa trocar a senha de quem tem a verificação em duas etapas por uma sessão assim. A senha nova é
-  // gravada pelo servidor, para a própria pessoa (a sessão DELA, que chamou esta função, já passou pelo código).
+  // A sessão separada serve SÓ para conferir a senha atual: ela não tem o código do celular, e o Supabase recusa
+  // trocar a senha de quem tem a verificação em duas etapas por uma sessão assim (22/10/2026).
   await separada.auth.signOut({ scope: "local" }).catch(() => {});
-  const { error: erroDaTroca } = await supabaseAdmin.auth.admin.updateUserById(p.userId, {
-    password: p.nova,
+  // A senha nova é gravada pela sessão DA PRÓPRIA PESSOA (23/10/2026). Pela chave do servidor (como em 22/10), o
+  // Supabase encerrava TODAS as sessões dela, inclusive a atual: ela era desconectada em seguida, sem aviso.
+  const resposta = await fetch(`${url}/auth/v1/user`, {
+    method: "PUT",
+    headers: {
+      apikey: chave,
+      Authorization: `Bearer ${p.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password: p.nova }),
   });
-  if (erroDaTroca) {
-    console.error(
-      "[troca de senha] a senha nova não foi gravada:",
-      erroDaTroca.code ?? erroDaTroca.message,
-    );
-    throw new ErroDaTroca(erroDaTroca.code ?? "erro");
+  if (!resposta.ok) {
+    const corpo = (await resposta.json().catch(() => ({}))) as {
+      error_code?: string;
+      code?: string;
+    };
+    const codigo = corpo.error_code ?? corpo.code ?? `http_${resposta.status}`;
+    console.error("[troca de senha] a senha nova não foi gravada:", codigo);
+    throw new ErroDaTroca(codigo);
   }
   const { data: eu } = await supabaseAdmin
     .from("employees")

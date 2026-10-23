@@ -8,7 +8,15 @@ const signInWithPassword = vi.fn(async (_a: unknown) => entrar);
 // RECUSA trocar a senha (o problema de 22/10/2026). Ela só pode servir para conferir a senha atual.
 const updateUser = vi.fn(async (_a: unknown) => ({ error: { code: "insufficient_aal" } }));
 // A gravação pelo servidor, para a própria pessoa.
-const updateUserById = vi.fn(async (_id: string, _a: unknown) => trocar);
+// A chave do servidor NÃO grava a senha (23/10/2026): por ela, o Supabase encerrava todas as sessões da pessoa.
+const updateUserById = vi.fn(async (_id: string, _a: unknown) => ({ error: null }));
+// A gravação pela sessão da própria pessoa: o PUT /auth/v1/user, com o token dela.
+const fetchMock = vi.fn(async (_u: string, _o: RequestInit) =>
+  trocar.error
+    ? new Response(JSON.stringify({ error_code: trocar.error.code }), { status: 422 })
+    : new Response("{}", { status: 200 }),
+);
+vi.stubGlobal("fetch", fetchMock);
 const signOut = vi.fn(async (_a: unknown) => ({ error: null }));
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({ auth: { signInWithPassword, updateUser, signOut } }),
@@ -42,6 +50,7 @@ const PEDIDO = {
   email: "thiago@fluke.com",
   atual: "Antiga!2025x",
   nova: "Nova!Senha2026",
+  token: "o-token-da-pessoa",
 };
 afterEach(() => vi.clearAllMocks());
 
@@ -54,7 +63,15 @@ describe("a troca de senha no servidor", () => {
       email: "thiago@fluke.com",
       password: "Antiga!2025x",
     });
-    expect(updateUserById).toHaveBeenCalledWith("u1", { password: "Nova!Senha2026" }); // pelo servidor, para a própria pessoa
+    // Pela sessão da própria pessoa (o token dela), e não pela chave do servidor.
+    const [endereco, opcoes] = fetchMock.mock.calls[0]!;
+    expect(endereco).toMatch(/\/auth\/v1\/user$/);
+    expect(opcoes.method).toBe("PUT");
+    expect((opcoes.headers as Record<string, string>)["Authorization"]).toBe(
+      "Bearer o-token-da-pessoa",
+    );
+    expect(JSON.parse(opcoes.body as string)).toEqual({ password: "Nova!Senha2026" });
+    expect(updateUserById).not.toHaveBeenCalled();
     expect(updateUser).not.toHaveBeenCalled(); // e nunca pela sessão separada (que o Supabase recusaria)
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     const registro = insert.mock.calls[0]![0] as Record<string, unknown>;
@@ -64,13 +81,13 @@ describe("a troca de senha no servidor", () => {
   it("a senha atual errada: nada é trocado", async () => {
     entrar = { data: { user: null }, error: { code: "invalid_credentials" } };
     await expect(alterarSenha(PEDIDO)).rejects.toMatchObject({ codigo: "senha_atual" });
-    expect(updateUserById).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
   });
   it("a senha de OUTRA pessoa (o e-mail não é o da sessão): nada é trocado", async () => {
     entrar = { data: { user: { id: "outra" } }, error: null };
     await expect(alterarSenha(PEDIDO)).rejects.toBeInstanceOf(ErroDaTroca);
-    expect(updateUserById).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
   it("uma nova fraca (ou igual à atual) é recusada antes de ir ao Supabase", async () => {
     await expect(alterarSenha({ ...PEDIDO, nova: "fraca" })).rejects.toMatchObject({

@@ -12,7 +12,9 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: process.env["E2E_URL"] ?? "https://qualidade-performance.vercel.app",
-    trace: "retain-on-failure", // numa falha, a gravação passo a passo (para ver o que aconteceu)
+    // A gravação passo a passo fica DESLIGADA (23/10/2026): ela guarda o corpo dos pedidos, e o de login leva a senha.
+    // O que o servidor de login respondeu vai para o registro do GitHub, sem os dados (o ouvirOServidorDeLogin).
+    trace: "off",
     screenshot: "only-on-failure",
     locale: "pt-BR",
     timezoneId: "America/Fortaleza",

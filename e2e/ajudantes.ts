@@ -27,8 +27,41 @@ export async function codigoNovo(): Promise<string> {
   }
 }
 
+/**
+ * O que o servidor de login respondeu (23/10/2026), no registro do GitHub: só a situação e o código do erro, SEM o
+ * corpo (o pedido de login leva a senha). A gravação da rede do Playwright fica desligada pelo mesmo motivo.
+ */
+const ouvindo = new WeakSet<Page>();
+export function ouvirOServidorDeLogin(page: Page) {
+  if (ouvindo.has(page)) return;
+  ouvindo.add(page);
+  page.on("response", (r) => {
+    const u = new URL(r.url());
+    if (!/\/auth\/v1\/|\/_serverFn\//.test(u.pathname)) return;
+    const erro = r.headers()["x-sb-error-code"];
+    console.log(
+      `[servidor] ${r.request().method()} ${u.pathname.replace(/[0-9a-f-]{36}/g, "…")} → ${r.status()}${erro ? ` ${erro}` : ""}`,
+    );
+  });
+}
+
+/** Apaga o que foi digitado num campo, sem avisar a tela (a foto de uma falha não mostra a senha). */
+export async function apagarDaTela(
+  page: Page,
+  ...rotulos: ({ placeholder: string } | { label: string })[]
+) {
+  for (const r of rotulos) {
+    const campo =
+      "placeholder" in r
+        ? page.getByPlaceholder(r.placeholder)
+        : page.getByLabel(r.label, { exact: true });
+    await campo.evaluate((el) => ((el as HTMLInputElement).value = "")).catch(() => {});
+  }
+}
+
 /** Entra no CX Hub (a senha e o código do celular). Devolve a senha que funcionou. */
 export async function entrar(page: Page): Promise<string> {
+  ouvirOServidorDeLogin(page);
   for (const senha of SENHAS()) {
     await page.goto("/auth");
     // A conta de teste é ADM, e o ADM entra pela aba "avaliador" (a "colaborador" vem marcada).
@@ -36,10 +69,11 @@ export async function entrar(page: Page): Promise<string> {
     await page.getByPlaceholder("seu@email.com").fill(EMAIL());
     await page.getByPlaceholder("Digite sua senha").fill(senha);
     await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await apagarDaTela(page, { placeholder: "Digite sua senha" });
     const resultado = await Promise.race([
       page.waitForURL(/\/verificar/, { timeout: 15_000 }).then(() => "codigo" as const),
       page
-        .getByText(/incorret|inválid/i)
+        .getByText(/Verifique e-mail e senha|incorret|inválid/i)
         .first()
         .waitFor({ timeout: 15_000 })
         .then(() => "senha errada" as const),

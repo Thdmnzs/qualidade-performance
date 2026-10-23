@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { entrar, SENHAS } from "./ajudantes";
+import { apagarDaTela, entrar, SENHAS } from "./ajudantes";
 
 // O problema de 22/10/2026: a troca de senha falhava para quem tem a verificação em duas etapas.
 async function trocar(page: import("@playwright/test").Page, atual: string, nova: string) {
@@ -10,6 +10,12 @@ async function trocar(page: import("@playwright/test").Page, atual: string, nova
   await page.getByLabel("Nova senha", { exact: true }).fill(nova);
   await page.getByLabel("Confirme a nova senha").fill(nova);
   await page.getByRole("button", { name: "Alterar senha" }).click();
+  await apagarDaTela(
+    page,
+    { label: "Senha atual" },
+    { label: "Nova senha" },
+    { label: "Confirme a nova senha" },
+  );
   await expect(page.getByText(/Senha alterada/)).toBeVisible({ timeout: 20_000 });
 }
 
