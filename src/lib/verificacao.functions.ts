@@ -6,7 +6,7 @@ import {
   requireSupabaseAuth,
   requireSupabaseAuthSemOCodigo,
 } from "@/integrations/supabase/auth-middleware";
-import { limiteDeUso } from "@/integrations/supabase/limite-de-uso";
+import { limiteDeUso, limiteDeUsoSemOCodigo } from "@/integrations/supabase/limite-de-uso";
 import { enviarTokenDaSessao } from "@/integrations/supabase/token-middleware";
 
 const autenticado = [enviarTokenDaSessao, requireSupabaseAuth] as const;
@@ -39,7 +39,7 @@ export const usarCodigoDeRecuperacaoFn = createServerFn({ method: "POST" })
   .middleware([
     enviarTokenDaSessao,
     requireSupabaseAuthSemOCodigo,
-    limiteDeUso("usar_codigo_de_recuperacao", 5, 900),
+    limiteDeUsoSemOCodigo("usar_codigo_de_recuperacao", 5, 900),
   ])
   .validator(z.object({ codigo: z.string().min(1).max(20) }))
   .handler(async ({ data, context }) =>
