@@ -622,3 +622,16 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   dia) e um comentário opcional de até 280 caracteres. Só a pessoa e o ADM veem (os avaliadores não), e não vai para o
   Histórico. Fica 90 dias (a tarefa da manhã apaga o resto). Em Colaboradores, o ADM vê o de hoje, os 14 dias e o aviso
   "abaixo do habitual" (a média dos 3 últimos registros 0,75 ponto abaixo da dos 14 dias, com 5 registros ou mais).
+
+## Os contatos com vários atendentes (22/10/2026)
+
+- **A regra:** um contato com vários atendentes é avaliado **separadamente por profissional**. Cada avaliação considera só
+  a parte de quem está sendo avaliado.
+- **Na ficha:** o aviso "Este contato teve N atendentes: ...", e que a avaliação considera só a parte de quem foi
+  selecionado. Para avaliar os outros, o avaliador seleciona a outra pessoa e cola o link do mesmo contato. O banco já
+  aceita o mesmo contato para pessoas diferentes (a trava é a mesma pessoa, na mesma quinzena, com o mesmo link). Se a
+  pessoa selecionada não escreveu na conversa, o aviso diz isso.
+- **Na pré-avaliação (a IA):** as mensagens vêm marcadas como "[Atendente avaliado]" e "[Outro atendente]" (sem nomes,
+  que vão mascarados), com a instrução de avaliar só o avaliado, usando as outras como contexto, sem creditar nem
+  descontar o que os outros fizeram. As mensagens são separadas pelo atendente do Intercom de cada pessoa (pelo e-mail).
+  Numa conversa com um atendente só, o pedido é o de sempre.

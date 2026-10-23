@@ -73,6 +73,21 @@ const ROTULO_AUTOR: Record<Mensagem["autor"], string> = {
   nota: "Nota interna",
   bot: "Bot",
 };
+/**
+ * O rótulo de cada mensagem (22/10/2026): num contato com VÁRIOS atendentes, o avaliado e os outros ficam
+ * separados (sem nomes: os nomes do time vão mascarados). Com um atendente só, o rótulo de sempre.
+ */
+const variosAtendentes = (ms: Mensagem[]) =>
+  ms.some((m) => m.autor === "atendente" && m.doAvaliado) &&
+  ms.some((m) => m.autor === "atendente" && m.autorId && !m.doAvaliado);
+const rotuloDa = (m: Mensagem, varios: boolean) =>
+  m.autor === "atendente" && varios
+    ? m.doAvaliado
+      ? "Atendente avaliado"
+      : "Outro atendente"
+    : ROTULO_AUTOR[m.autor];
+const linhasDa = (ms: Mensagem[], varios: boolean) =>
+  ms.map((m) => `[${rotuloDa(m, varios)}] ${m.texto}`).join("\n");
 const cortar = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}\n[...]` : s);
 
 /** O pedido completo, já com a conversa MASCARADA (o mascaramento acontece antes). */
@@ -100,11 +115,15 @@ export function montarPedido(p: {
   const classificacao = p.atributos
     .map((a) => `- ${a.nome}: ${a.valor ?? "não preenchido"}`)
     .join("\n");
-  const conversa = p.mensagens.map((m) => `[${ROTULO_AUTOR[m.autor]}] ${m.texto}`).join("\n");
+  const varios = variosAtendentes([...p.mensagens, ...(p.conversaDoCliente ?? [])]);
+  const conversa = linhasDa(p.mensagens, varios);
   const partes = [
     `<ficha>\n${ficha}\n</ficha>`,
     p.tipo === "ticket_n2"
       ? "<contato>Ticket de back-office enviado a um núcleo (o 'Atendente' é quem criou o ticket). Avalie, numa ficha só, o atendimento na <conversa_do_cliente> e a qualidade do encaminhamento: o pedido claro, os campos necessários preenchidos, as notas internas e o acompanhamento. A <classificacao> abaixo traz os campos do ticket, e a <conversa> traz o histórico do ticket.</contato>"
+      : "",
+    varios
+      ? "<atendentes>Este contato teve MAIS DE UM atendente. Avalie SOMENTE o atendimento do [Atendente avaliado]: as mensagens de [Outro atendente] são só contexto. Não credite nem desconte do avaliado o que outro atendente fez ou deixou de fazer; se um critério depende só da parte de outro atendente, avalie pelo que o avaliado fez na parte dele (e, se ele não teve como fazer, não o penalize). No comentário, fale só do atendimento do avaliado.</atendentes>"
       : "",
     `<classificacao>\n${classificacao || "- sem classificação"}\n</classificacao>`,
     p.processo
@@ -121,7 +140,7 @@ export function montarPedido(p: {
       : "",
     `<conversa>\n${conversa}\n</conversa>`,
     p.conversaDoCliente?.length
-      ? `<conversa_do_cliente>\n${p.conversaDoCliente.map((m) => `[${ROTULO_AUTOR[m.autor]}] ${m.texto}`).join("\n")}\n</conversa_do_cliente>`
+      ? `<conversa_do_cliente>\n${linhasDa(p.conversaDoCliente, varios)}\n</conversa_do_cliente>`
       : "",
   ].filter(Boolean);
   return {

@@ -29,6 +29,8 @@ import {
   notasDoLead,
   type NotaDoIntercom,
   type NotaDoLead,
+  separarAtendentes,
+  type AtendenteDaConversa,
 } from "@/lib/intercom";
 import {
   assuntoDoTicket,
@@ -224,6 +226,11 @@ export type Contato = {
   canal: Canal | null;
   atendenteEscreveu: boolean;
   mensagens: Mensagem[];
+  /**
+   * Os atendentes que escreveram na conversa (22/10/2026): num contato com vários, cada um é avaliado
+   * separadamente, só pela parte dele (as mensagens dele vêm marcadas com "doAvaliado").
+   */
+  atendentes?: AtendenteDaConversa[];
   /** Classificação do atendimento (critério 14): só os cinco campos. Num ticket, os campos do ticket. */
   atributos: Atributo[];
   /**
@@ -345,7 +352,10 @@ async function paraContato(
     dataContato: c.created_at ? dataDoContato(c.created_at) : null,
     canal: canalDaConversa(c.source),
     atendenteEscreveu: atendenteEscreveu(c, adminId),
-    mensagens: montarTranscricao(c),
+    ...(() => {
+      const { mensagens, atendentes } = separarAtendentes(montarTranscricao(c), String(adminId));
+      return { mensagens, atendentes };
+    })(),
     atributos: atributosDaConversa(c),
     notasDoLead: await notasDoContato(c),
   };
@@ -494,16 +504,22 @@ async function paraContatoDoTicket(
   const origem = conversaDeOrigem(t);
   // A conversa com o cliente, avaliada junto com o ticket. Se não carregar, o ticket aparece mesmo assim.
   let conversa: NonNullable<Contato["ticket"]>["conversa"] = null;
+  let atendentesDaConversa: AtendenteDaConversa[] = [];
   if (origem) {
     const r = await chamar<ConversaIntercom>(`/conversations/${encodeURIComponent(origem)}`);
     if (r.ok)
       conversa = {
         link: linkDaConversa(appId, origem),
         canal: canalDaConversa(r.dados.source),
-        mensagens: montarTranscricao(r.dados),
+        mensagens: (() => {
+          const separado = separarAtendentes(montarTranscricao(r.dados), String(adminId));
+          atendentesDaConversa = separado.atendentes;
+          return separado.mensagens;
+        })(),
       };
   }
   return {
+    atendentes: atendentesDaConversa,
     sorteioId,
     jaEmAberto,
     conversaId: id,

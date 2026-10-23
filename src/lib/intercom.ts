@@ -109,6 +109,10 @@ export type Mensagem = {
   nome: string | null;
   quando: number | null;
   texto: string;
+  /** Quem escreveu, no Intercom (22/10/2026): para separar os atendentes de uma conversa com vários. */
+  autorId?: string | null;
+  /** A mensagem é do atendente que está sendo avaliado? (marcada pela busca, quando ela sabe quem é) */
+  doAvaliado?: boolean;
 };
 
 const tipoDoAutor = (
@@ -131,6 +135,7 @@ export function montarTranscricao(c: ConversaIntercom): Mensagem[] {
       nome: c.source?.author?.name ?? null,
       quando: c.created_at ?? null,
       texto: primeira,
+      autorId: c.source?.author?.id != null ? String(c.source.author.id) : null,
     });
   }
   for (const p of c.conversation_parts?.conversation_parts ?? []) {
@@ -142,6 +147,7 @@ export function montarTranscricao(c: ConversaIntercom): Mensagem[] {
       nome: p.author?.name ?? null,
       quando: p.created_at ?? null,
       texto,
+      autorId: p.author?.id != null ? String(p.author.id) : null,
     });
   }
   return msgs;
@@ -336,4 +342,39 @@ export function notasDoLead(notas: NotaDoIntercom[] | null | undefined): NotaDoL
       linhas: linhasDaNota(n.body),
     }))
     .filter((n) => n.linhas.length > 0);
+}
+
+/* ============ Os contatos com vários atendentes (22/10/2026) ============ */
+
+export type AtendenteDaConversa = {
+  id: string;
+  nome: string;
+  avaliado: boolean;
+  mensagens: number;
+};
+
+/**
+ * A regra da qualidade: num contato com vários atendentes, cada um é avaliado SEPARADAMENTE, só pela parte dele.
+ * Marca as mensagens do atendente avaliado (as respostas dele, e não as notas internas), e lista os atendentes que
+ * escreveram na conversa, na ordem em que apareceram.
+ */
+export function separarAtendentes(
+  mensagens: Mensagem[],
+  avaliadoId: string | null,
+): { mensagens: Mensagem[]; atendentes: AtendenteDaConversa[] } {
+  const atendentes = new Map<string, AtendenteDaConversa>();
+  const marcadas = mensagens.map((m) => {
+    if (m.autor !== "atendente" || !m.autorId) return { ...m, doAvaliado: false };
+    const avaliado = !!avaliadoId && m.autorId === avaliadoId;
+    const a = atendentes.get(m.autorId) ?? {
+      id: m.autorId,
+      nome: m.nome ?? "Atendente",
+      avaliado,
+      mensagens: 0,
+    };
+    a.mensagens++;
+    atendentes.set(m.autorId, a);
+    return { ...m, doAvaliado: avaliado };
+  });
+  return { mensagens: marcadas, atendentes: [...atendentes.values()] };
 }

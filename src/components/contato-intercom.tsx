@@ -28,7 +28,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { dataBR, dataHoraBR } from "@/lib/format";
-import { linkSeguroDoIntercom, textoParaSugerirProcesso, type NotaDoLead } from "@/lib/intercom";
+import {
+  linkSeguroDoIntercom,
+  textoParaSugerirProcesso,
+  type AtendenteDaConversa,
+  type NotaDoLead,
+} from "@/lib/intercom";
 import {
   buscarContatoFn,
   contatoEmAbertoFn,
@@ -348,10 +353,47 @@ export function ContatoIntercom({
         </Dialog>
       </section>
 
+      {/* Os contatos com vários atendentes (22/10/2026): cada um é avaliado só pela parte dele. */}
+      {contato && <AvisoDeVariosAtendentes atendentes={contato.atendentes ?? []} />}
       {/* As notas do lead (20/10/2026): as notas do contato no Intercom, acima da classificação. */}
       {contato && contato.notasDoLead !== undefined && <NotasDoLead notas={contato.notasDoLead} />}
       {contato && !contato.ticket && <ClassificacaoDoAtendimento atributos={contato.atributos} />}
     </div>
+  );
+}
+
+const listaDeNomes = (xs: string[]) =>
+  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} e ${xs.at(-1)}`;
+/**
+ * O aviso de um contato com vários atendentes (22/10/2026): a avaliação (e a pré-avaliação da IA) considera só a
+ * parte de quem está sendo avaliado. Para avaliar os outros, seleciona-se a pessoa e cola-se o link do contato.
+ */
+export function AvisoDeVariosAtendentes({ atendentes }: { atendentes: AtendenteDaConversa[] }) {
+  const avaliado = atendentes.find((a) => a.avaliado);
+  if (atendentes.length < 2 && (avaliado || atendentes.length === 0)) return null;
+  const primeiro = (n: string) => n.split(" ")[0] ?? n;
+  return (
+    <section
+      role="note"
+      aria-label="Vários atendentes"
+      className="mt-4 rounded-2xl border border-[#E0A800] bg-[#FFF8E1] p-4 text-sm text-[#111311] dark:bg-[#2E2610] dark:text-[#F5ECD0]"
+    >
+      <p className="font-bold">
+        👥 Este contato teve {atendentes.length} atendentes:{" "}
+        {listaDeNomes(atendentes.map((a) => primeiro(a.nome)))}.
+      </p>
+      {avaliado ? (
+        <p className="mt-1">
+          A avaliação considera só a parte de <b>{primeiro(avaliado.nome)}</b> (a pré-avaliação
+          também). Para avaliar os outros, selecione a pessoa e cole o link deste contato.
+        </p>
+      ) : (
+        <p className="mt-1">
+          A pessoa selecionada <b>não escreveu</b> nesta conversa. Confira se é a pessoa certa, ou
+          cole o link de outro contato.
+        </p>
+      )}
+    </section>
   );
 }
 
