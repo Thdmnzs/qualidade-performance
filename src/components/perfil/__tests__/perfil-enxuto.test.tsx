@@ -99,7 +99,7 @@ describe("o Sobre mim", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
     await waitFor(() => expect(registrar).toHaveBeenCalledWith(5, "Dia ótimo!"));
-    expect(screen.getByText("🔒 Só você e a supervisão veem.")).toBeTruthy();
+    expect(screen.queryByText(/Só você e a supervisão veem/)).toBeNull(); // o aviso saiu (22/10/2026)
   });
 });
 

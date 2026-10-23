@@ -30,7 +30,7 @@ const lista = (xs: string[]) =>
 
 /**
  * O "Sobre mim" (21/10/2026): os núcleos, o horário de trabalho e a folga fixa da própria pessoa; e o termômetro do
- * humor (só a pessoa e a supervisão veem).
+ * humor (só a pessoa e o ADM veem; o aviso disso na tela saiu em 22/10/2026, a pedido da supervisão).
  */
 export function SobreMim({ employeeId }: { employeeId: string }) {
   const { data: nucleos = [] } = useQuery({ queryKey: ["meus-nucleos"], queryFn: lerMeusNucleos });
@@ -175,9 +175,8 @@ function Termometro() {
         placeholder="Quer contar mais? (opcional)"
         className="mt-3 w-full rounded-xl border border-input bg-background p-2.5 text-sm"
       />
-      <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>🔒 Só você e a supervisão veem.</span>
-        <span>{comentario.length}/280</span>
+      <div className="mt-1 text-right text-[11px] text-muted-foreground">
+        {comentario.length}/280
       </div>
       <Button className="mt-2 w-full" disabled={nivel == null || salvando} onClick={registrar}>
         {salvando ? "Registrando..." : deHoje ? "Atualizar o de hoje" : "Registrar"}
