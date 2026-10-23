@@ -31,6 +31,8 @@ export async function codigoNovo(): Promise<string> {
 export async function entrar(page: Page): Promise<string> {
   for (const senha of SENHAS()) {
     await page.goto("/auth");
+    // A conta de teste é ADM, e o ADM entra pela aba "avaliador" (a "colaborador" vem marcada).
+    await page.getByRole("tab", { name: "avaliador" }).click();
     await page.getByPlaceholder("seu@email.com").fill(EMAIL());
     await page.getByPlaceholder("Digite sua senha").fill(senha);
     await page.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -41,8 +43,14 @@ export async function entrar(page: Page): Promise<string> {
         .first()
         .waitFor({ timeout: 15_000 })
         .then(() => "senha errada" as const),
+      page
+        .getByText(/entra pela aba/i)
+        .first()
+        .waitFor({ timeout: 15_000 })
+        .then(() => "aba errada" as const),
     ]).catch(() => "nada" as const);
     if (resultado === "senha errada") continue;
+    expect(resultado, "a conta de teste entrou pela aba errada do login").not.toBe("aba errada");
     expect(resultado, "depois da senha, o CX Hub pede o código do celular").toBe("codigo");
     await page.getByLabel("O código de 6 dígitos").fill(await codigoNovo());
     await page.getByRole("button", { name: "Entrar", exact: true }).click();
