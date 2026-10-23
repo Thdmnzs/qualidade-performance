@@ -635,3 +635,13 @@ A tela **"Treinar a IA"** (no menu da gestão) é do **ADM e dos avaliadores**.
   que vão mascarados), com a instrução de avaliar só o avaliado, usando as outras como contexto, sem creditar nem
   descontar o que os outros fizeram. As mensagens são separadas pelo atendente do Intercom de cada pessoa (pelo e-mail).
   Numa conversa com um atendente só, o pedido é o de sempre.
+
+## A navegação sem atraso e os contatos de emergência (23/10/2026)
+
+- **A guarda das telas** lê a sessão no navegador, e confere no servidor de login no máximo a cada 5 minutos (ou quando
+  a pessoa muda). Antes, ela ia ao servidor a cada clique, e a tela ficava um clique atrasada. A proteção dos dados
+  continua no banco e no servidor, em cada pedido.
+- **As instabilidades resolvidas** mostram o período que o próprio aviso informa ("Entre 00:54 e 01:35"), quando há; com
+  um aviso só e sem o período, só o horário dele.
+- **Os contatos de emergência:** além do principal, até 3 a mais ("+ Adicionar novo contato", no Editar perfil e na
+  correção da ficha pelo ADM), com as mesmas regras (o nome e o telefone com o DDD). Quem vê: a pessoa e o ADM.

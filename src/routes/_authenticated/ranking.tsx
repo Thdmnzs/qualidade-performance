@@ -121,7 +121,7 @@ function Ranking() {
           descricao={
             veTudo
               ? "Classificação da quinzena, entre quem cumpre todos os requisitos."
-              : "Os três primeiros da quinzena. Seus resultados e sua elegibilidade estão na sua Visão geral."
+              : "Os três primeiros da quinzena. Os seus resultados estão nas Minhas métricas, e a sua elegibilidade, nas Minhas avaliações."
           }
         />
         <div className="space-y-1">

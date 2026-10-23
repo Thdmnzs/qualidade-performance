@@ -214,3 +214,25 @@ export function quadroDeInstabilidades(mensagens: Mensagem[], agora = Date.now()
     pessoas: pessoas.filter((m) => new Date(m.criado_em).getTime() >= limite).reverse(),
   };
 }
+
+/**
+ * O período que o PRÓPRIO aviso informa (23/10/2026): o Statuspage costuma escrever, no aviso de resolvido, "Entre
+ * 00:54 e 01:35 passamos por uma instabilidade". Esse é o horário real (o do aviso é só quando ele foi publicado).
+ */
+export function periodoInformado(texto: string): { de: string; ate: string } | null {
+  const m = texto.match(
+    /entre\s+(?:as\s+|às\s+)?(\d{1,2})\s*[:h]\s*(\d{2})\s*(?:h\s*)?e\s+(?:as\s+|às\s+)?(\d{1,2})\s*[:h]\s*(\d{2})/i,
+  );
+  if (!m) return null;
+  const hm = (h: string, mi: string) =>
+    Number(h) < 24 && Number(mi) < 60 ? `${h.padStart(2, "0")}:${mi}` : null;
+  const de = hm(m[1]!, m[2]!);
+  const ate = hm(m[3]!, m[4]!);
+  return de && ate ? { de, ate } : null;
+}
+
+/** Os minutos entre dois horários ("00:54" a "01:35" = 41), passando da meia-noite se preciso. */
+export function minutosEntre(de: string, ate: string): number {
+  const min = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+  return (min(ate) - min(de) + 1440) % 1440;
+}

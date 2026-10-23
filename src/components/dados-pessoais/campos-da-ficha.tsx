@@ -9,6 +9,8 @@ import {
   PARENTESCOS,
   UFS,
   type Ficha,
+  MAX_CONTATOS_EXTRAS,
+  type ContatoExtra,
 } from "@/lib/dados-pessoais";
 
 const Selo = ({ children, privado = false }: { children: ReactNode; privado?: boolean }) => (
@@ -201,6 +203,86 @@ export function CamposDaFicha({
             />
           </Rotulo>
         </div>
+        {/* Os contatos a mais (23/10/2026): abaixo do principal, até 3. */}
+        {(ficha.contatos_extras ?? []).map((c, i) => {
+          const trocarEste = (m: Partial<ContatoExtra>) =>
+            mudar({
+              contatos_extras: (ficha.contatos_extras ?? []).map((x, k) =>
+                k === i ? { ...x, ...m } : x,
+              ),
+            });
+          return (
+            <div
+              key={i}
+              className="mt-4 border-t border-border pt-3"
+              aria-label={`O contato de emergência ${i + 2}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-muted-foreground">Contato {i + 2}</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    mudar({
+                      contatos_extras: (ficha.contatos_extras ?? []).filter((_, k) => k !== i),
+                    })
+                  }
+                  className="text-xs font-bold text-destructive hover:underline"
+                >
+                  Remover
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <Rotulo texto="Nome" className="col-span-2">
+                  <Input
+                    aria-label={`O nome do contato ${i + 2}`}
+                    value={c.nome}
+                    maxLength={80}
+                    onChange={(e) => trocarEste({ nome: e.target.value })}
+                  />
+                </Rotulo>
+                <Rotulo texto="Parentesco">
+                  <select
+                    aria-label={`O parentesco do contato ${i + 2}`}
+                    className={select}
+                    value={c.parentesco ?? ""}
+                    onChange={(e) => trocarEste({ parentesco: e.target.value || null })}
+                  >
+                    <option value="">—</option>
+                    {PARENTESCOS.map((p) => (
+                      <option key={p}>{p}</option>
+                    ))}
+                  </select>
+                </Rotulo>
+                <Rotulo texto="Telefone">
+                  <Input
+                    aria-label={`O telefone do contato ${i + 2}`}
+                    inputMode="tel"
+                    placeholder="(84) 90000-0000"
+                    value={mascaraDoTelefone(c.telefone)}
+                    onChange={(e) => trocarEste({ telefone: mascaraDoTelefone(e.target.value) })}
+                    maxLength={16}
+                  />
+                </Rotulo>
+              </div>
+            </div>
+          );
+        })}
+        {(ficha.contatos_extras ?? []).length < MAX_CONTATOS_EXTRAS && (
+          <button
+            type="button"
+            onClick={() =>
+              mudar({
+                contatos_extras: [
+                  ...(ficha.contatos_extras ?? []),
+                  { nome: "", parentesco: null, telefone: "" },
+                ],
+              })
+            }
+            className="mt-3 rounded-full border border-dashed border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10"
+          >
+            + Adicionar novo contato
+          </button>
+        )}
         <p className="mt-2 text-[11px] text-muted-foreground">
           Para avisar alguém numa emergência. Só a administração usa.
         </p>

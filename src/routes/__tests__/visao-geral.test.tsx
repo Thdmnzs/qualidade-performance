@@ -319,3 +319,29 @@ describe("as instabilidades na Visão geral (20/10/2026)", () => {
     expect(within(quadro()).getByText("Sim, já estamos vendo!")).toBeTruthy();
   });
 });
+
+describe("o período dos incidentes resolvidos (23/10/2026, o vídeo)", () => {
+  it("com o período no texto do aviso: o horário real", async () => {
+    INSTABILIDADES = [
+      avisoDoPix(
+        "3",
+        "Resolved",
+        "operational",
+        "Entre 00:54 e 01:35 passamos por uma instabilidade.",
+        ha(60 * 30),
+      ),
+    ];
+    abrir();
+    const quadro = await screen.findByLabelText("Instabilidades");
+    await waitFor(() => expect(quadro.textContent).toContain("das 00:54 às 01:35 (41 min)"));
+  });
+  it("com um aviso só e sem o período: só o horário (e não 'das 10:49 às 10:49')", async () => {
+    INSTABILIDADES = [
+      avisoDoPix("3", "Resolved", "operational", "O cenário foi normalizado.", ha(60 * 30)),
+    ];
+    abrir();
+    const quadro = await screen.findByLabelText("Instabilidades");
+    await waitFor(() => expect(quadro.textContent).toMatch(/, às \d\d:\d\d/));
+    expect(quadro.textContent).not.toMatch(/das (\d\d:\d\d) às \1/);
+  });
+});

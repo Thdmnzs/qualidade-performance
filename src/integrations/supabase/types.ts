@@ -1438,6 +1438,10 @@ export type Database = {
         Returns: { quinzenas_com_100: number; quinzenas_avaliadas: number }[];
       };
       acesso_rapido: { Args: never; Returns: Json };
+      salvar_contatos_extras: {
+        Args: { _employee_id: string; _contatos: Json };
+        Returns: undefined;
+      };
       apagar_humores_antigos: { Args: never; Returns: number };
       funcionalidades_ativas: { Args: never; Returns: Json };
       definir_funcionalidade: { Args: { _chave: string; _ativa: boolean }; Returns: undefined };

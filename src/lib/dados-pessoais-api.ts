@@ -32,6 +32,20 @@ export async function salvarMeusDados(f: Ficha) {
     _tema: f.aniversario_tema,
   });
   falhar(error);
+  await salvarContatosExtras(null, f);
+}
+/** Os contatos de emergência a mais (23/10/2026): os da própria pessoa (null), ou os de outra (o ADM). */
+async function salvarContatosExtras(employeeId: string | null, f: Ficha) {
+  const contatos = (f.contatos_extras ?? []).map((c) => ({
+    nome: c.nome,
+    parentesco: c.parentesco,
+    telefone: soDigitos(c.telefone),
+  }));
+  const { error } = await supabase.rpc("salvar_contatos_extras", {
+    _employee_id: employeeId as string,
+    _contatos: contatos,
+  });
+  falhar(error);
 }
 /** O ADM: a ficha de uma pessoa. */
 export async function lerDadosDe(employeeId: string): Promise<Ficha> {
@@ -46,6 +60,7 @@ export async function corrigirDadosDe(employeeId: string, f: Ficha) {
     ...campos(f),
   });
   falhar(error);
+  await salvarContatosExtras(employeeId, f);
 }
 /** O ADM: o que falta na ficha de cada pessoa (sem os dados). */
 export async function lerSituacaoDosDados(): Promise<Map<string, string[]>> {

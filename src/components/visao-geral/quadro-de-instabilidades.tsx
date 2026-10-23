@@ -4,7 +4,13 @@ import { toast } from "sonner";
 
 import { Cartao, quando, type Comunicado } from "@/components/visao-geral/mural-do-cx";
 import { supabase } from "@/integrations/supabase/client";
-import { quadroDeInstabilidades, type Gravidade, type Incidente } from "@/lib/instabilidades";
+import {
+  minutosEntre,
+  periodoInformado,
+  quadroDeInstabilidades,
+  type Gravidade,
+  type Incidente,
+} from "@/lib/instabilidades";
 
 const CANAL = "C027Y8CP9U4"; // o #instabilidade
 const DIAS = 30;
@@ -43,6 +49,23 @@ const duracao = (de: string, ate: string) => {
     ? `${min} min`
     : `${Math.floor(min / 60)} h ${min % 60 ? `${min % 60} min` : ""}`.trim();
 };
+
+/**
+ * O período de um incidente resolvido (23/10/2026): o que o próprio aviso informa ("Entre 00:54 e 01:35"), quando
+ * há; senão, do primeiro ao último aviso; e, com um aviso só, só o horário dele (e não "das 10:49 às 10:49").
+ */
+function periodoDoResolvido(r: Incidente): string {
+  const informado = [...r.etapas]
+    .reverse()
+    .map((e) => periodoInformado(e.corpo))
+    .find(Boolean);
+  if (informado) {
+    const min = minutosEntre(informado.de, informado.ate);
+    return `das ${informado.de} às ${informado.ate} (${min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60 ? `${min % 60} min` : ""}`.trim()})`;
+  }
+  if (!r.fim || r.fim === r.inicio || r.etapas.length < 2) return `às ${hora(r.inicio)}`;
+  return `das ${hora(r.inicio)} às ${hora(r.fim)} (${duracao(r.inicio, r.fim)})`;
+}
 
 /** A linha do tempo de um incidente (as etapas, com o texto de cada uma). */
 function LinhaDoTempo({ i }: { i: Incidente }) {
@@ -207,8 +230,7 @@ export function QuadroDeInstabilidades() {
                 <span>
                   <span className="text-[#157A3A]">✓</span> <b>{r.sistema ?? r.titulo}</b>{" "}
                   <span className="text-muted-foreground">
-                    · {quando(r.inicio).replace(/, \d\d:\d\d$/, "")}, das {hora(r.inicio)} às{" "}
-                    {hora(r.fim!)} ({duracao(r.inicio, r.fim!)})
+                    · {quando(r.inicio).replace(/, \d\d:\d\d$/, "")}, {periodoDoResolvido(r)}
                   </span>
                 </span>
                 <button

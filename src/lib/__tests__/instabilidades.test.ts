@@ -105,3 +105,22 @@ describe("as instabilidades: o quadro", () => {
     expect(q.manutencoes).toEqual([]);
   });
 });
+
+describe("o período real de um incidente (23/10/2026)", () => {
+  it("o período que o próprio aviso informa", async () => {
+    const { minutosEntre, periodoInformado } = await import("../instabilidades");
+    expect(
+      periodoInformado(
+        "Entre 00:54 e 01:35 passamos por uma instabilidade no componente Transacional - PIX.",
+      ),
+    ).toEqual({ de: "00:54", ate: "01:35" });
+    expect(periodoInformado("entre às 9h05 e às 10h40 o PIX ficou lento")).toEqual({
+      de: "09:05",
+      ate: "10:40",
+    });
+    expect(periodoInformado("Identificamos uma instabilidade.")).toBeNull();
+    expect(periodoInformado("Entre 25:00 e 26:00")).toBeNull();
+    expect(minutosEntre("00:54", "01:35")).toBe(41);
+    expect(minutosEntre("23:50", "00:10")).toBe(20); // passando da meia-noite
+  });
+});

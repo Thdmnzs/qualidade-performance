@@ -3,16 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { VigiaDaSessao } from "@/components/vigia-da-sessao";
 import { apagarRegistros, lerRegistro, situacaoDaSessao } from "@/lib/expiracao-da-sessao";
+import { esquecerAConferencia, usuarioLogado } from "@/lib/usuario-logado";
 import { destinoDaVerificacao } from "@/lib/verificacao";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    // A sessão lida no navegador, e conferida no servidor de login no máximo a cada 5 minutos (23/10/2026).
+    const user = await usuarioLogado();
+    if (!user) throw redirect({ to: "/auth" });
     // O prazo da sessão, ANTES de qualquer página aparecer (inclusive ao reabrir o navegador).
-    const s = situacaoDaSessao(Date.now(), lerRegistro(data.user.id));
+    const s = situacaoDaSessao(Date.now(), lerRegistro(user.id));
     if (s.estado === "expirada") {
+      esquecerAConferencia();
       apagarRegistros();
       await supabase.auth.signOut({ scope: "local" });
       throw redirect({ to: "/auth", search: { motivo: s.motivo } });
@@ -26,7 +29,7 @@ export const Route = createFileRoute("/_authenticated")({
         to: destino === "cadastrar" ? "/proteger-a-conta" : "/verificar",
         search: { para: location.href },
       });
-    return { user: data.user };
+    return { user };
   },
   component: Logado,
 });
