@@ -17,9 +17,17 @@ import { alterarMinhaSenhaFn } from "@/lib/senha.functions";
  * conferência de vazamento da primeira senha) e a confirmação. A troca é feita no servidor, que confere
  * a senha atual. Depois dela, as outras sessões da pessoa (outros aparelhos) são encerradas.
  */
-export function AlterarSenha() {
+export function AlterarSenha({
+  inicialmenteAberto = false,
+  aoFechar,
+}: { inicialmenteAberto?: boolean; aoFechar?: () => void } = {}) {
   const alterar = useServerFn(alterarMinhaSenhaFn);
-  const [aberto, setAberto] = useState(false);
+  // (23/10/2026) No menu da conta (o ADM não tem o Meu perfil), a troca já abre aberta, e avisa ao fechar.
+  const [aberto, setAbertoDeVerdade] = useState(inicialmenteAberto);
+  const setAberto = (a: boolean) => {
+    setAbertoDeVerdade(a);
+    if (!a) aoFechar?.();
+  };
   const [atual, setAtual] = useState("");
   const [nova, setNova] = useState("");
   const [confirmacao, setConfirmacao] = useState("");

@@ -1,0 +1,39 @@
+# Os testes de ponta a ponta (23/10/2026): depois de cada deploy de PRODUÇÃO na Vercel, um navegador de verdade
+# entra no site (a conta "Admin Teste") e confere a entrada, o menu, a troca de senha e a segurança do banco.
+name: Testes de ponta a ponta
+on:
+  deployment_status:
+  workflow_dispatch: # e quando alguém pedir, pelo botão "Run workflow"
+permissions:
+  contents: read
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency: e2e # um por vez: todos usam a mesma conta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env:
+          E2E_URL: https://qualidade-performance.vercel.app
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_SENHA: ${{ secrets.E2E_SENHA }}
+          E2E_SENHA_2: ${{ secrets.E2E_SENHA_2 }}
+          E2E_TOTP_SECRET: ${{ secrets.E2E_TOTP_SECRET }}
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: relatorio-dos-testes
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
