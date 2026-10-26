@@ -5,7 +5,6 @@
  * Nenhum aviso sai duas vezes: cada um é RESERVADO no banco antes de postar; se o
  * Slack falhar, a reserva é desfeita, e a tarefa da manhã tenta de novo.
  */
-import { timingSafeEqual } from "node:crypto";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
@@ -87,20 +86,10 @@ async function lembrar(id: string): Promise<void> {
 
 /** A tarefa da manhã (8h): os lembretes do dia e os avisos que se perderam. */
 export async function tarefaDosAvisos(request: Request): Promise<Response> {
-  const segredo = process.env["CRON_SECRET"];
-  const recebido = request.headers.get("authorization") ?? "";
-  const esperado = `Bearer ${segredo ?? ""}`;
-  const igual =
-    !!segredo &&
-    recebido.length === esperado.length &&
-    timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado));
-  if (!igual) return new Response("Não autorizado.", { status: 401 });
+  const { pedidoDoAgendador } = await import("@/server/agendador.server");
+  if (!pedidoDoAgendador(request)) return new Response("Não autorizado.", { status: 401 });
   // A Central de Turnos (13/10/2026) também recupera, de manhã, os avisos de troca que se perderam.
-  // Os indicadores (15/10/2026): a planilha é lida todo dia às 8h, junto da tarefa da manhã.
-  const { lerPlanilhaDosIndicadores } = await import("@/server/planilha-indicadores.server");
-  const leitura = await lerPlanilhaDosIndicadores("automatica");
-  if (!leitura.ok)
-    console.error("[tarefa da manhã] a planilha dos indicadores não foi lida:", leitura.erro);
+  // Os indicadores: a planilha tem a sua própria tarefa, às 10h (23/10/2026; antes, ela era lida aqui, às 8h).
   // O termômetro do humor (21/10/2026): os registros de mais de 90 dias são apagados.
   const { error: erroDoHumor } = await supabaseAdmin.rpc("apagar_humores_antigos");
   if (erroDoHumor)

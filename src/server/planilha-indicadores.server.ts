@@ -1,5 +1,5 @@
 /**
- * A leitura da planilha dos indicadores (15/10/2026), todo dia às 8h (na tarefa da manhã) e quando o
+ * A leitura da planilha dos indicadores (15/10/2026), todo dia às 10h (a sua tarefa agendada, desde 23/10/2026) e quando o
  * ADM pede. Lê as abas "Dados" e "Análise" com a conta de serviço (só leitura), numa chamada só:
  *   * da "Dados", os números de cada pessoa e dia (para as telas do colaborador), que o banco liga ao
  *     cadastro (sem o TIME e sem o dia de hoje), e a CÓPIA da aba inteira (para a supervisão escolher o dia);
@@ -77,4 +77,16 @@ export async function lerPlanilhaDosIndicadores(
     await supabaseAdmin.rpc("registrar_erro_da_leitura", { _origem: origem, _erro: erro });
     return { ok: false, erro };
   }
+}
+
+/** A tarefa agendada da planilha (23/10/2026): todo dia às 10h (13h UTC), só a pedido do agendador da Vercel. */
+export async function tarefaDaPlanilha(request: Request): Promise<Response> {
+  const { pedidoDoAgendador } = await import("@/server/agendador.server");
+  if (!pedidoDoAgendador(request)) return new Response("Não autorizado.", { status: 401 });
+  const leitura = await lerPlanilhaDosIndicadores("automatica");
+  if (!leitura.ok) {
+    console.error("[tarefa da planilha] a planilha dos indicadores não foi lida:", leitura.erro);
+    return Response.json({ ok: false }, { status: 500 });
+  }
+  return Response.json({ ok: true });
 }

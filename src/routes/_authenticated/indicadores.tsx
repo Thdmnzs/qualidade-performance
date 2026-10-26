@@ -84,7 +84,7 @@ const ajustada = (d: Dia) => (d.conversas_atribuidas ?? 0) - (d.autoatribuicoes 
 
 /**
  * Minhas métricas (20/10/2026; antes "Meus indicadores"): em abas (a Produtividade, o SLA e o CSAT), atualizadas todo
- * dia às 8h com o dia anterior. O valor grande é a quinzena até ontem (parcial: o oficial sai no fechamento);
+ * dia às 10h com o dia anterior. O valor grande é a quinzena até ontem (parcial: o oficial sai no fechamento);
  * a linha "Ontem", o D-1. Os cartões sem meta são informativos (a borda tracejada, a pílula azul).
  */
 function MeusIndicadores() {
@@ -207,7 +207,7 @@ function MeusIndicadores() {
     <div>
       <PageHeader
         titulo="Minhas métricas"
-        descricao={`📥 Atualizados todo dia às 8h, com o dia anterior. A quinzena vai de ${ddmm(q.de)} a ${ddmm(q.ate)}.`}
+        descricao={`📥 Atualizados todo dia às 10h, com o dia anterior. A quinzena vai de ${ddmm(q.de)} a ${ddmm(q.ate)}.`}
       />
 
       {/* O resultado da quinzena (20/10/2026), com a conta da planilha. */}

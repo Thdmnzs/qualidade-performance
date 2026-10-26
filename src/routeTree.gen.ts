@@ -24,6 +24,7 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticated/ranking'
 import { Route as ApiAvisosContestacoesRouteImport } from './routes/api/avisos-contestacoes'
+import { Route as ApiLerPlanilhaRouteImport } from './routes/api/ler-planilha'
 import { Route as ApiSlackEventosRouteImport } from './routes/api/slack-eventos'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAcessoRapidoRouteImport } from './routes/_authenticated/admin/acesso-rapido'
@@ -113,6 +114,11 @@ const ApiAvisosContestacoesRoute = ApiAvisosContestacoesRouteImport.update({
   path: '/api/avisos-contestacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLerPlanilhaRoute = ApiLerPlanilhaRouteImport.update({
+  id: '/api/ler-planilha',
+  path: '/api/ler-planilha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSlackEventosRoute = ApiSlackEventosRouteImport.update({
   id: '/api/slack-eventos',
   path: '/api/slack-eventos',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ranking': typeof AuthenticatedRankingRoute
   '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
+  '/api/ler-planilha': typeof ApiLerPlanilhaRoute
   '/api/slack-eventos': typeof ApiSlackEventosRoute
   '/admin/acesso-rapido': typeof AuthenticatedAdminAcessoRapidoRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ranking': typeof AuthenticatedRankingRoute
   '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
+  '/api/ler-planilha': typeof ApiLerPlanilhaRoute
   '/api/slack-eventos': typeof ApiSlackEventosRoute
   '/admin/acesso-rapido': typeof AuthenticatedAdminAcessoRapidoRoute
   '/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/ranking': typeof AuthenticatedRankingRoute
   '/api/avisos-contestacoes': typeof ApiAvisosContestacoesRoute
+  '/api/ler-planilha': typeof ApiLerPlanilhaRoute
   '/api/slack-eventos': typeof ApiSlackEventosRoute
   '/_authenticated/admin/acesso-rapido': typeof AuthenticatedAdminAcessoRapidoRoute
   '/_authenticated/admin/avaliacoes': typeof AuthenticatedAdminAvaliacoesRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/ranking'
     | '/api/avisos-contestacoes'
+    | '/api/ler-planilha'
     | '/api/slack-eventos'
     | '/admin/acesso-rapido'
     | '/admin/avaliacoes'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/ranking'
     | '/api/avisos-contestacoes'
+    | '/api/ler-planilha'
     | '/api/slack-eventos'
     | '/admin/acesso-rapido'
     | '/admin/avaliacoes'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/ranking'
     | '/api/avisos-contestacoes'
+    | '/api/ler-planilha'
     | '/api/slack-eventos'
     | '/_authenticated/admin/acesso-rapido'
     | '/_authenticated/admin/avaliacoes'
@@ -355,6 +367,7 @@ export interface RootRouteChildren {
   RecuperarAcessoRoute: typeof RecuperarAcessoRoute
   VerificarRoute: typeof VerificarRoute
   ApiAvisosContestacoesRoute: typeof ApiAvisosContestacoesRoute
+  ApiLerPlanilhaRoute: typeof ApiLerPlanilhaRoute
   ApiSlackEventosRoute: typeof ApiSlackEventosRoute
 }
 
@@ -463,6 +476,13 @@ declare module '@tanstack/react-router' {
       path: '/api/avisos-contestacoes'
       fullPath: '/api/avisos-contestacoes'
       preLoaderRoute: typeof ApiAvisosContestacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ler-planilha': {
+      id: '/api/ler-planilha'
+      path: '/api/ler-planilha'
+      fullPath: '/api/ler-planilha'
+      preLoaderRoute: typeof ApiLerPlanilhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/slack-eventos': {
@@ -597,6 +617,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecuperarAcessoRoute: RecuperarAcessoRoute,
   VerificarRoute: VerificarRoute,
   ApiAvisosContestacoesRoute: ApiAvisosContestacoesRoute,
+  ApiLerPlanilhaRoute: ApiLerPlanilhaRoute,
   ApiSlackEventosRoute: ApiSlackEventosRoute,
 }
 export const routeTree = rootRouteImport

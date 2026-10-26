@@ -122,7 +122,7 @@ function IndicadoresDaSupervisao() {
         titulo="Indicadores"
         descricao={
           ultima
-            ? `📥 Lida ${dataHoraBR(ultima.lida_em)}, da planilha "CX - Métricas individuais do time" · a próxima leitura é amanhã, às 8h`
+            ? `📥 Lida ${dataHoraBR(ultima.lida_em)}, da planilha "CX - Métricas individuais do time" · a próxima leitura automática é às 10h`
             : "📥 A planilha ainda não foi lida. Clique em “Ler agora”."
         }
         acao={
