@@ -12,7 +12,6 @@ import {
   acordoGeral,
   corDoAcordo,
   doMenorAcordo,
-  LIMITE_DA_ORIENTACAO,
   MOTIVOS,
   mudancaLegivel,
   percentual,
@@ -208,14 +207,13 @@ function AbaOrientacoes({
                 <textarea
                   value={texto[k]}
                   onChange={(e) => setTexto({ ...texto, [k]: e.target.value })}
-                  maxLength={LIMITE_DA_ORIENTACAO}
-                  rows={2}
+                  rows={3}
                   placeholder={
                     k === "exemplo"
                       ? "Um trecho de conversa e a resposta certa..."
-                      : "Em uma ou duas frases..."
+                      : "Como avaliar este caso..."
                   }
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+                  className="mt-1 w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
                 />
               </label>
             ))}

@@ -42,3 +42,6 @@ dist-ssr
 # Os testes de ponta a ponta (23/10/2026)
 playwright-report/
 test-results/
+
+.vercel
+.env*

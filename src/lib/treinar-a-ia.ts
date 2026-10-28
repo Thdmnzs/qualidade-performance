@@ -88,4 +88,3 @@ export function textoParaAIA(
   ].filter(Boolean);
   return partes.join(" ");
 }
-export const LIMITE_DA_ORIENTACAO = 600;
