@@ -13,6 +13,58 @@ export const FERRAMENTA = "registrar_pre_avaliacao";
 const LIMITE_OBSERVACAO = 600;
 const LIMITE_COMENTARIO = 1500;
 const LIMITE_REFERENCIA = 12_000; // processo e dicionário, cada um
+/**
+ * O tamanho da conversa (29/10/2026). A IA aceita até 200 mil tokens por pedido, e as maiores conversas já chegavam
+ * a 169 mil: uma um pouco maior era recusada, e a pré-avaliação não acontecia. Cerca de 3,5 caracteres por token.
+ */
+export const LIMITE_POR_MENSAGEM = 8_000; // um e-mail com o histórico inteiro das respostas citadas, por exemplo
+export const LIMITE_DA_CONVERSA = 350_000; // caracteres no total (cerca de 100 mil tokens), com folga para o resto
+
+/**
+ * Encaixa a conversa no limite, sem perder o que importa na avaliação: (1) cada mensagem longa demais é cortada,
+ * com um aviso; (2) se ainda passar, ficam o COMEÇO (o pedido do cliente) e o FIM (a solução), e o meio vira um
+ * aviso de quantas mensagens foram omitidas. Pura, para testes.
+ */
+export function encaixarConversa(
+  mensagens: Mensagem[],
+  limite = LIMITE_DA_CONVERSA,
+  porMensagem = LIMITE_POR_MENSAGEM,
+): { mensagens: Mensagem[]; cortou: boolean } {
+  let cortou = false;
+  const curtas = mensagens.map((m) => {
+    if (m.texto.length <= porMensagem) return m;
+    cortou = true;
+    return {
+      ...m,
+      texto: `${m.texto.slice(0, porMensagem)} [… o resto desta mensagem foi cortado, pelo tamanho]`,
+    };
+  });
+  const total = curtas.reduce((t, m) => t + m.texto.length, 0);
+  if (total <= limite) return { mensagens: curtas, cortou };
+  // O começo (um quarto do limite) e o fim (o resto), e o meio omitido.
+  const inicio: Mensagem[] = [];
+  let usado = 0;
+  for (const m of curtas) {
+    if (usado + m.texto.length > limite / 4) break;
+    inicio.push(m);
+    usado += m.texto.length;
+  }
+  const fim: Mensagem[] = [];
+  for (let i = curtas.length - 1; i >= inicio.length; i--) {
+    const m = curtas[i]!;
+    if (usado + m.texto.length > limite) break;
+    fim.unshift(m);
+    usado += m.texto.length;
+  }
+  const omitidas = curtas.length - inicio.length - fim.length;
+  const aviso: Mensagem = {
+    autor: "nota",
+    nome: null,
+    quando: null,
+    texto: `[… ${omitidas} mensagens do meio da conversa foram omitidas, pelo tamanho]`,
+  };
+  return { mensagens: [...inicio, aviso, ...fim], cortou: true };
+}
 
 export type CriterioParaIA = {
   id: string;
@@ -116,7 +168,16 @@ export function montarPedido(p: {
     .map((a) => `- ${a.nome}: ${a.valor ?? "não preenchido"}`)
     .join("\n");
   const varios = variosAtendentes([...p.mensagens, ...(p.conversaDoCliente ?? [])]);
-  const conversa = linhasDa(p.mensagens, varios);
+  // O tamanho (29/10/2026): num ticket, a conversa com o cliente divide o limite com o ticket.
+  const temCliente = !!p.conversaDoCliente?.length;
+  const doTicket = encaixarConversa(
+    p.mensagens,
+    temCliente ? LIMITE_DA_CONVERSA * 0.6 : LIMITE_DA_CONVERSA,
+  ).mensagens;
+  const doCliente = temCliente
+    ? encaixarConversa(p.conversaDoCliente!, LIMITE_DA_CONVERSA * 0.4).mensagens
+    : [];
+  const conversa = linhasDa(doTicket, varios);
   const partes = [
     `<ficha>\n${ficha}\n</ficha>`,
     p.tipo === "ticket_n2"
@@ -140,7 +201,7 @@ export function montarPedido(p: {
       : "",
     `<conversa>\n${conversa}\n</conversa>`,
     p.conversaDoCliente?.length
-      ? `<conversa_do_cliente>\n${linhasDa(p.conversaDoCliente, varios)}\n</conversa_do_cliente>`
+      ? `<conversa_do_cliente>\n${linhasDa(doCliente, varios)}\n</conversa_do_cliente>`
       : "",
   ].filter(Boolean);
   return {

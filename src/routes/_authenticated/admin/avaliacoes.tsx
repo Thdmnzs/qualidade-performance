@@ -604,8 +604,8 @@ function Avaliacoes() {
               >
                 {pre.estado === "analisando" && (
                   <>
-                    <b>Analisando o atendimento...</b> As sugestões aparecem em alguns segundos.
-                    Você já pode ir preenchendo.
+                    <b>Analisando o atendimento...</b> As sugestões costumam aparecer em menos de um
+                    minuto. Você já pode ir preenchendo.
                   </>
                 )}
                 {pre.estado === "pronta" && (

@@ -32,7 +32,9 @@ export type ResultadoDaPreAvaliacao =
   | { estado: "pronta"; sugestoes: Sugestoes; reaproveitada: boolean }
   | { estado: "falhou"; motivo: string };
 
-const ESPERA_MAXIMA_MS = 40_000; // abaixo do tempo máximo de uma função na Vercel
+// 2 minutos (29/10/2026; antes, 40 s, quando a função da Vercel podia durar só 60 s). Hoje ela pode durar 300 s, e
+// a IA, num momento de lentidão, passava dos 40 s: o pedido era cancelado, e a pré-avaliação não acontecia.
+const ESPERA_MAXIMA_MS = 120_000;
 
 export async function preAvaliar(p: {
   chamadorId: string;
