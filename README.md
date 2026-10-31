@@ -54,8 +54,7 @@ permite trocar. A área decide só a navegação: o que cada um pode ler e grava
 
 ## Base de processos (pré-avaliação por IA)
 
-Cópia versionada dos processos do Notion (Flukepédia | B2C, Flukepédia | B2B e Guia de Clientes Atritados),
-nas tabelas `processos` e `processos_versoes`. Cada página guarda o código (ex.: `B2C-CNT-INT-02`), o status de
+Cópia versionada dos processos do Notion, nas tabelas `processos` e `processos_versoes`. Cada página guarda o código (ex.: `B2C-CNT-INT-02`), o status de
 revisão pela Qualidade e o texto de cada versão; uma versão nova só nasce quando o texto muda. Lida pelo ADM e
 pelos avaliadores; gravada só pelo servidor, pela função `registrar_versao_processo`.
 
